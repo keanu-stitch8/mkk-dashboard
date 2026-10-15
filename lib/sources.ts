@@ -62,6 +62,13 @@ export const PLATFORM_LABEL: Record<string, string> = {
   youtube: "YouTube",
 };
 
+/**
+ * Akun sosmed milik MKK. Post dari akun lain di export Meta (kolaborasi/repost)
+ * tidak dihitung ke performa maupun kuota. Jika tidak ada yang cocok, akun yang
+ * paling banyak muncul di bulan itu dianggap akun MKK.
+ */
+export const OWN_SOCIAL_ACCOUNTS = ["main_ke_kudus", "mainkekudus"];
+
 /** Kuota bulanan default (bisa diubah di halaman Import → Kuota). */
 export const QUOTA_DEFAULTS: { key: string; label: string; value: number }[] = [
   { key: "news", label: "Artikel News", value: 60 },

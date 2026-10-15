@@ -33,8 +33,8 @@ Semua file export yang dipakai dashboard disimpan per bulan, sehingga `npm run s
 ```
 data-samples/
   2026-07/   GA4 (5 CSV) · GSC (ZIP) · YouTube (ZIP)
-  2026-08/   GA4 (5 CSV) · GSC (ZIP) · YouTube (ZIP) · IG Agustus · Report News Agustus
-  2026-09/   GA4 (5 CSV + PDF lama) · GSC (XLSX) · YouTube (folder) · IG September
+  2026-08/   GA4 (5 CSV) · GSC (ZIP) · YouTube (ZIP) · IG Agustus · Report News & Social Media Agustus
+  2026-09/   GA4 (5 CSV) · GSC (XLSX) · YouTube (folder) · IG September
              · Report News, YouTube, Social Media September
 ```
 
@@ -230,7 +230,7 @@ Schema sengaja hanya memakai tipe portable (String/Int/Float/DateTime, tanpa enu
 
 ## Keterbatasan yang diketahui (data Juli–September 2026)
 
-- News Content Log Juli dan Publishing Log sosmed Juli–Agustus belum ada. Untuk bulan tanpa log, News tampil kosong dan kuota sosmed dihitung dari export Meta (tanpa Stories).
+- News Content Log Juli dan Publishing Log sosmed Juli belum ada. Untuk bulan tanpa log, News tampil kosong dan kuota sosmed dihitung dari export Meta (tanpa Stories).
 - Belum ada data Facebook. Parser Facebook tetap tersedia: upload export Meta untuk Page Facebook kapan saja.
 - TikTok belum dimasukkan. Baris TikTok di publishing log tetap tersimpan, tanpa metrik performa.
 - Batas "carousel maks 8 slide" belum dicek otomatis karena export Meta tidak memuat jumlah slide.

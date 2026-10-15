@@ -85,6 +85,7 @@ export function detectMeta(table: RawTable): Dataset[] | null {
     const caption = strOrNull(getCell(r, m, "description")) ?? strOrNull(getCell(r, m, "title"));
     byPlatform[platform].push({
       platform,
+      account: strOrNull(getCell(r, m, "account"))?.replace(/^@/, "").toLowerCase() ?? null,
       postId,
       date: pub.date,
       publishedAt: `${pub.date} ${pub.time ?? "00:00"}`,

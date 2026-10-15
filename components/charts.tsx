@@ -32,7 +32,11 @@ export interface SeriesDef {
 }
 
 function buildConfig(series: SeriesDef[]): ChartConfig {
-  return Object.fromEntries(series.map((s, i) => [s.key, { label: s.name, color: SERIES_COLORS[i % SERIES_COLORS.length] }]));
+  // garis referensi (kuota/target) memakai warna netral dan tidak memakan slot warna kategorikal
+  let slot = 0;
+  return Object.fromEntries(
+    series.map((s) => [s.key, { label: s.name, color: s.reference ? "var(--muted-foreground)" : SERIES_COLORS[slot++ % SERIES_COLORS.length] }]),
+  );
 }
 
 /** Tooltip id-ID: titik warna + nama + nilai terformat. */

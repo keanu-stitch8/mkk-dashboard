@@ -106,11 +106,16 @@ export function detectNewsLog(table: RawTable): Dataset[] | null {
 
 /** Format di publishing log: ambil format pertama ("Reels, Shorts" → reels). */
 export function normalizeLogFormat(raw: string): string {
-  const first = raw.split(/[,/+&]/)[0].trim().toLowerCase();
-  if (!first) return "lainnya";
+  const tokens = raw
+    .split(/[,/+&]/)
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+  if (!tokens.length) return "lainnya";
+  // Shorts hanya mirror dari Reels (video yang sama di YouTube Shorts) → abaikan sebagai format tersendiri.
+  const first = tokens.find((t) => !/short/.test(t));
+  if (!first) return "reels";
   if (/stor/.test(first)) return "story";
   if (/reel/.test(first)) return "reels";
-  if (/short/.test(first)) return "shorts";
   if (/carousel|korsel|album/.test(first)) return "carousel";
   if (/feed|foto|photo|image|gambar|single/.test(first)) return "feeds";
   if (/video/.test(first)) return "video";

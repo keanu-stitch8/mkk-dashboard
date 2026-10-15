@@ -255,9 +255,43 @@ export function StatusBadge({ children, tone = "neutral" }: { children: ReactNod
 // ───────────────────────────── Kuota ─────────────────────────────
 
 
+/**
+ * Bar kuota. Tanpa segmen: satu bar berwarna status (hijau ≥90%, kuning ≥70%, merah).
+ * Dengan segmen (News: Published + In review): bar bertumpuk, panjang relatif terhadap kuota,
+ * dipisah celah 2px; angka & legend selalu ditampilkan di sebelahnya.
+ */
+export function QuotaBar({ q }: { q: QuotaSummary }) {
+  if (!q.segments.length || !q.available) return <QuotaProgress value={q.available ? q.rate : null} label={`Kuota ${q.label}`} />;
+  const scale = Math.max(q.target, q.achieved) || 1;
+  return (
+    <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-muted" role="img" aria-label={q.segments.map((s) => `${s.label} ${s.count}`).join(", ") + ` dari kuota ${q.target}`}>
+      {q.segments
+        .filter((s) => s.count > 0)
+        .map((s) => (
+          <div key={s.label} className="h-full first:rounded-l-full last:rounded-r-full" style={{ width: `${(s.count / scale) * 100}%`, background: s.color }} title={`${s.label}: ${s.count}`} />
+        ))}
+    </div>
+  );
+}
+
+function SegmentLegend({ q }: { q: QuotaSummary }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+      {q.segments.map((s) => (
+        <span key={s.label} className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <span className="size-2.5 rounded-[2px]" style={{ background: s.color }} aria-hidden />
+          {s.label}
+          <span className="num font-medium text-foreground">{fmtNum(s.count)}</span>
+          <span className="num">· {fmtPct(q.target ? s.count / q.target : null)}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** Widget utama halaman konten: kuota tercapai (x / kuota). */
 export function QuotaHero({ q, prev, month, className }: { q: QuotaSummary; prev: QuotaSummary | null; month: string; className?: string }) {
-  const remaining = Math.max(0, q.target - q.published);
+  const remaining = Math.max(0, q.target - q.achieved);
   return (
     <Card className={cn("avoid-break", className)}>
       <CardHeader>
@@ -270,12 +304,13 @@ export function QuotaHero({ q, prev, month, className }: { q: QuotaSummary; prev
       <CardContent className="flex flex-col gap-3">
         <div>
           <div className="mb-1.5 flex items-baseline justify-between text-sm">
-            <span className="text-muted-foreground">Published</span>
+            <span className="text-muted-foreground">{q.achievedLabel}</span>
             <span className="num font-medium">
-              {q.available ? fmtNum(q.published) : DASH} / {fmtNum(q.target)} {q.unit}
+              {q.available ? fmtNum(q.achieved) : DASH} / {fmtNum(q.target)} {q.unit}
             </span>
           </div>
-          <QuotaProgress value={q.available ? q.rate : null} label={`Kuota ${q.label}`} />
+          <QuotaBar q={q} />
+          {q.segments.length > 0 && q.available && <SegmentLegend q={q} />}
           <p className="mt-1.5 text-xs text-muted-foreground">
             {!q.available ? "Belum ada data untuk dinilai." : remaining > 0 ? `Kurang ${fmtNum(remaining)} ${q.unit} untuk mencapai kuota.` : "Kuota tercapai."}
           </p>
@@ -289,10 +324,10 @@ export function QuotaHero({ q, prev, month, className }: { q: QuotaSummary; prev
                   <div className="mb-1 flex justify-between gap-2 text-xs">
                     <span className="text-muted-foreground">{b.label}</span>
                     <span className="num font-medium">
-                      {fmtNum(b.count)} {q.unit} · {fmtPct(q.published ? b.count / q.published : null)}
+                      {fmtNum(b.count)} {q.unit} · {fmtPct(q.achieved ? b.count / q.achieved : null)}
                     </span>
                   </div>
-                  <Progress value={q.published ? (b.count / q.published) * 100 : 0} aria-label={b.label} className="h-1.5 *:data-[slot=progress-indicator]:bg-chart-1" />
+                  <Progress value={q.achieved ? (b.count / q.achieved) * 100 : 0} aria-label={b.label} className="h-1.5 *:data-[slot=progress-indicator]:bg-chart-1" />
                 </div>
               ) : (
                 <div key={b.label}>
@@ -330,12 +365,12 @@ export function QuotaMini({ q, prev, href }: { q: QuotaSummary; prev: QuotaSumma
           </Link>
         </CardDescription>
         <CardTitle className="num text-2xl font-semibold tracking-tight">
-          {q.available ? `${fmtNum(q.published)}/${fmtNum(q.target)}` : DASH}
+          {q.available ? `${fmtNum(q.achieved)}/${fmtNum(q.target)}` : DASH}
           <span className="ml-2 text-sm font-normal text-muted-foreground">{q.available ? fmtPct(q.rate) : ""}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <QuotaProgress value={q.available ? q.rate : null} label={`Kuota ${q.label}`} />
+        <QuotaBar q={q} />
         <DeltaBadge cur={q.available ? q.rate : null} prev={prev?.available ? prev.rate : null} kind="rate" />
       </CardContent>
     </Card>

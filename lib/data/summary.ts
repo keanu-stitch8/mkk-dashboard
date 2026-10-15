@@ -2,7 +2,8 @@
 import { prisma } from "../db";
 import { daysInMonth, lastMonths, prevMonth } from "../month";
 import { getQuotas, type QuotaValue } from "./quota";
-import { FORMAT_LABEL } from "../sources";
+import { FORMAT_LABEL, OWN_SOCIAL_ACCOUNTS } from "../sources";
+import { fmtNum, fmtPct } from "../format";
 import type { Channel } from "../parsers/types";
 
 const sum = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
@@ -301,6 +302,9 @@ export type YoutubeSummary = Awaited<ReturnType<typeof getYoutubeSummary>>;
 
 // ───────────────────────────── Social ─────────────────────────────
 
+/** Kategori untuk post Meta yang tidak punya pasangan di publishing log. */
+export const NOT_IN_LOG_LABEL = "(tidak tercatat di Publishing Log)";
+
 const STOPWORDS = new Set(["yang", "dari", "dengan", "untuk", "kudus", "main", "mainkekudus", "kamu", "jangan", "sudah", "dalam", "pada", "juga", "lebih", "hanya", "bukan", "para", "atau", "akan", "this", "the"]);
 const words = (s: string | null | undefined) =>
   new Set(
@@ -358,14 +362,32 @@ export function matchLogsToPosts<P extends PostRow, L extends LogRow>(posts: P[]
   return out;
 }
 
+/** Akun milik MKK per platform: dari OWN_SOCIAL_ACCOUNTS, atau akun terbanyak jika tidak ada yang cocok. */
+function ownAccounts(posts: { platform: string; account: string | null }[]): Set<string> {
+  const out = new Set<string>();
+  for (const platform of new Set(posts.map((p) => p.platform))) {
+    const counts = new Map<string, number>();
+    for (const p of posts) if (p.platform === platform && p.account) counts.set(p.account, (counts.get(p.account) ?? 0) + 1);
+    const configured = [...counts.keys()].filter((a) => OWN_SOCIAL_ACCOUNTS.includes(a));
+    const chosen = configured.length ? configured : [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 1).map(([a]) => a);
+    for (const a of chosen) out.add(`${platform}:${a}`);
+  }
+  return out;
+}
+
 export async function getSocialSummary(month: string) {
-  const [posts, logs, quotas, manual, imports] = await Promise.all([
+  const [allPosts, logs, quotas, manual, imports] = await Promise.all([
     prisma.socialPost.findMany({ where: { month }, orderBy: { publishedAt: "asc" } }),
     prisma.socialLog.findMany({ where: { month }, orderBy: { date: "asc" } }),
     getQuotas(month),
     manualFor(month, "social"),
     prisma.import.findMany({ where: { month, OR: [{ source: { startsWith: "meta" } }, { source: "social_log" }] } }),
   ]);
+
+  // Hanya post milik akun MKK yang dihitung; kolaborasi/repost dari akun lain dipisah.
+  const own = ownAccounts(allPosts);
+  const posts = allPosts.filter((p) => !p.account || own.has(`${p.platform}:${p.account}`));
+  const collabPosts = allPosts.filter((p) => !posts.includes(p)).map((p) => ({ ...p, er: safeDiv(p.interactions, p.reach) }));
 
   const matched = matchLogsToPosts(posts, logs);
   const enriched = posts.map((p) => {
@@ -416,7 +438,7 @@ export async function getSocialSummary(month: string) {
 
   const byPlatform = aggregate((p) => ({ label: p.platform, platform: p.platform, format: "" }));
   const byFormat = aggregate((p) => ({ label: `${p.platform}:${p.format}`, platform: p.platform, format: p.format }));
-  const byCategory = aggregate((p) => ({ label: p.category ?? "(belum ada di log)", platform: "", format: "" }));
+  const byCategory = aggregate((p) => ({ label: p.category ?? NOT_IN_LOG_LABEL, platform: "", format: "" }));
 
   const daily = daysInMonth(month).map((d) => {
     const dayPosts = enriched.filter((p) => p.date === d);
@@ -441,6 +463,8 @@ export async function getSocialSummary(month: string) {
     publishedByFormat,
     /** post di export Meta yang tidak tercatat di publishing log (hanya relevan jika log ada) */
     postsNotInLog: logs.length ? enriched.filter((p) => !p.inLog) : [],
+    /** post kolaborasi/repost milik akun lain — tidak dihitung ke performa maupun kuota */
+    collabPosts,
     activeDays: activeDates.size,
     emptyStreak: longestEmptyStreak(month, activeDates),
     byPlatform,
@@ -471,8 +495,14 @@ export interface QuotaSummary {
   label: string;
   unit: string;
   published: number;
+  /** jumlah yang dihitung ke kuota (News: published + in review = delivered) */
+  achieved: number;
+  achievedLabel: string;
   target: number;
+  /** achieved ÷ target */
   rate: number | null;
+  /** bagian-bagian bar bertumpuk (mis. Published + In review); kosong = bar tunggal */
+  segments: { label: string; count: number; color: string }[];
   /** false jika belum ada data yang bisa dinilai untuk bulan ini */
   available: boolean;
   /** rincian; target null = hanya jumlah (tanpa target per item) */
@@ -490,12 +520,19 @@ export function contentQuota(b: MonthBundle, channel: QuotaSummary["channel"]): 
       label: "Artikel",
       unit: "artikel",
       published: n.published,
+      // yang sudah diserahkan = publish + review
+      achieved: n.delivered,
+      achievedLabel: "Delivered",
       target: n.quota.value,
-      rate: n.hasData ? n.publishedRate : null,
+      rate: n.hasData ? n.achievement : null,
+      segments: [
+        { label: "Published", count: n.published, color: "var(--chart-1)" },
+        { label: "In review", count: n.inReview, color: "var(--chart-2)" },
+      ],
       available: n.hasData,
       breakdown: [],
-      note: n.hasData ? `Delivered (publish + review): ${n.delivered} / ${n.quota.value} · ${n.inReview} artikel masih review` : undefined,
-      source: "Dari News Content Logs (status Publish)",
+      note: n.hasData ? `Published saja: ${fmtNum(n.published)} / ${fmtNum(n.quota.value)} (${fmtPct(n.publishedRate)})` : undefined,
+      source: "Dari News Content Logs (status Publish + Review)",
     };
   }
   if (channel === "youtube") {
@@ -505,8 +542,11 @@ export function contentQuota(b: MonthBundle, channel: QuotaSummary["channel"]): 
       label: "Video YouTube",
       unit: "video",
       published: y.published,
+      achieved: y.published,
+      achievedLabel: "Published",
       target: y.quota.value,
       rate: y.hasData ? y.achievement : null,
+      segments: [],
       available: y.hasData,
       breakdown: [],
       source: y.logs.length ? "Dari publishing log YouTube" : "Dari tanggal publish video",
@@ -520,14 +560,17 @@ export function contentQuota(b: MonthBundle, channel: QuotaSummary["channel"]): 
     label: "Post sosmed",
     unit: "post",
     published: q.count,
+    achieved: q.count,
+    achievedLabel: "Published",
     target: q.quota.value,
     rate: q.available ? q.rate : null,
+    segments: [],
     available: q.available,
     breakdown: s.publishedByFormat.map((f) => ({ label: FORMAT_LABEL[f.format] ?? f.format, count: f.count, target: null, rate: null })),
     note:
       s.countSource === "log"
         ? notInLog
-          ? `${notInLog} post di export Meta tidak tercatat di Publishing Log (tidak dihitung ke kuota)`
+          ? `${notInLog} post akun MKK tidak tercatat di Publishing Log (tidak dihitung ke kuota)`
           : undefined
         : "Stories tidak ada di export Meta — import Publishing Log untuk angka resmi",
     source: s.countSource === "log" ? "Dari Publishing Log (status Publish) · 1 baris = 1 post" : "Dari export Meta",
@@ -634,6 +677,7 @@ export async function getTrend(month: string, n = 6) {
     gscImpressions: b.website.gscImpressions,
     newsPublished: b.news.hasData ? b.news.published : null,
     newsQuota: b.news.quota.value,
+    newsDelivered: b.news.hasData ? b.news.delivered : null,
     newsViews: b.news.hasData ? b.news.totalViews : null,
     ytPublished: b.youtube.hasData ? b.youtube.published : null,
     ytQuota: b.youtube.quota.value,

@@ -44,8 +44,15 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
       {/* 1. Kuota tercapai + produksi vs kuota */}
       <div className="grid gap-4 lg:grid-cols-3">
         <QuotaHero q={quota} prev={prevQuota} month={month} />
-        <Section title="Published vs kuota" subtitle="Artikel per bulan · 6 bulan terakhir" className="lg:col-span-2">
-          <TrendChart data={labels} series={[{ key: "newsPublished", name: "Published" }, { key: "newsQuota", name: "Kuota", reference: true }]} />
+        <Section title="Delivered vs kuota" subtitle="Artikel per bulan · delivered = published + in review · 6 bulan terakhir" className="lg:col-span-2">
+          <TrendChart
+            data={labels}
+            series={[
+              { key: "newsPublished", name: "Published" },
+              { key: "newsDelivered", name: "Delivered (+ review)" },
+              { key: "newsQuota", name: "Kuota", reference: true },
+            ]}
+          />
         </Section>
       </div>
 

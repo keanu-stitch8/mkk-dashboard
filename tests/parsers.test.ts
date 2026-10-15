@@ -148,6 +148,9 @@ describe.skipIf(!hasSamples)("data-samples", () => {
     const sep = applyMonth(ig, "2026-09");
     expect(sep.rows).toHaveLength(31);
     expect(sep.rows.find((r) => String(r.caption).startsWith("Batik Kudus tak hanya"))).toMatchObject({ date: "2026-09-01", publishedAt: "2026-09-01 12:23" });
+    // post kolaborasi milik akun lain tetap terbaca, dengan akun pemiliknya
+    const accounts = sep.rows.reduce<Record<string, number>>((a, r) => ((a[String(r.account)] = (a[String(r.account)] ?? 0) + 1), a), {});
+    expect(accounts).toEqual({ main_ke_kudus: 27, "kudus.asik": 2, opiniid: 1, pbdjarumofficial: 1 });
   });
 
   it("GSC ZIP (CSV): bulan diambil dari Filters.csv untuk semua tabel", () => {
@@ -183,7 +186,7 @@ describe.skipIf(!hasSamples)("data-samples", () => {
   });
 
   it("PDF ditolak dengan pesan jelas", () => {
-    const r = parseFiles([file("2026-09/Pages_and_screens_Page_path_and_screen_class.pdf")]);
+    const r = parseFiles([text("Pages_and_screens_Page_path_and_screen_class.pdf", "%PDF-1.4\n%dummy")]);
     expect(r.datasets).toHaveLength(0);
     expect(r.errors[0]).toMatch(/CSV/);
   });
@@ -247,7 +250,7 @@ describe("format sintetis (UI Indonesia / Google Sheets)", () => {
     expect(d.rows.map((x) => [x.platform, x.format, x.status])).toEqual([
       ["instagram", "reels", "publish"],
       ["instagram", "carousel", "draft"],
-      ["tiktok", "shorts", "publish"],
+      ["tiktok", "reels", "publish"],
       ["facebook", "feeds", "publish"],
     ]);
   });
@@ -259,10 +262,13 @@ describe("format sintetis (UI Indonesia / Google Sheets)", () => {
       '2,"Sep 3, 2026",Sate Kerbau,Featured News,"Instagram, Facebook",Stories,Publish,Remote',
       '3,"Sep 3, 2026",7 Kuliner,Featured News,"Instagram, TikTok, Facebook, Threads",Feeds,Publish,Remote',
       '4,"Sep 10, 2026",SMC Recap,Teaser Recap,"Instagram, Facebook",Videos,Publish,Remote',
+      // Shorts = mirror Reels: urutan terbalik atau Shorts saja tetap dihitung Reels
+      '5,"Sep 16, 2026",PB Sahabat,Featured Video,"Instagram, Facebook, TikTok, Youtube","Shorts, Reels",Publish,Remote',
+      '6,"Sep 17, 2026",Mirror,Featured Video,Youtube,Shorts,Publish,Remote',
     ].join("\n");
     const d = get(parseFiles([text("log.csv", csv)], "social_log").datasets, "social_log");
-    expect(d.rows).toHaveLength(4);
-    expect(d.rows.map((x) => x.format)).toEqual(["reels", "story", "feeds", "video"]);
+    expect(d.rows).toHaveLength(6);
+    expect(d.rows.map((x) => x.format)).toEqual(["reels", "story", "feeds", "video", "reels", "reels"]);
     expect(d.rows[0]).toMatchObject({ platform: "instagram,tiktok,facebook,threads,youtube", title: "Batik Kudus", category: "Featured Video", date: "2026-09-01" });
   });
 

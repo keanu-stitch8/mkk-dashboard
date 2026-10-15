@@ -238,6 +238,8 @@ model SocialPost {
   importId     String
   month        String
   platform     String // instagram | facebook
+  /// username akun pemilik post (post kolaborasi bisa milik akun lain)
+  account      String?
   postId       String
   date         String
   publishedAt  String // "YYYY-MM-DD HH:mm"

@@ -73,7 +73,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   const pqn = prev.news.hasData ? contentQuota(prev, "news") : null;
   const pqy = prev.youtube.hasData ? contentQuota(prev, "youtube") : null;
   const pqs = prev.social.hasData ? contentQuota(prev, "social") : null;
-  const quotaLabel = (q: typeof qn) => `Kuota tercapai (${q.available ? fmtNum(q.published) : "—"}/${fmtNum(q.target)} ${q.unit})`;
+  const quotaLabel = (q: typeof qn) => `Kuota tercapai (${q.achievedLabel.toLowerCase()} ${q.available ? fmtNum(q.achieved) : "—"}/${fmtNum(q.target)} ${q.unit})`;
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">

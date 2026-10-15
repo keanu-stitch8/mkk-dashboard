@@ -149,6 +149,64 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
         </Section>
       )}
 
+      {s.hasLog && s.postsNotInLog.length > 0 && (
+        <Section
+          title="Post tidak tercatat di Publishing Log"
+          subtitle={`${fmtNum(s.postsNotInLog.length)} post milik akun MKK ada di export Meta tapi tidak punya pasangan di log — tetap dihitung di performa, tidak dihitung ke kuota. Tambahkan ke Publishing Log.`}
+        >
+          <DataTable
+            rows={[...s.postsNotInLog].sort((a, b) => a.publishedAt.localeCompare(b.publishedAt))}
+            columns={[
+              { header: "Tanggal (WIB)", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.date)}</span> },
+              { header: "Format", cell: (r) => <span className="whitespace-nowrap">{fmtLabel(r.platform, r.format)}</span> },
+              {
+                header: "Post",
+                cell: (r) =>
+                  r.permalink ? (
+                    <a href={r.permalink} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline">
+                      {truncate(r.caption, 70) || "(tanpa caption)"}
+                    </a>
+                  ) : (
+                    truncate(r.caption, 70)
+                  ),
+              },
+              { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
+              { header: "Reach", align: "right", cell: (r) => fmtNum(r.reach) },
+              { header: "ER", align: "right", cell: (r) => fmtPct(r.er, 2) },
+            ]}
+          />
+        </Section>
+      )}
+
+      {s.collabPosts.length > 0 && (
+        <Section
+          title="Repost / kolaborasi dari akun lain"
+          subtitle={`${fmtNum(s.collabPosts.length)} post di export Meta milik akun lain (kolaborasi) — tidak dihitung ke performa maupun kuota MKK.`}
+        >
+          <DataTable
+            rows={[...s.collabPosts].sort((a, b) => a.publishedAt.localeCompare(b.publishedAt))}
+            columns={[
+              { header: "Tanggal (WIB)", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.date)}</span> },
+              { header: "Akun", cell: (r) => <span className="whitespace-nowrap">@{r.account}</span> },
+              { header: "Format", cell: (r) => <span className="whitespace-nowrap">{fmtLabel(r.platform, r.format)}</span> },
+              {
+                header: "Post",
+                cell: (r) =>
+                  r.permalink ? (
+                    <a href={r.permalink} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline">
+                      {truncate(r.caption, 60) || "(tanpa caption)"}
+                    </a>
+                  ) : (
+                    truncate(r.caption, 60)
+                  ),
+              },
+              { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
+              { header: "Reach", align: "right", cell: (r) => fmtNum(r.reach) },
+            ]}
+          />
+        </Section>
+      )}
+
       {/* 5. Bulan ini vs bulan lalu + rekomendasi */}
       <div className="grid gap-4 lg:grid-cols-2">
         <CompareTable

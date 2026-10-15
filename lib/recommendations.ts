@@ -137,13 +137,14 @@ export const RULES: Rule[] = [
     channel: "news",
     run: ({ cur }) => {
       const n = cur.news;
-      if (!n.hasData || n.publishedRate == null || n.publishedRate >= 0.9) return null;
-      const gap = Math.max(0, n.quota.value - n.published);
+      // kuota dinilai dari delivered (published + in review)
+      if (!n.hasData || n.achievement == null || n.achievement >= 0.9) return null;
+      const gap = Math.max(0, n.quota.value - n.delivered);
       return {
-        priority: n.publishedRate < 0.7 ? "tinggi" : "sedang",
+        priority: n.achievement < 0.7 ? "tinggi" : "sedang",
         title: "Kuota artikel belum tercapai",
-        text: `Baru ${fmtNum(n.published)} dari ${fmtNum(n.quota.value)} artikel terbit (${fmtPct(n.publishedRate)}); kurang ${fmtNum(gap)}.${
-          n.inReview ? ` Ada ${fmtNum(n.inReview)} artikel masih review — percepat approval supaya delivery mencapai ${fmtPct(n.achievement)}.` : ""
+        text: `Delivered ${fmtNum(n.delivered)} dari ${fmtNum(n.quota.value)} artikel (${fmtPct(n.achievement)}): ${fmtNum(n.published)} published + ${fmtNum(n.inReview)} in review; kurang ${fmtNum(gap)}.${
+          n.inReview ? ` Percepat approval ${fmtNum(n.inReview)} artikel yang masih review supaya cepat terbit.` : ""
         }`,
       };
     },
