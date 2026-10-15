@@ -1,0 +1,340 @@
+# ----------------------------------------
+# Generate leads overview
+# Account: UA-6038727
+# Property: Main Ke Kudus
+# ----------------------------------------
+#  
+# Start date: 20260901
+# End date: 20260930
+Nth day,New users
+0000,33
+0001,66
+0002,50
+0003,20
+0004,23
+0005,4
+0006,28
+0007,23
+0008,39
+0009,13
+0010,23
+0011,9
+0012,24
+0013,42
+0014,21
+0015,17
+0016,16
+0017,11
+0018,10
+0019,12
+0020,18
+0021,20
+0022,19
+0023,68
+0024,13
+0025,13
+0026,4
+0027,17
+0028,36
+0029,81
+
+# Start date: 20260901
+# End date: 20260930
+Nth day,Returning users
+0000,22
+0001,25
+0002,21
+0003,24
+0004,5
+0005,3
+0006,16
+0007,12
+0008,13
+0009,11
+0010,17
+0011,11
+0012,9
+0013,23
+0014,14
+0015,17
+0016,20
+0017,10
+0018,6
+0019,12
+0020,15
+0021,15
+0022,13
+0023,20
+0024,13
+0025,12
+0026,0
+0027,15
+0028,15
+0029,28
+
+# Start date: 20260901
+# End date: 20260930
+Nth day,Qualified leads
+0000,0
+0001,0
+0002,0
+0003,0
+0004,0
+0005,0
+0006,0
+0007,0
+0008,0
+0009,0
+0010,0
+0011,0
+0012,0
+0013,0
+0014,0
+0015,0
+0016,0
+0017,0
+0018,0
+0019,0
+0020,0
+0021,0
+0022,0
+0023,0
+0024,0
+0025,0
+0026,0
+0027,0
+0028,0
+0029,0
+
+# Start date: 20260901
+# End date: 20260930
+Nth day,Converted leads
+0000,0
+0001,0
+0002,0
+0003,0
+0004,0
+0005,0
+0006,0
+0007,0
+0008,0
+0009,0
+0010,0
+0011,0
+0012,0
+0013,0
+0014,0
+0015,0
+0016,0
+0017,0
+0018,0
+0019,0
+0020,0
+0021,0
+0022,0
+0023,0
+0024,0
+0025,0
+0026,0
+0027,0
+0028,0
+0029,0
+
+#  
+# Start date: 20260901
+# End date: 20260930
+Platform,Key events
+
+
+#  
+# Start date: 20260901
+# End date: 20260930
+First user primary channel group (Default Channel Group),New users
+Direct,483
+Organic Social,202
+Organic Search,76
+AI Assistant,6
+Referral,6
+
+# How well do you retain your users?
+# Start date: 20260830
+# End date: 20261010
+Date,Week 0,Week 1,Week 2,Week 3,Week 4,Week 5
+Aug 30 - Sep 5,218,6,2,4,6,3
+Sep 6 - Sep 12,139,5,3,0,1,-1
+Sep 13 - Sep 19,141,4,2,2,-1,-1
+Sep 20 - Sep 26,163,0,1,-1,-1,-1
+Sep 27 - Oct 3,211,5,-1,-1,-1,-1
+Oct 4 - Oct 10,199,-1,-1,-1,-1,-1
+
+#  
+# Start date: 20260901
+# End date: 20260930
+Audience name,Active users
+All Users,835
+
+#  
+# Start date: 20260901
+# End date: 20260930
+City,Active users
+Kudus,301
+Semarang,168
+Jakarta,98
+Bogor,35
+Tel Aviv-Yafo,23
+Malang,22
+Prineville,17
+Depok,14
+Lulea,13
+Pati,13
+Surabaya,13
+Boardman,11
+Kalinyamatan,10
+Ashburn,9
+Denpasar,9
+Dublin,9
+Surakarta,9
+Purwokerto,8
+Dalung,7
+Medan,7
+Palembang,7
+Singapore,7
+South Tangerang,7
+Blora,5
+Makassar,5
+Yogyakarta,5
+Bekasi,4
+Forest City,4
+Fort Worth,4
+Kuta Selatan,4
+New York,4
+Pecangaan,4
+Samarinda,4
+Columbus,3
+Demak,3
+Kemang,3
+Kuta,3
+Pekanbaru,3
+Purwodadi,3
+Ubud,3
+Altoona,2
+Ann Arbor,2
+Balikpapan,2
+Bandung,2
+Banjarmasin,2
+Batu,2
+Brati,2
+Cigombong,2
+Cijeruk,2
+Cisarua,2
+Godean,2
+Jepara,2
+London,2
+Mertoyudan,2
+Mlonggo,2
+Muntilan,2
+Padang,2
+Pekalongan,2
+Rembang,2
+Tangerang,2
+Wonosari,2
+Abiansemal,1
+Amlapura,1
+Ampang Jaya,1
+Atlanta,1
+Bac Giang,1
+Bandar Lampung,1
+Bandar Seri Begawan,1
+Banjarbaru,1
+Banjarnegara,1
+Batam,1
+Bekasi Regency,1
+Bengkulu,1
+Brebes,1
+Cilacap,1
+Dramaga,1
+Dukuhturi,1
+Dumai,1
+Feira de Santana,1
+Frankfurt am Main,1
+Gallatin,1
+Gianyar,1
+Grogol,1
+Hangzhou,1
+Hindman,1
+Hodgenville,1
+Hong Kong,1
+Honolulu,1
+Ilion,1
+Indianapolis,1
+Jambi,1
+Kaliwungu,1
+Karanganyar,1
+Karangmalang,1
+Kedung,1
+Keene,1
+Kitakyushu,1
+Klaten,1
+Kuala Lumpur,1
+Lafayette,1
+Lexington,1
+Madurai,1
+Magelang,1
+Megamendung,1
+Mitchell,1
+Montreal,1
+Mount Isa,1
+Murphy,1
+New Haven,1
+New Milford,1
+Nganjuk,1
+Oxford,1
+Panggungharjo,1
+Paris,1
+Petaling Jaya,1
+Presque Isle,1
+Purworejo,1
+Rheinbollen,1
+Rogersville,1
+Salt Lake City,1
+Sao Paulo,1
+Semanu,1
+Sidoarjo,1
+Springfield,1
+Tahunan,1
+Tanjung Pandan,1
+Tarakan,1
+Telukjambe,1
+Townsend,1
+Turner,1
+Virginia Beach,1
+Waxhaw,1
+
+#  
+# Start date: 20260901
+# End date: 20260930
+Session manual source,Sessions
+google,498
+l.instagram.com,161
+ig,60
+bing,59
+yahoo,44
+m.facebook.com,30
+facebook.com,28
+search.google.com,23
+chatgpt.com,9
+id.search.yahoo.com,6
+youtube.com,4
+teams.public.onecdn.static.microsoft,3
+id.images.search.yahoo.com,2
+michigandaily.com,2
+tiktok.com,2
+l.facebook.com,1
+l.threads.com,1
+lm.facebook.com,1
+web.freesky.id,1
+
+#  
+# Start date: 20260901
+# End date: 20260930
+Nth day

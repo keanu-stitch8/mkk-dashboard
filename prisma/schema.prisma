@@ -1,0 +1,313 @@
+// Schema dashboard MKK.
+// Sengaja hanya pakai tipe portable (String, Int, Float, DateTime) tanpa enum/Json
+// supaya bisa dipindah ke PostgreSQL cukup dengan mengganti `provider`.
+// Tanggal harian disimpan sebagai String "YYYY-MM-DD" dan bulan sebagai "YYYY-MM".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Satu file/dataset yang di-import untuk satu bulan.
+/// (month, source) unik → import ulang = replace (child rows ikut terhapus via cascade).
+model Import {
+  id        String   @id @default(cuid())
+  month     String
+  source    String // dataset key, mis. ga4_traffic, gsc_queries, meta_instagram
+  fileName  String
+  rowCount  Int
+  note      String?
+  createdAt DateTime @default(now())
+
+  metrics      Metric[]
+  breakdowns   Breakdown[]
+  ga4Channels  Ga4Channel[]
+  ga4Pages     Ga4Page[]
+  ga4Landings  Ga4Landing[]
+  gscQueries   GscQuery[]
+  gscPages     GscPage[]
+  gscDaily     GscDaily[]
+  ytVideos     YtVideo[]
+  ytDaily      YtDaily[]
+  ytLogs       YtLog[]
+  socialPosts  SocialPost[]
+  socialLogs   SocialLog[]
+  newsArticles NewsArticle[]
+  newsViews    NewsView[]
+
+  @@unique([month, source])
+  @@index([month])
+}
+
+/// Angka total hasil import (mis. users dari GA4 overview, total row YouTube).
+model Metric {
+  id       String @id @default(cuid())
+  importId String
+  month    String
+  channel  String // website | news | youtube | social
+  key      String
+  value    Float
+  import   Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month, channel])
+}
+
+/// Input manual (fallback / override) per bulan.
+model ManualMetric {
+  id        String   @id @default(cuid())
+  month     String
+  channel   String
+  key       String
+  value     Float
+  updatedAt DateTime @updatedAt
+
+  @@unique([month, channel, key])
+}
+
+/// Kuota bulanan. month = "default" untuk nilai default, atau "YYYY-MM" untuk override.
+model Quota {
+  id    String @id @default(cuid())
+  month String
+  key   String // news | youtube | ig_reels | ig_carousel | ...
+  value Float
+
+  @@unique([month, key])
+}
+
+/// Breakdown generik format panjang (kota, device, negara, new users per channel, dst).
+model Breakdown {
+  id        String @id @default(cuid())
+  importId  String
+  month     String
+  channel   String
+  dimension String
+  label     String
+  metric    String
+  value     Float
+  import    Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month, channel, dimension])
+}
+
+model Ga4Channel {
+  id                 String @id @default(cuid())
+  importId           String
+  month              String
+  channel            String
+  sessions           Float
+  engagedSessions    Float?
+  engagementRate     Float? // pecahan 0–1
+  avgEngagementTime  Float? // detik per sesi
+  eventCount         Float?
+  users              Float?
+  newUsers           Float?
+  import             Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+model Ga4Page {
+  id                String @id @default(cuid())
+  importId          String
+  month             String
+  path              String // path ternormalisasi (atau judul jika export per judul)
+  title             String?
+  views             Float
+  activeUsers       Float?
+  avgEngagementTime Float? // detik per active user
+  eventCount        Float?
+  import            Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month, path])
+}
+
+model Ga4Landing {
+  id                String @id @default(cuid())
+  importId          String
+  month             String
+  path              String
+  sessions          Float
+  activeUsers       Float?
+  newUsers          Float?
+  avgEngagementTime Float?
+  import            Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+model GscQuery {
+  id          String @id @default(cuid())
+  importId    String
+  month       String
+  query       String
+  clicks      Float
+  impressions Float
+  ctr         Float // pecahan 0–1
+  position    Float
+  import      Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+model GscPage {
+  id          String @id @default(cuid())
+  importId    String
+  month       String
+  url         String
+  path        String
+  clicks      Float
+  impressions Float
+  ctr         Float
+  position    Float
+  import      Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+model GscDaily {
+  id          String @id @default(cuid())
+  importId    String
+  month       String
+  date        String
+  clicks      Float
+  impressions Float
+  ctr         Float
+  position    Float
+  import      Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+model YtVideo {
+  id                 String  @id @default(cuid())
+  importId           String
+  month              String
+  videoId            String
+  title              String
+  publishedDate      String?
+  durationSec        Float?
+  views              Float
+  watchHours         Float?
+  avgViewDurationSec Float?
+  impressions        Float?
+  ctr                Float? // pecahan 0–1
+  uniqueViewers      Float?
+  subsGained         Float?
+  subsLost           Float?
+  import             Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+model YtDaily {
+  id         String @id @default(cuid())
+  importId   String
+  month      String
+  date       String
+  watchHours Float?
+  views      Float?
+  import     Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+/// Publishing log YouTube (Google Sheets / report XLSX).
+model YtLog {
+  id       String  @id @default(cuid())
+  importId String
+  month    String
+  date     String?
+  title    String
+  url      String?
+  videoId  String?
+  format   String?
+  category String?
+  status   String // publish | review | draft | lainnya
+  import   Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+/// Post dari export Meta Business Suite (Instagram / Facebook).
+model SocialPost {
+  id           String @id @default(cuid())
+  importId     String
+  month        String
+  platform     String // instagram | facebook
+  postId       String
+  date         String
+  publishedAt  String // "YYYY-MM-DD HH:mm"
+  format       String // reels | carousel | feeds | video | photo | story | lainnya
+  rawType      String?
+  caption      String?
+  permalink    String?
+  views        Float?
+  reach        Float?
+  likes        Float?
+  comments     Float?
+  shares       Float?
+  saves        Float?
+  follows      Float?
+  interactions Float?
+  durationSec  Float?
+  import       Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month, platform])
+}
+
+/// Publishing log sosmed (Google Sheets).
+model SocialLog {
+  id       String  @id @default(cuid())
+  importId String
+  month    String
+  date     String?
+  platform String
+  format   String
+  category String?
+  admin    String?
+  designer String?
+  status   String
+  title    String?
+  url      String?
+  import   Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+/// Artikel dari News Content Logs.
+model NewsArticle {
+  id            String  @id @default(cuid())
+  importId      String
+  month         String
+  date          String?
+  submittedDate String?
+  title         String
+  url           String?
+  path          String?
+  category      String?
+  reporter      String?
+  status        String // publish | review | draft | lainnya
+  type          String?
+  method        String?
+  import        Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
+
+/// Views per artikel yang sudah dihitung di report News (fallback jika GA4 Pages belum di-import).
+model NewsView {
+  id                String @id @default(cuid())
+  importId          String
+  month             String
+  path              String
+  views             Float
+  activeUsers       Float?
+  avgEngagementTime Float?
+  import            Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([month])
+}
