@@ -126,21 +126,24 @@ function sheetRows(ws: XLSX.WorkSheet): Cell[][] {
   return rows;
 }
 
+/** Baris "Date | Sep 1, 2026-Sep 30, 2026" dari sheet/CSV Filters Search Console → rentang tanggal. */
+function rangeFromFilterRows(rows: Cell[][]): { startDate?: string; endDate?: string } {
+  for (const row of rows) {
+    if (/^(date|tanggal)$/i.test(String(row[0] ?? "").trim())) {
+      const parts = String(row[1] ?? "").split(/\s+-\s+|(?<=\d{4})\s*-\s*/);
+      return { startDate: parseDate(parts[0])?.date, endDate: parts[1] ? parseDate(parts[1])?.date : undefined };
+    }
+  }
+  return {};
+}
+
 function readXlsx(name: string, data: Uint8Array): RawTable[] {
   const wb = XLSX.read(data, { type: "array", cellDates: false, cellNF: true });
   // GSC: sheet "Filters" berisi rentang tanggal
   let startDate: string | undefined;
   let endDate: string | undefined;
   const filters = wb.SheetNames.find((n) => /^(filters|filter)$/i.test(n));
-  if (filters) {
-    for (const row of sheetRows(wb.Sheets[filters])) {
-      if (/^(date|tanggal)$/i.test(String(row[0] ?? "").trim())) {
-        const parts = String(row[1] ?? "").split(/\s+-\s+|(?<=\d{4})\s*-\s*/);
-        startDate = parseDate(parts[0])?.date;
-        endDate = parts[1] ? parseDate(parts[1])?.date : undefined;
-      }
-    }
-  }
+  if (filters) ({ startDate, endDate } = rangeFromFilterRows(sheetRows(wb.Sheets[filters])));
   const nameDates = datesFromName(name);
   return wb.SheetNames.filter((n) => n !== filters).map((n) => ({
     file: name,
@@ -160,12 +163,23 @@ export function readTables(file: InputFile): { tables: RawTable[]; errors: strin
     if (lower.endsWith(".zip")) {
       const entries = unzipSync(file.data);
       const tables: RawTable[] = [];
+      let range: { startDate?: string; endDate?: string } = {};
       for (const [path, data] of Object.entries(entries)) {
         if (path.endsWith("/") || path.startsWith("__MACOSX") || path.split("/").pop()!.startsWith(".")) continue;
+        // Filters.csv (export CSV Search Console) berisi rentang tanggal untuk semua tabel di zip
+        if (/(^|\/)filters?\.csv$/i.test(path)) {
+          range = rangeFromFilterRows(Papa.parse<string[]>(decodeText(data), { skipEmptyLines: true }).data);
+          continue;
+        }
         // nama zip ikut dipakai supaya rentang tanggal di nama file zip terbaca
         const r = readTables({ name: `${file.name.replace(/\.zip$/i, "")}/${path}`, data });
         tables.push(...r.tables);
         errors.push(...r.errors);
+      }
+      if (range.startDate) {
+        for (const t of tables) {
+          if (!t.startDate) Object.assign(t, range);
+        }
       }
       return { tables, errors };
     }

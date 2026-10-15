@@ -76,7 +76,7 @@ describe("header matching", () => {
 
 describe.skipIf(!hasSamples)("data-samples", () => {
   it("GA4 Traffic acquisition CSV (baris # di-skip)", () => {
-    const r = parseFiles([file("Traffic_acquisition_Session_primary_channel_group_(Default_Channel_Group).csv")], "ga4");
+    const r = parseFiles([file("2026-09/Traffic_acquisition_Session_primary_channel_group_(Default_Channel_Group).csv")], "ga4");
     const d = get(r.datasets, "ga4_traffic");
     expect(d.month).toBe("2026-09");
     expect(d.rows).toHaveLength(7);
@@ -85,7 +85,7 @@ describe.skipIf(!hasSamples)("data-samples", () => {
   });
 
   it("GA4 Landing page, City, dan overview multi-blok", () => {
-    const r = parseFiles([file("Landing_page_Landing_page.csv"), file("Demographic_details_City.csv"), file("Generate_leads_overview.csv")], "ga4");
+    const r = parseFiles([file("2026-09/Landing_page_Landing_page.csv"), file("2026-09/Demographic_details_City.csv"), file("2026-09/Generate_leads_overview.csv")], "ga4");
     expect(get(r.datasets, "ga4_landing").rows).toHaveLength(179);
     const city = get(r.datasets, "ga4_city");
     expect(city.breakdowns[0]).toMatchObject({ label: "Kudus", value: 301 });
@@ -95,7 +95,7 @@ describe.skipIf(!hasSamples)("data-samples", () => {
   });
 
   it("GA4 Pages and screens CSV: semua baris + path ternormalisasi", () => {
-    const r = parseFiles([file("Pages_and_screens_Page_path_and_screen_class (1).csv")], "ga4");
+    const r = parseFiles([file("2026-09/Pages_and_screens_Page_path_and_screen_class.csv")], "ga4");
     const d = get(r.datasets, "ga4_pages");
     expect(d.month).toBe("2026-09");
     expect(d.rows).toHaveLength(431);
@@ -104,7 +104,7 @@ describe.skipIf(!hasSamples)("data-samples", () => {
   });
 
   it("GSC XLSX: semua sheet + bulan dari sheet Filters", () => {
-    const r = parseFiles([file("mainkekudus.com-Performance-on-Search-2026-10-15.xlsx")], "gsc");
+    const r = parseFiles([file("2026-09/mainkekudus.com-Performance-on-Search-September-2026.xlsx")], "gsc");
     expect(get(r.datasets, "gsc_queries").rows).toHaveLength(61);
     expect(get(r.datasets, "gsc_pages").rows).toHaveLength(109);
     const dates = get(r.datasets, "gsc_dates");
@@ -115,7 +115,7 @@ describe.skipIf(!hasSamples)("data-samples", () => {
   });
 
   it("YouTube Studio: Table data (Total row) + Totals harian", () => {
-    const dir = "Content 2026-09-01_2026-10-01 September";
+    const dir = "2026-09/Content 2026-09-01_2026-10-01 September";
     const r = parseFiles([file(`${dir}/Table data.csv`), file(`${dir}/Chart data.csv`), file(`${dir}/Totals.csv`)], "youtube");
     const t = get(r.datasets, "yt_table");
     expect(t.rows).toHaveLength(4);
@@ -131,25 +131,39 @@ describe.skipIf(!hasSamples)("data-samples", () => {
   });
 
   it("Meta: Instagram terdeteksi dari isi file", () => {
-    const r = parseFiles([file("Insight IG Agustus.csv")], "meta");
+    const r = parseFiles([file("2026-08/Insight IG Agustus.csv")], "meta");
     const ig = get(r.datasets, "meta_instagram");
     expect(ig.month).toBe("2026-08");
     expect(ig.rows).toHaveLength(25);
     expect(ig.rows.filter((x) => x.format === "reels")).toHaveLength(11);
     expect(ig.rows.filter((x) => x.format === "carousel")).toHaveLength(14);
     expect(ig.rows.reduce((a, b) => a + Number(b.reach), 0)).toBe(76101);
+    // 1 post 31 Agu 22:23 Pacific = 1 Sep WIB → bukan milik Agustus
+    expect(applyMonth(ig, "2026-08").rows).toHaveLength(24);
   });
 
-  it.skipIf(!existsSync(join(SAMPLES, "Insight IG Sept.csv")))("Meta: file bernama IG berisi Facebook disimpan sebagai Facebook", () => {
-    const fb = get(parseFiles([file("Insight IG Sept.csv")], "meta").datasets, "meta_facebook");
-    expect(fb.month).toBe("2026-09");
-    expect(fb.rows).toHaveLength(23);
-    expect(fb.rows.reduce((a, b) => a + Number(b.interactions), 0)).toBe(32);
-    expect(fb.warnings.join(" ")).toMatch(/Facebook/);
+  it("Meta: IG September — waktu Pacific dikonversi ke WIB (reel 31 Agu 22:23 PT = 1 Sep WIB)", () => {
+    const ig = get(parseFiles([file("2026-09/Insight IG September.csv")], "meta").datasets, "meta_instagram");
+    expect(ig.rows).toHaveLength(32);
+    const sep = applyMonth(ig, "2026-09");
+    expect(sep.rows).toHaveLength(31);
+    expect(sep.rows.find((r) => String(r.caption).startsWith("Batik Kudus tak hanya"))).toMatchObject({ date: "2026-09-01", publishedAt: "2026-09-01 12:23" });
+  });
+
+  it("GSC ZIP (CSV): bulan diambil dari Filters.csv untuk semua tabel", () => {
+    const r = parseFiles([file("2026-07/mainkekudus.com-Performance-on-Search-July-2026.zip")], "gsc");
+    for (const key of ["gsc_queries", "gsc_pages", "gsc_dates", "gsc_countries", "gsc_devices"] as const) expect(get(r.datasets, key).month).toBe("2026-07");
+  });
+
+  it("Report Social Media: Publishing Log 54 post", () => {
+    const log = get(parseFiles([file("2026-09/MKK Social Media Monthly Performance Report - September 2026.xlsx")], "social_log").datasets, "social_log");
+    expect(log.rows).toHaveLength(54);
+    const byFormat = log.rows.reduce<Record<string, number>>((a, x) => ((a[String(x.format)] = (a[String(x.format)] ?? 0) + 1), a), {});
+    expect(byFormat).toEqual({ reels: 15, feeds: 10, story: 28, video: 1 });
   });
 
   it("Report News XLSX: publishing log + under review + views per artikel", () => {
-    const r = parseFiles([file("MKK News Monthly Performance Report - September 2026.xlsx")], "news");
+    const r = parseFiles([file("2026-09/MKK News Monthly Performance Report - September 2026.xlsx")], "news");
     const log = get(r.datasets, "news_log");
     expect(log.rows.filter((x) => x.status === "publish")).toHaveLength(42);
     expect(log.rows.filter((x) => x.status === "review")).toHaveLength(11);
@@ -161,7 +175,7 @@ describe.skipIf(!hasSamples)("data-samples", () => {
   });
 
   it("Report YouTube XLSX: publishing log dengan kolom URL tanpa header", () => {
-    const r = parseFiles([file("MKK Youtube Monthly Performance Report - September 2026.xlsx")], "youtube");
+    const r = parseFiles([file("2026-09/MKK Youtube Monthly Performance Report - September 2026.xlsx")], "youtube");
     const log = get(r.datasets, "yt_log");
     expect(log.rows).toHaveLength(4);
     expect(log.rows[0]).toMatchObject({ videoId: "-qgU4zJuOpU", category: "Event", status: "publish" });
@@ -169,13 +183,13 @@ describe.skipIf(!hasSamples)("data-samples", () => {
   });
 
   it("PDF ditolak dengan pesan jelas", () => {
-    const r = parseFiles([file("Pages_and_screens_Page_path_and_screen_class.pdf")]);
+    const r = parseFiles([file("2026-09/Pages_and_screens_Page_path_and_screen_class.pdf")]);
     expect(r.datasets).toHaveLength(0);
     expect(r.errors[0]).toMatch(/CSV/);
   });
 
   it("sumber yang dipilih membatasi deteksi", () => {
-    const r = parseFiles([file("Insight IG Agustus.csv")], "ga4");
+    const r = parseFiles([file("2026-08/Insight IG Agustus.csv")], "ga4");
     expect(r.datasets).toHaveLength(0);
     expect(r.skipped[0].reason).toMatch(/Instagram/);
   });

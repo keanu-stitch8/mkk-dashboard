@@ -1,0 +1,16 @@
+# ----------------------------------------
+# Traffic acquisition: Session primary channel group (Default Channel Group)
+# Account: UA-6038727
+# Property: Main Ke Kudus
+# ----------------------------------------
+# 
+# All Users
+# Start date: 20260801
+# End date: 20260831
+Session primary channel group (Default Channel Group),Sessions,Engaged sessions,Engagement rate,Average engagement time per session,Events per session,Event count,Key events,Session key event rate,Total revenue
+Direct,1214,553,0.45551894563426687,57.655683690280064,4.809719934102142,5839,0,0,0
+Organic Search,667,453,0.679160419790105,67.98350824587706,6.4047976011994,4272,0,0,0
+Organic Social,314,163,0.5191082802547771,36.445859872611464,4.312101910828026,1354,0,0,0
+AI Assistant,13,3,0.23076923076923078,13.461538461538462,3.3076923076923075,43,0,0,0
+Referral,12,6,0.5,27.5,4.5,54,0,0,0
+Unassigned,1,0,0,56,2,2,0,0,0

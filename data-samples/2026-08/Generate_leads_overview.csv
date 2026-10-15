@@ -1,0 +1,346 @@
+# ----------------------------------------
+# Generate leads overview
+# Account: UA-6038727
+# Property: Main Ke Kudus
+# ----------------------------------------
+#  
+# Start date: 20260801
+# End date: 20260831
+Nth day,New users
+0000,36
+0001,10
+0002,21
+0003,160
+0004,86
+0005,34
+0006,43
+0007,15
+0008,25
+0009,22
+0010,59
+0011,20
+0012,16
+0013,19
+0014,20
+0015,33
+0016,34
+0017,47
+0018,69
+0019,35
+0020,30
+0021,18
+0022,35
+0023,16
+0024,7
+0025,15
+0026,12
+0027,44
+0028,11
+0029,12
+0030,15
+
+# Start date: 20260801
+# End date: 20260831
+Nth day,Returning users
+0000,15
+0001,20
+0002,15
+0003,33
+0004,22
+0005,22
+0006,17
+0007,13
+0008,21
+0009,20
+0010,18
+0011,13
+0012,17
+0013,14
+0014,14
+0015,16
+0016,24
+0017,16
+0018,18
+0019,17
+0020,15
+0021,9
+0022,14
+0023,10
+0024,5
+0025,13
+0026,17
+0027,9
+0028,3
+0029,6
+0030,15
+
+# Start date: 20260801
+# End date: 20260831
+Nth day,Qualified leads
+0000,0
+0001,0
+0002,0
+0003,0
+0004,0
+0005,0
+0006,0
+0007,0
+0008,0
+0009,0
+0010,0
+0011,0
+0012,0
+0013,0
+0014,0
+0015,0
+0016,0
+0017,0
+0018,0
+0019,0
+0020,0
+0021,0
+0022,0
+0023,0
+0024,0
+0025,0
+0026,0
+0027,0
+0028,0
+0029,0
+0030,0
+
+# Start date: 20260801
+# End date: 20260831
+Nth day,Converted leads
+0000,0
+0001,0
+0002,0
+0003,0
+0004,0
+0005,0
+0006,0
+0007,0
+0008,0
+0009,0
+0010,0
+0011,0
+0012,0
+0013,0
+0014,0
+0015,0
+0016,0
+0017,0
+0018,0
+0019,0
+0020,0
+0021,0
+0022,0
+0023,0
+0024,0
+0025,0
+0026,0
+0027,0
+0028,0
+0029,0
+0030,0
+
+#  
+# Start date: 20260801
+# End date: 20260831
+Platform,Key events
+
+
+#  
+# Start date: 20260801
+# End date: 20260831
+First user primary channel group (Default Channel Group),New users
+Direct,721
+Organic Social,217
+Organic Search,62
+Referral,10
+AI Assistant,9
+
+# How well do you retain your users?
+# Start date: 20260830
+# End date: 20261010
+Date,Week 0,Week 1,Week 2,Week 3,Week 4,Week 5
+Aug 30 - Sep 5,218,6,2,4,6,3
+Sep 6 - Sep 12,139,5,3,0,1,-1
+Sep 13 - Sep 19,141,4,2,2,-1,-1
+Sep 20 - Sep 26,163,0,1,-1,-1,-1
+Sep 27 - Oct 3,211,5,-1,-1,-1,-1
+Oct 4 - Oct 10,199,-1,-1,-1,-1,-1
+
+#  
+# Start date: 20260801
+# End date: 20260831
+Audience name,Active users
+All Users,1079
+
+#  
+# Start date: 20260801
+# End date: 20260831
+City,Active users
+Kudus,395
+Semarang,229
+Jakarta,95
+Bogor,33
+Jepara,29
+Pati,25
+Prineville,21
+Depok,18
+Boardman,17
+Kalinyamatan,17
+Demak,16
+Surakarta,16
+Singapore,15
+Surabaya,14
+Malang,13
+Denpasar,12
+Lulea,11
+Blora,9
+Forest City,8
+Medan,8
+Palembang,8
+Kuala Lumpur,7
+Bekasi,6
+Brati,6
+Makassar,6
+Rembang,6
+Dalung,5
+Dublin,5
+Kuta,5
+Tangerang,5
+Yogyakarta,5
+Columbus,4
+Fort Worth,4
+Kuta Selatan,4
+Lubuk Pakam,4
+Lahore,3
+Mengwi,3
+New York,3
+Purwokerto,3
+South Tangerang,3
+Springfield,3
+Tahunan,3
+Altoona,2
+Ashburn,2
+Balikpapan,2
+Bandung,2
+Batam,2
+Bekasi Regency,2
+Boston,2
+Ciomas,2
+Cirebon,2
+Cisarua,2
+Council Bluffs,2
+Delhi,2
+Dramaga,2
+Godean,2
+Kemang,2
+Kembang,2
+Patna,2
+Pekalongan,2
+Pekanbaru,2
+Petaling Jaya,2
+Purwodadi,2
+Virginia Beach,2
+Adelaide,1
+Agadir,1
+Amritsar,1
+Anyang-si,1
+Atlanta,1
+Balongan,1
+Bandar Baru Bangi,1
+Bangkok,1
+Banguntapan,1
+Banjarnegara,1
+Batang,1
+Bayan Lepas,1
+Bitung,1
+Blitar,1
+Bradford,1
+Brebes,1
+Central Coast,1
+Chattogram,1
+Cibinong,1
+Cikande,1
+Curitiba,1
+Dhaka,1
+Gallatin,1
+George Town,1
+Gretna,1
+Grogol,1
+Ho Chi Minh City,1
+Isle of Palms,1
+Jabalpur,1
+Jelutong,1
+Kajang,1
+Klang,1
+Klaten,1
+Krasnodar,1
+Lake City,1
+London,1
+Long Beach,1
+Los Angeles,1
+Madrid,1
+Magura,1
+Mataram,1
+Mungkid,1
+Mymensingh,1
+Pangkalpinang,1
+Pangururan,1
+Pematangsiantar,1
+Ponorogo,1
+Pontianak,1
+Port Klang,1
+Randolph,1
+Reston,1
+Rochester,1
+Samarkand,1
+San Francisco,1
+San Jose,1
+San Marcos,1
+Santa Clara,1
+Shinagawa City,1
+South Haven,1
+Sragen,1
+Sungai Buloh,1
+Sutojayan,1
+Sydney,1
+Tanjung Balai,1
+Telukjambe,1
+Temanggung,1
+Tembilahan,1
+Tikung,1
+Tongi,1
+Tripoli,1
+Ubud,1
+Vandiver,1
+Warrenton,1
+Wates,1
+Zhangjiajie,1
+
+#  
+# Start date: 20260801
+# End date: 20260831
+Session manual source,Sessions
+google,596
+l.instagram.com,130
+ig,113
+facebook.com,40
+bing,39
+m.facebook.com,29
+yahoo,26
+chatgpt.com,13
+l.threads.com,9
+id.search.yahoo.com,4
+web.freesky.id,3
+duckduckgo,1
+instagram.com,1
+l.facebook.com,1
+
+#  
+# Start date: 20260801
+# End date: 20260831
+Nth day

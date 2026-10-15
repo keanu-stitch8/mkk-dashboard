@@ -26,6 +26,22 @@ Perintah lain:
 | `npm run inspect -- file1.csv file2.xlsx` | Lihat hasil parsing file tanpa menyimpan ke DB |
 | `npx prisma studio` | Lihat isi database |
 
+### Data di `data-samples/`
+
+Semua file export yang dipakai dashboard disimpan per bulan, sehingga `npm run seed` membangun ulang dashboard yang sama persis:
+
+```
+data-samples/
+  2026-07/   GA4 (5 CSV) · GSC (ZIP) · YouTube (ZIP)
+  2026-08/   GA4 (5 CSV) · GSC (ZIP) · YouTube (ZIP) · IG Agustus · Report News Agustus
+  2026-09/   GA4 (5 CSV + PDF lama) · GSC (XLSX) · YouTube (folder) · IG September
+             · Report News, YouTube, Social Media September
+```
+
+- Seed mem-parse **per folder**. Nama folder `YYYY-MM` menentukan bulan tujuan, dan baris dari bulan lain dibuang. Contohnya: baris 31 Agustus di export Meta September tidak akan menimpa data Agustus.
+- Untuk menambah bulan baru, buat folder `YYYY-MM`, taruh file export-nya, lalu jalankan `npm run seed`. Seed aman diulang karena sifatnya replace per bulan + sumber.
+- File yang di-upload lewat halaman Import hanya masuk ke database lokal. Simpan juga file-nya di sini supaya ikut ter-versi.
+
 ---
 
 ## Halaman
@@ -212,9 +228,10 @@ Schema sengaja hanya memakai tipe portable (String/Int/Float/DateTime, tanpa enu
 
 ---
 
-## Keterbatasan yang diketahui (data contoh September 2026)
+## Keterbatasan yang diketahui (data Juli–September 2026)
 
-- Belum ada data Facebook (sample lama sudah dihapus). Parser Facebook tetap tersedia: upload export Meta untuk Page Facebook kapan saja.
+- News Content Log Juli dan Publishing Log sosmed Juli–Agustus belum ada. Untuk bulan tanpa log, News tampil kosong dan kuota sosmed dihitung dari export Meta (tanpa Stories).
+- Belum ada data Facebook. Parser Facebook tetap tersedia: upload export Meta untuk Page Facebook kapan saja.
 - TikTok belum dimasukkan. Baris TikTok di publishing log tetap tersimpan, tanpa metrik performa.
 - Batas "carousel maks 8 slide" belum dicek otomatis karena export Meta tidak memuat jumlah slide.
 - Tanpa autentikasi, hanya untuk localhost.

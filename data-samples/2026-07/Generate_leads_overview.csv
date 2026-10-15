@@ -1,0 +1,331 @@
+# ----------------------------------------
+# Generate leads overview
+# Account: UA-6038727
+# Property: Main Ke Kudus
+# ----------------------------------------
+#  
+# Start date: 20260701
+# End date: 20260731
+Nth day,New users
+0000,16
+0001,23
+0002,17
+0003,9
+0004,22
+0005,7
+0006,44
+0007,24
+0008,33
+0009,107
+0010,5
+0011,26
+0012,8
+0013,23
+0014,51
+0015,34
+0016,21
+0017,46
+0018,19
+0019,31
+0020,18
+0021,20
+0022,21
+0023,35
+0024,7
+0025,12
+0026,24
+0027,39
+0028,15
+0029,24
+0030,69
+
+# Start date: 20260701
+# End date: 20260731
+Nth day,Returning users
+0000,12
+0001,11
+0002,13
+0003,8
+0004,16
+0005,15
+0006,24
+0007,24
+0008,17
+0009,26
+0010,10
+0011,21
+0012,19
+0013,14
+0014,19
+0015,20
+0016,19
+0017,16
+0018,16
+0019,19
+0020,20
+0021,17
+0022,24
+0023,22
+0024,10
+0025,6
+0026,14
+0027,18
+0028,15
+0029,26
+0030,30
+
+# Start date: 20260701
+# End date: 20260731
+Nth day,Qualified leads
+0000,0
+0001,0
+0002,0
+0003,0
+0004,0
+0005,0
+0006,0
+0007,0
+0008,0
+0009,0
+0010,0
+0011,0
+0012,0
+0013,0
+0014,0
+0015,0
+0016,0
+0017,0
+0018,0
+0019,0
+0020,0
+0021,0
+0022,0
+0023,0
+0024,0
+0025,0
+0026,0
+0027,0
+0028,0
+0029,0
+0030,0
+
+# Start date: 20260701
+# End date: 20260731
+Nth day,Converted leads
+0000,0
+0001,0
+0002,0
+0003,0
+0004,0
+0005,0
+0006,0
+0007,0
+0008,0
+0009,0
+0010,0
+0011,0
+0012,0
+0013,0
+0014,0
+0015,0
+0016,0
+0017,0
+0018,0
+0019,0
+0020,0
+0021,0
+0022,0
+0023,0
+0024,0
+0025,0
+0026,0
+0027,0
+0028,0
+0029,0
+0030,0
+
+#  
+# Start date: 20260701
+# End date: 20260731
+Platform,Key events
+
+
+#  
+# Start date: 20260701
+# End date: 20260731
+First user primary channel group (Default Channel Group),New users
+Direct,460
+Organic Social,328
+Organic Search,57
+AI Assistant,3
+Referral,2
+
+# How well do you retain your users?
+# Start date: 20260830
+# End date: 20261010
+Date,Week 0,Week 1,Week 2,Week 3,Week 4,Week 5
+Aug 30 - Sep 5,218,6,2,4,6,3
+Sep 6 - Sep 12,139,5,3,0,1,-1
+Sep 13 - Sep 19,141,4,2,2,-1,-1
+Sep 20 - Sep 26,163,0,1,-1,-1,-1
+Sep 27 - Oct 3,211,5,-1,-1,-1,-1
+Oct 4 - Oct 10,199,-1,-1,-1,-1,-1
+
+#  
+# Start date: 20260701
+# End date: 20260731
+Audience name,Active users
+All Users,883
+
+#  
+# Start date: 20260701
+# End date: 20260731
+City,Active users
+Kudus,237
+Semarang,181
+Jakarta,156
+Bogor,50
+Boardman,23
+Depok,23
+Prineville,21
+Surakarta,18
+Medan,16
+Bandung,14
+Kalinyamatan,14
+Lulea,13
+Ashburn,11
+Denpasar,11
+Surabaya,11
+Bekasi,10
+Tangerang,10
+Yogyakarta,10
+Bekasi Regency,8
+Forest City,8
+Pati,8
+Dublin,7
+Jepara,7
+Makassar,7
+Purwodadi,7
+Dalung,6
+Kuta Selatan,6
+South Tangerang,6
+Fort Worth,5
+Malang,5
+Pekanbaru,5
+Blora,4
+Council Bluffs,4
+Demak,4
+Kuta,4
+Mengwi,4
+Altoona,3
+Godean,3
+Lubuk Pakam,3
+Palembang,3
+Purwokerto,3
+Singapore,3
+Ungaran,3
+Balikpapan,2
+Banjarnegara,2
+Dramaga,2
+Gallatin,2
+Kembang,2
+Klaten,2
+London,2
+Madiun,2
+Mertoyudan,2
+Mlonggo,2
+Ngoro,2
+Palu,2
+Pecangaan,2
+Petaling Jaya,2
+Qingdao,2
+San Jose,2
+Sibolga,2
+Springfield,2
+Sragen,2
+Sukoharjo,2
+Tamsui District,2
+The Dalles,2
+Abiansemal,1
+Bandar Lampung,1
+Banguntapan,1
+Batam,1
+Birmingham,1
+Bitung,1
+Brati,1
+Canberra,1
+Cikampek,1
+Ciomas,1
+Cisarua,1
+Citeureup,1
+Dumai,1
+East Kisaran,1
+Frankfurt am Main,1
+Garut,1
+Gianyar,1
+Gorontalo,1
+Gretna,1
+Indramayu,1
+Jambi,1
+Karangpawitan,1
+Kasihan,1
+Kebasen,1
+Kedung,1
+Leuwiliang,1
+Lille,1
+Lisbon,1
+Lumajang,1
+Magelang,1
+Milan,1
+Moses Lake,1
+New York,1
+Palopo,1
+Panggungharjo,1
+Pekalongan,1
+Probolinggo,1
+Purbalingga,1
+Purwakarta,1
+Rembang,1
+Riyadh,1
+Salatiga,1
+Santa Clara,1
+Santa Monica,1
+Semanu,1
+Serang,1
+Soreang,1
+Sukabumi,1
+Sukaraja,1
+Tabanan,1
+Tahunan,1
+Tanjung Pandan,1
+Tasikmalaya,1
+Teaneck,1
+Telukjambe,1
+Ubud,1
+Ulu Tiram,1
+West Karawang,1
+Young,1
+
+#  
+# Start date: 20260701
+# End date: 20260731
+Session manual source,Sessions
+google,679
+ig,219
+l.instagram.com,176
+facebook.com,45
+m.facebook.com,33
+bing,27
+yahoo,22
+chatgpt.com,8
+l.wl.co,5
+id.search.yahoo.com,2
+l.facebook.com,2
+lm.facebook.com,2
+teams.public.onecdn.static.microsoft,1
+threads,1
+
+#  
+# Start date: 20260701
+# End date: 20260731
+Nth day
