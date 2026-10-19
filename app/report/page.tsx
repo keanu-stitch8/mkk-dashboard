@@ -13,6 +13,10 @@ import { generateRecommendations } from "@/lib/recommendations";
 import { DASH, fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { monthLabel, prevMonth } from "@/lib/month";
 import { FORMAT_LABEL, PLATFORM_LABEL } from "@/lib/sources";
+import { ReportGenerator, type ReportRow } from "@/components/report/ReportGenerator";
+import { prisma } from "@/lib/db";
+import { REPORT_CHANNELS } from "@/lib/reports/channels";
+import { templateId } from "@/lib/reports/engine/generate";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +77,19 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   const pqn = prev.news.hasData ? contentQuota(prev, "news") : null;
   const pqy = prev.youtube.hasData ? contentQuota(prev, "youtube") : null;
   const pqs = prev.social.hasData ? contentQuota(prev, "social") : null;
+  const [generated, lock] = await Promise.all([
+    prisma.generatedReport.findMany({ where: { month }, orderBy: { createdAt: "desc" } }),
+    prisma.monthLock.findUnique({ where: { month } }),
+  ]);
+  const reportRows: ReportRow[] = REPORT_CHANNELS.map((ch) => {
+    const latest = generated.find((g) => g.channel === ch.id);
+    return {
+      channel: ch.id,
+      title: ch.title,
+      configured: !!templateId(ch.id),
+      latest: latest ? { url: latest.url, status: latest.status, createdAt: latest.createdAt.toISOString(), error: latest.error, warnings: latest.warnings } : null,
+    };
+  });
   const quotaLabel = (q: typeof qn) => `Kuota tercapai (${q.achievedLabel.toLowerCase()} ${q.available ? fmtNum(q.achieved) : "—"}/${fmtNum(q.target)} ${q.unit})`;
 
   return (
@@ -88,6 +105,11 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
           <PrintButton />
         </div>
       </div>
+
+      <section className="no-print space-y-2">
+        <h2 className="text-sm font-medium">Laporan Google Sheets untuk client</h2>
+        <ReportGenerator month={month} locked={!!lock} rows={reportRows} />
+      </section>
 
       <header className="border-b pb-4">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Main ke Kudus · Laporan bulanan</p>
