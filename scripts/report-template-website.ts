@@ -28,8 +28,10 @@ async function main() {
   // hapus baris (1-based inklusif) — diproses dari bawah ke atas per sheet
   const del = (sheet: string, from1: number, to1: number) =>
     requests.push({ deleteDimension: { range: { sheetId: sid(sheet), dimension: "ROWS", startIndex: from1 - 1, endIndex: to1 } } });
+  // format angka dikirim SETELAH penanda ditulis: menulis teks ke sel mereset format angkanya
+  const formats: Req[] = [];
   const numFmt = (sheet: string, r1: number, c0: number, c1: number, pattern: string, type = "NUMBER") =>
-    requests.push({
+    formats.push({
       repeatCell: {
         range: { sheetId: sid(sheet), startRowIndex: r1 - 1, endRowIndex: r1, startColumnIndex: c0, endColumnIndex: c1 },
         cell: { userEnteredFormat: { numberFormat: { type, pattern }, horizontalAlignment: "RIGHT" } },
@@ -142,9 +144,33 @@ async function main() {
   }
   tidy(DC, 0);
 
-  // ── 10 Metric Guide & Sources: periode
-  put("10 Metric Guide & Sources", "C6", ["{{period}}"]);
-  tidy("10 Metric Guide & Sources", 4);
+  // ── 10 Metric Guide & Sources: catatan September dari ChatGPT diganti metodologi umum (berbasis API)
+  const MG = "10 Metric Guide & Sources";
+  // baris lama dipakai ulang (gayanya ikut): hapus header ganda r5, sisakan 17 baris isi (r6–r22 → r5–r21)
+  if (lastRow(MG) >= 23) del(MG, 23, lastRow(MG));
+  del(MG, 5, 5);
+  put(MG, "A2", ["Methodology notes · GA4 website metrics are kept separate from Google Search Console search metrics"]);
+  const guide: [string, string, string][] = [
+    ["Scope", "Month", "{{period}}"],
+    ["Source", "Google Analytics 4", "Main Ke Kudus property, pulled via the GA4 Data API for the full reporting month."],
+    ["Source", "Google Search Console", "Web search, pulled via the Search Console API; property totals come from the API summary, not from summing rows."],
+    ["Comparison", "Month-on-month", "KPI cards compare with {{prev_month_label}}; ↑/↓ colours follow whether the change is good (e.g. lower bounce rate is good)."],
+    ["Coverage", "Pages and screens", "Totals cover all {{pages.count}} page paths; the table lists the top 10 by views."],
+    ["Coverage", "Landing pages", "Totals cover all {{landing.count}} landing pages; the table lists the top 10 by sessions."],
+    ["Coverage", "Cities", "Top 10 cities by active users. GA4 city attribution is approximate; “(not set)” means GA4 could not identify a city."],
+    ["Coverage", "Search queries & pages", "Top 100 rows by clicks. Google omits anonymized queries, so rows may not sum to property totals."],
+    ["Metric definition", "Active users", "Distinct users with an engaged session or first visit in the period."],
+    ["Metric definition", "Sessions", "Visits across all channel groups; not the same as users."],
+    ["Metric definition", "Views", "Page/screen views; not unique visitors."],
+    ["Metric definition", "Engagement rate", "Engaged sessions ÷ sessions (GA4)."],
+    ["Metric definition", "Bounce rate", "1 − engagement rate (GA4 definition)."],
+    ["Metric definition", "Avg engagement time", "Average engaged time per session."],
+    ["Metric definition", "GSC clicks vs GA4 sessions", "Search Console clicks and GA4 organic sessions measure different things and will not match."],
+    ["Metric definition", "CTR / Avg position", "Clicks ÷ impressions; position is impression-weighted (lower is better)."],
+    ["Data freshness", "Final figures", "The month is locked after its final sync, so figures in this report do not change afterwards."],
+  ];
+  guide.forEach((row, i) => put(MG, `A${5 + i}`, row));
+  tidy(MG, 4);
 
   // ── 01 Executive Summary (diproses terakhir; baris dihapus bawah→atas)
   const ES = "01 Executive Summary";
@@ -167,6 +193,7 @@ async function main() {
 
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
   await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data: values } });
+  await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: formats } });
 
   // kartu: kolom A:B, C:D, E:F, G:I; baris kartu mulai r5, r10, r15 (label, nilai, perubahan, spasi)
   const KPIS = ["users", "new_users", "sessions", "views", "engagement_rate", "bounce_rate", "avg_engagement_time", "engaged_sessions", "gsc_clicks", "gsc_impressions", "gsc_ctr", "gsc_position"];
@@ -176,6 +203,7 @@ async function main() {
   // 15 baris di r4 = 3 baris kartu × (label, nilai, perubahan, spasi) + spasi
   const cardReqs: Req[] = [{ insertDimension: { range: { sheetId: sid(ES), dimension: "ROWS", startIndex: 3, endIndex: 18 }, inheritFromBefore: false } }];
   const cardVals: { range: string; values: string[][] }[] = [];
+  const cardFormats: Req[] = [];
   const white = { red: 1, green: 1, blue: 1 };
   const border = { style: "SOLID", color: { red: 0.85, green: 0.86, blue: 0.88 } };
   KPIS.forEach((k, i) => {
@@ -188,7 +216,8 @@ async function main() {
     });
     cardReqs.push({ repeatCell: { range: range(0), cell: { userEnteredFormat: { backgroundColor: white, textFormat: { fontSize: 9, foregroundColor: { red: 0.37, green: 0.39, blue: 0.41 } }, padding: { left: 8 } } }, fields: "userEnteredFormat(backgroundColor,textFormat,padding)" } });
     const [type, pattern] = FMT[k] ?? ["NUMBER", "#,##0"];
-    cardReqs.push({ repeatCell: { range: range(1), cell: { userEnteredFormat: { backgroundColor: white, textFormat: { fontSize: 18, bold: true }, horizontalAlignment: "LEFT", padding: { left: 8 }, numberFormat: { type, pattern } } }, fields: "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,padding,numberFormat)" } });
+    cardReqs.push({ repeatCell: { range: range(1), cell: { userEnteredFormat: { backgroundColor: white, textFormat: { fontSize: 18, bold: true }, horizontalAlignment: "LEFT", padding: { left: 8 } } }, fields: "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,padding)" } });
+    cardFormats.push({ repeatCell: { range: range(1), cell: { userEnteredFormat: { numberFormat: { type, pattern } } }, fields: "userEnteredFormat.numberFormat" } });
     cardReqs.push({ repeatCell: { range: range(2), cell: { userEnteredFormat: { textFormat: { fontSize: 9 }, padding: { left: 8 } } }, fields: "userEnteredFormat(textFormat,padding)" } });
     const a = (r: number) => `'${ES}'!${String.fromCharCode(65 + c0)}${top + r + 1}`;
     cardVals.push({ range: a(0), values: [[`{{kpi.${k}.label}}`]] }, { range: a(1), values: [[`{{kpi.${k}.value}}`]] }, { range: a(2), values: [[`{{kpi.${k}.change}}`]] });
@@ -196,6 +225,7 @@ async function main() {
   for (const [r, px] of [[1, 34]] as const) for (let b = 0; b < 3; b++) cardReqs.push({ updateDimensionProperties: { range: { sheetId: sid(ES), dimension: "ROWS", startIndex: 4 + b * 5 + r, endIndex: 5 + b * 5 + r }, properties: { pixelSize: px }, fields: "pixelSize" } });
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: cardReqs } });
   await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data: cardVals } });
+  await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: cardFormats } });
 
   console.log(`Template dibuat: ${file.url}`);
   console.log(`Isi di .env.local: REPORT_TEMPLATE_WEBSITE=${id}`);
