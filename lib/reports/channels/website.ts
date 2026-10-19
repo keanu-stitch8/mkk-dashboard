@@ -5,7 +5,7 @@ import { daysInMonth, prevMonth } from "../../month";
 import { kpiData, WEBSITE_KPIS } from "../kpi";
 import { enMonth } from "../month";
 import type { Cell, ReportChannel, ReportData } from "../types";
-import { cityNotes, geoReadout, landingPath, websiteFindings } from "./website-narrative";
+import { cityNotes, geoReadout, landingPath, topLandings, websiteFindings } from "./website-narrative";
 
 const div = (a: number | null | undefined, b: number | null | undefined) => (a == null || !b ? null : a / b);
 const sumOf = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
@@ -56,7 +56,7 @@ export async function buildWebsite(month: string): Promise<ReportData> {
   const pageList = [...pageMap.entries()].sort((a, b) => b[1].views - a[1].views);
   const pageRows = pageList.slice(0, 10).map(([path, a]) => ({ path, views: a.views, users: a.users, views_per_user: div(a.views, a.users), avg_time: a.users ? Math.round(a.time / a.users) : null, events: a.events }));
 
-  const landingRows = landings.slice(0, 10).map((l) => ({ path: landingPath(l.path), sessions: l.sessions, users: l.activeUsers ?? null, new_users: l.newUsers ?? null, avg_time: sec(l.avgEngagementTime) }));
+  const landingRows = topLandings(landings).map((l) => ({ path: landingPath(l.path), sessions: l.sessions, users: l.activeUsers ?? null, new_users: l.newUsers ?? null, avg_time: sec(l.avgEngagementTime) }));
   const notSet = landings.find((l) => landingPath(l.path) === "(not set)")?.sessions ?? null;
 
   // peringkat kota: hanya Indonesia & kota teridentifikasi; luar negeri (umumnya crawler/data center) & "(not set)" dikeluarkan

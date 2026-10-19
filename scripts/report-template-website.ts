@@ -104,7 +104,7 @@ async function main() {
   // ── 05 Landing Pages: total r5, data r6–15 → contoh r6
   const LP = "05 Landing Pages";
   del(LP, 7, 15);
-  put(LP, "A2", ["GA4 · total plus top 10 of {{landing.count}} landing pages · {{period}}"]);
+  put(LP, "A2", ["GA4 · total plus top 10 of {{landing.count}} landing pages (excluding “(not set)”) · {{period}}"]);
   put(LP, "A5", ["TOTAL (all {{landing.count}} landing pages)", "{{landing.total_sessions}}", "{{landing.total_users}}", "{{landing.total_new_users}}", "{{landing.total_avg_time}}"]);
   put(LP, "A6", ["{{#landing.path}}", "{{#landing.sessions}}", "{{#landing.users}}", "{{#landing.new_users}}", "{{#landing.avg_time}}"]);
   for (const r of [5, 6]) {

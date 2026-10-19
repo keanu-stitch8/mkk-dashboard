@@ -24,6 +24,9 @@ const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} a
 /** Data lama menyimpan landing "(not set)" sebagai "/(not set)" (path dinormalisasi) — tampilkan apa adanya. */
 export const landingPath = (path: string) => (/^\/\(.*\)$/.test(path) ? path.slice(1) : path);
 
+/** Top N landing page untuk tabel: "(not set)" dikeluarkan (ambigu bagi client; dijelaskan di temuan), baris berikutnya naik. */
+export const topLandings = <T extends { path: string }>(rows: T[], n = 10): T[] => rows.filter((r) => landingPath(r.path) !== "(not set)").slice(0, n);
+
 export function websiteFindings(i: WebsiteNarrativeInput): string[] {
   const out: string[] = [];
   const [a, b] = i.channels;

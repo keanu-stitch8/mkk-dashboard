@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cityNotes, landingPath, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
+import { cityNotes, landingPath, topLandings, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
 
 const sep: WebsiteNarrativeInput = {
   monthLabel: "September 2026",
@@ -52,5 +52,13 @@ describe("website narrative", () => {
   it("landing '/(not set)' lama dibaca sebagai '(not set)'", () => {
     expect(landingPath("/(not set)")).toBe("(not set)");
     expect(landingPath("/news")).toBe("/news");
+  });
+
+  it("top landing: '(not set)' dikeluarkan, tetap 10 baris", () => {
+    const rows = ["/", "/(not set)", ...Array.from({ length: 12 }, (_, i) => `/p${i}`)].map((path, i) => ({ path, sessions: 100 - i }));
+    const top = topLandings(rows);
+    expect(top).toHaveLength(10);
+    expect(top.map((r) => r.path)).not.toContain("/(not set)");
+    expect(top[1].path).toBe("/p0");
   });
 });
