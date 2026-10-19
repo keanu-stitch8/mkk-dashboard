@@ -43,4 +43,16 @@ describe("website narrative", () => {
     expect(notes[1].readout).toBe("Second-largest city audience.");
     expect(notes[2]).toEqual({ readout: "Unusual location for the target audience; validate before interpretation.", note: "Not in the Indonesian city reference list; validate before interpreting." });
   });
+
+  it("(not set) bukan lokasi tak biasa; daftar kota memakai koma", () => {
+    const cities = [
+      { city: "Kudus", users: 301 },
+      { city: "(not set)", users: 32 },
+      { city: "Tel Aviv-Yafo", users: 23 },
+      { city: "Prineville", users: 17 },
+      { city: "Lulea", users: 13 },
+    ];
+    expect(websiteFindings({ ...sep, cities }).at(-1)).toBe("City attribution is approximate. Treat Tel Aviv-Yafo, Prineville and Lulea as locations to validate before interpretation.");
+    expect(cityNotes(cities, 835)[1]).toEqual({ readout: "Location not identified by GA4.", note: "GA4 could not attribute a city to these users." });
+  });
 });

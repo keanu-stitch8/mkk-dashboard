@@ -19,6 +19,9 @@ const n = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 0 })
 const pct = (v: number, d = 1) => `${(v * 100).toFixed(d)}%`;
 const change = (cur: number, prev: number) => `${cur >= prev ? "rose" : "fell"} ${pct(Math.abs((cur - prev) / prev))}`;
 const ORDINAL = ["Largest", "Second-largest", "Third-largest"];
+const NOT_SET = "(not set)";
+const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : xs[0]);
+const unusual = (city: string) => city !== NOT_SET && !isIndonesianCity(city);
 
 export function websiteFindings(i: WebsiteNarrativeInput): string[] {
   const out: string[] = [];
@@ -40,14 +43,15 @@ export function websiteFindings(i: WebsiteNarrativeInput): string[] {
     out.push(`Google Search Console recorded ${n(g.clicks)} clicks and ${n(g.impressions)} impressions (${pct(g.ctr ?? 0, 2)} CTR)${g.position != null ? ` at an average position of ${g.position.toFixed(1)}` : ""}.`);
   if (g.ctr != null && g.prevCtr != null && g.prevCtr - g.ctr > 0.02)
     out.push(`Search CTR fell ${((g.prevCtr - g.ctr) * 100).toFixed(1)} pp vs ${i.prevMonthLabel}; review titles and meta descriptions of top-impression pages.`);
-  const odd = i.cities.filter((c) => !isIndonesianCity(c.city)).map((c) => c.city);
-  if (odd.length) out.push(`City attribution is approximate. Treat ${odd.join(" and ")} as ${odd.length > 1 ? "locations" : "a location"} to validate before interpretation.`);
+  const odd = i.cities.filter((c) => unusual(c.city)).map((c) => c.city);
+  if (odd.length) out.push(`City attribution is approximate. Treat ${list(odd)} as ${odd.length > 1 ? "locations" : "a location"} to validate before interpretation.`);
   return out;
 }
 
 export function cityNotes(cities: { city: string; users: number }[], siteUsers: number | null): { readout: string; note: string }[] {
   return cities.map((c, idx) => {
-    if (!isIndonesianCity(c.city))
+    if (c.city === NOT_SET) return { readout: "Location not identified by GA4.", note: "GA4 could not attribute a city to these users." };
+    if (unusual(c.city))
       return { readout: "Unusual location for the target audience; validate before interpretation.", note: "Not in the Indonesian city reference list; validate before interpreting." };
     const base = idx < ORDINAL.length ? `${ORDINAL[idx]} city audience` : "Smaller city audience";
     return { readout: idx === 0 && siteUsers ? `${base}; ${pct(c.users / siteUsers)} of site-wide active users.` : `${base}.`, note: "City attribution is approximate in GA4." };
