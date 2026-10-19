@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Section, CompareTable, DataTable, EmptyState, KpiCard, KpiGrid, Notice, QuotaHero } from "@/components/blocks";
 import { BreakdownBars, TrendChart, type SeriesDef } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
+import { SocialRecon } from "@/components/SocialRecon";
 import { contentQuota, getMonthAndPrev, getTrend, resolveMonth, socialComparable } from "@/lib/data/summary";
 import { generateRecommendations } from "@/lib/recommendations";
 import { fmtDate, fmtNum, fmtPct, truncate } from "@/lib/format";
@@ -146,7 +147,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
 
       {/* 4. Breakdown + top konten */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Section title="Per format" subtitle="Views lifetime per post">
+        <Section title="Per format" subtitle={`Post dari Meta API (tanpa Stories) · format dari ${s.hasLog ? "Publishing Log" : "Meta"} · views lifetime per post`}>
           <BreakdownBars data={s.byFormat.map((f) => ({ label: fmtLabel(f.platform, f.format), value: f.avgViews }))} name="Views/post" />
           <DataTable
             rows={s.byFormat}
@@ -200,34 +201,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
         </Section>
       )}
 
-      {s.hasLog && s.postsNotInLog.length > 0 && (
-        <Section
-          title="Post tidak tercatat di Publishing Log"
-          subtitle={`${fmtNum(s.postsNotInLog.length)} post milik akun MKK ada di export Meta tapi tidak punya pasangan di log — tetap dihitung di performa, tidak dihitung ke kuota. Tambahkan ke Publishing Log.`}
-        >
-          <DataTable
-            rows={[...s.postsNotInLog].sort((a, b) => a.publishedAt.localeCompare(b.publishedAt))}
-            columns={[
-              { header: "Tanggal (WIB)", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.date)}</span> },
-              { header: "Format", cell: (r) => <span className="whitespace-nowrap">{fmtLabel(r.platform, r.format)}</span> },
-              {
-                header: "Post",
-                cell: (r) =>
-                  r.permalink ? (
-                    <a href={r.permalink} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline">
-                      {truncate(r.caption, 70) || "(tanpa caption)"}
-                    </a>
-                  ) : (
-                    truncate(r.caption, 70)
-                  ),
-              },
-              { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
-              { header: "Reach", align: "right", cell: (r) => fmtNum(r.reach) },
-              { header: "ER", align: "right", cell: (r) => fmtPct(r.er, 2) },
-            ]}
-          />
-        </Section>
-      )}
+      {s.recon && <SocialRecon r={s.recon} />}
 
       {s.collabPosts.length > 0 && (
         <Section
