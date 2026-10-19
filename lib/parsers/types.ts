@@ -33,6 +33,7 @@ export type DatasetKey =
   | "yt_log"
   | "meta_instagram"
   | "meta_facebook"
+  | "meta_ig_stories"
   | "news_log"
   | "news_views"
   | "social_log";

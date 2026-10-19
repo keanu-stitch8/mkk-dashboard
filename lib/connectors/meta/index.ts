@@ -9,6 +9,7 @@ import { ACTIVE_SOCIAL_PLATFORMS } from "../../sources";
 import type { Connector, ConnectorStatus, TestResult } from "../types";
 import { ConnectorError } from "../types";
 import { monthRange } from "../common";
+import { upsertIgStories } from "../../import/stories";
 import { GraphError, META_PERMISSIONS, metaErrorMessage } from "./errors";
 import { GRAPH_VERSION, graphGet, graphInsights, graphPaginate, mapLimit, type Paged } from "./graph";
 import { followBreakdown, graphTime, igMetricsFor, mapFacebook, mapInstagram, snapshotRows, wibDateTime, type FbPost, type IgMedia, type InsightsResponse } from "./map";
@@ -129,7 +130,52 @@ async function snapshotRecentMedia(tok: string, igUserId: string, known: Map<str
   }
 }
 
+/** Metrik insight Story (link clicks tidak tersedia di API — hanya di export CSV). */
+const STORY_METRICS = ["reach", "views"];
+
+/**
+ * Simpan Story IG yang sedang aktif (API hanya memberi Story ≤24 jam terakhir) ke tabel IgStory — hanya info,
+ * bukan KPI. Dipanggil tiap sync Meta & cron Story; Story yang sudah tersimpan diperbarui metriknya.
+ */
+async function collectStories(tok: string, igUserId: string): Promise<number> {
+  const stories = await graphPaginate<IgMedia>(`/${igUserId}/stories`, tok, { fields: "id,media_type,media_product_type,permalink,timestamp", limit: 50 });
+  const insights = new Map<string, Record<string, number>>();
+  await mapLimit(stories, CONCURRENCY, async (m) => {
+    try {
+      insights.set(m.id, (await graphInsights(m.id, tok, STORY_METRICS)).values);
+    } catch (e) {
+      if (e instanceof GraphError && e.code === 190) throw e;
+    }
+  });
+  return upsertIgStories(
+    prisma,
+    stories.map((m) => {
+      const { date, publishedAt } = wibDateTime(m.timestamp);
+      const ins = insights.get(m.id) ?? {};
+      return { storyId: m.id, date, publishedAt, permalink: m.permalink ?? null, durationSec: null, views: ins.views ?? null, reach: ins.reach ?? null, linkClicks: null, source: "api" as const };
+    }),
+  );
+}
+
+/** Untuk cron: kumpulkan Story aktif. Null jika Meta belum dikonfigurasi / akun IG tidak ditemukan. */
+export async function syncIgStories(): Promise<number | null> {
+  const tok = token();
+  if (!tok) return null;
+  try {
+    const ids = await resolveIds(tok);
+    return ids.igUserId ? await collectStories(tok, ids.igUserId) : null;
+  } catch (e) {
+    throw translate(e);
+  }
+}
+
 async function fetchInstagram(tok: string, igUserId: string, month: string, w: ReturnType<typeof monthWindow>, warnings: string[]): Promise<Dataset> {
+  try {
+    await collectStories(tok, igUserId);
+  } catch (e) {
+    if (e instanceof GraphError && e.code === 190) throw e;
+    warnings.push(`Instagram: Story aktif tidak bisa disimpan (${metaErrorMessage(e)}). Data post tetap tersimpan.`);
+  }
   // /media urut terbaru dulu; berhenti saat sudah melewati awal bulan.
   const all = await graphPaginate<IgMedia>(`/${igUserId}/media`, tok, { fields: IG_MEDIA_FIELDS, limit: 50 }, (m) => graphTime(m.timestamp) / 1000 < w.since - 86400);
   const media = all.filter((m) => inMonth(m.timestamp, month));

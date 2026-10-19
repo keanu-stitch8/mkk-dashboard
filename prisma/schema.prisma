@@ -390,3 +390,21 @@ model IgMediaSnapshot {
   @@unique([date, mediaId])
   @@index([date])
 }
+
+/// Story Instagram yang tayang — dari API (diambil selagi aktif ≤24 jam) atau import CSV Story Business Suite.
+/// Hanya info (termasuk repost); kuota & KPI Story tetap dari Publishing Log.
+model IgStory {
+  storyId     String   @id // ID media IG (sama di API & kolom "Post ID" CSV)
+  month       String
+  date        String // YYYY-MM-DD (WIB)
+  publishedAt String // "YYYY-MM-DD HH:mm" (WIB)
+  permalink   String?
+  durationSec Float?
+  views       Float?
+  reach       Float?
+  linkClicks  Float?
+  source      String // api | csv
+  updatedAt   DateTime @updatedAt
+
+  @@index([month])
+}

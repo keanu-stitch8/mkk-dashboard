@@ -17,6 +17,7 @@ export const DATASETS: Record<DatasetKey, { label: string; group: Exclude<Source
   yt_log: { label: "YouTube · Publishing log", group: "youtube", channel: "youtube" },
   meta_instagram: { label: "Meta · Instagram (per post)", group: "meta", channel: "social" },
   meta_facebook: { label: "Meta · Facebook (per post)", group: "meta", channel: "social" },
+  meta_ig_stories: { label: "Meta · Instagram Stories (info, bukan KPI)", group: "meta", channel: "social" },
   news_log: { label: "News · Content log (artikel)", group: "news", channel: "news" },
   news_views: { label: "News · Views per artikel (dari report)", group: "news", channel: "news" },
   social_log: { label: "Sosmed · Publishing log", group: "social_log", channel: "social" },
@@ -33,7 +34,7 @@ export const SOURCE_GROUPS: { value: SourceGroup; label: string; hint: string }[
 ];
 
 /** Key yang boleh digabung jika muncul lebih dari sekali dalam satu upload. */
-export const MERGEABLE: DatasetKey[] = ["news_log", "news_views", "social_log", "yt_log", "meta_instagram", "meta_facebook", "ga4_overview"];
+export const MERGEABLE: DatasetKey[] = ["news_log", "news_views", "social_log", "yt_log", "meta_instagram", "meta_facebook", "meta_ig_stories", "ga4_overview"];
 
 export const CHANNEL_LABEL: Record<Channel, string> = {
   website: "Website",

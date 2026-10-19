@@ -201,7 +201,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
         </Section>
       )}
 
-      {s.recon && <SocialRecon r={s.recon} />}
+      {s.recon && <SocialRecon r={s.recon} stories={s.stories} />}
 
       {s.collabPosts.length > 0 && (
         <Section

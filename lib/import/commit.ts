@@ -2,6 +2,7 @@
 import type { PrismaClient } from "@prisma/client";
 import type { Dataset, DatasetKey } from "../parsers/types";
 import { applyMonth, rowCount } from "../parsers";
+import { upsertIgStories, type IgStoryRow } from "./stories";
 
 type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 
@@ -34,6 +35,11 @@ export interface CommitSummary {
 }
 
 export async function commitDataset(prisma: PrismaClient, raw: Dataset, month: string): Promise<CommitSummary> {
+  if (raw.key === "meta_ig_stories") {
+    // semua baris (tanpa filter bulan), upsert per ID — import ulang aman, tidak menyentuh data post IG
+    const rows = raw.rows.map(({ _date, ...r }) => (void _date, r as unknown as IgStoryRow));
+    return { source: raw.key, month, rows: await upsertIgStories(prisma, rows), replaced: false, warnings: raw.warnings };
+  }
   const ds = applyMonth(raw, month);
   const rows = ds.rows.map((r) => {
     const { _date, ...rest } = r;

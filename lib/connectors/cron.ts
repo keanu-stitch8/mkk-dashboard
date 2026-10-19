@@ -22,12 +22,28 @@ export function cronSlot(now = new Date()): { slot: Date; month: string } {
   return { slot, month: prevMonth(`${y}-${String(m + 1).padStart(2, "0")}`) };
 }
 
-const state = globalThis as unknown as { __mkkSyncCron?: { timer: NodeJS.Timeout; running: boolean } };
+/** Story IG hanya tersedia di API selama 24 jam → kumpulkan tiap 6 jam (hanya info, bukan KPI). */
+const STORY_EVERY_MS = 6 * 3600_000;
+
+const state = globalThis as unknown as { __mkkSyncCron?: { timer: NodeJS.Timeout; running: boolean; storiesAt?: number } };
+
+async function collectStories(s: NonNullable<(typeof state)["__mkkSyncCron"]>) {
+  if (s.storiesAt && Date.now() - s.storiesAt < STORY_EVERY_MS) return;
+  s.storiesAt = Date.now();
+  try {
+    const { syncIgStories } = await import("./meta");
+    const n = await syncIgStories();
+    if (n != null) console.log(`[sync-cron] Story IG aktif: ${n} disimpan`);
+  } catch (e) {
+    console.error("[sync-cron] Story IG gagal:", e instanceof Error ? e.message : e);
+  }
+}
 
 async function tick() {
   const s = state.__mkkSyncCron;
   if (!s || s.running) return;
   s.running = true;
+  await collectStories(s);
   try {
     const { prisma } = await import("../db");
     const { configuredConnectors, syncMany } = await import("./index");
@@ -55,5 +71,5 @@ export function startSyncCron() {
   // cek pertama setelah server siap
   setTimeout(() => void tick(), 30_000).unref();
   const { slot, month } = cronSlot();
-  console.log(`[sync-cron] aktif — jadwal tiap tanggal ${SYNC_DAY} jam 0${SYNC_HOUR_WIB}.00 WIB (slot terakhir ${slot.toISOString()} → ${month}).`);
+  console.log(`[sync-cron] aktif — jadwal tiap tanggal ${SYNC_DAY} jam 0${SYNC_HOUR_WIB}.00 WIB (slot terakhir ${slot.toISOString()} → ${month}); Story IG tiap 6 jam.`);
 }

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { CircleCheck, Info, TriangleAlert } from "lucide-react";
 import { DataTable, Section, StatusBadge } from "@/components/blocks";
-import type { SocialRecon as Recon } from "@/lib/data/summary";
-import { fmtDate, fmtNum, truncate } from "@/lib/format";
+import type { SocialRecon as Recon, SocialSummary } from "@/lib/data/summary";
+import { fmtDate, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { FORMAT_LABEL, PLATFORM_LABEL } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,7 @@ const Row = ({ date, children }: { date: string | null; children: ReactNode }) =
 );
 
 /** Cek konsistensi Publishing Log vs post Instagram dari Meta API. */
-export function SocialRecon({ r }: { r: Recon }) {
+export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["stories"] }) {
   const issues = r.formatMismatch.length + r.notInLog.length + r.logNotOnIg.length + r.duplicates.length;
   return (
     <Section
@@ -98,6 +98,22 @@ export function SocialRecon({ r }: { r: Recon }) {
             },
           ]}
         />
+
+        {stories && (
+          <div className="flex items-start gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm">
+            <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p>
+                <span className="font-medium">Story:</span> {fmtNum(stories.log)} tercatat di log · {fmtNum(stories.ig)} tayang di Instagram
+                {stories.share != null && <span className="text-muted-foreground"> ({fmtPct(stories.share)} tercatat)</span>}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Hanya info, bukan KPI — Story di Instagram termasuk repost & tiap frame. Kuota Story tetap dari Publishing Log.
+                {stories.since && ` Story sebelum ${fmtDate(stories.since)} belum tercatat (API hanya menyimpan Story yang masih aktif) — import CSV Story Business Suite untuk melengkapi.`}
+              </p>
+            </div>
+          </div>
+        )}
 
         {r.formatMismatch.length > 0 && (
           <Group tone="warn" title={`${fmtNum(r.formatMismatch.length)} kemungkinan format salah di log`} hint="Judul & tanggal mirip, tapi format di log berbeda dengan yang tayang di Instagram. Perbaiki kolom format di Publishing Log.">

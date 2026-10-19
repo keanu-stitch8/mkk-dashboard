@@ -179,6 +179,8 @@ Bulan lama hasil import CSV tetap memakai definisi lama (jumlah per post); MoM a
 
 **Snapshot per post (persiapan views per post per bulan):** setiap sync Meta menyimpan metrik lifetime semua post Instagram 90 hari terakhir ke tabel `IgMediaSnapshot` (maks. 1x per hari, tidak terhapus saat sync ulang). Selisih dua snapshot = performa post di antara keduanya, jadi nantinya views/interactions *per post selama bulan itu* bisa dihitung. Snapshot hanya diambil saat sync, jadi batas bulannya = tanggal sync (cron: tanggal 3). Belum ditampilkan di dashboard.
 
+**Story Instagram (hanya info, bukan KPI):** API Meta hanya memberi Story yang masih aktif (≤24 jam), jadi Story disimpan ke tabel `IgStory` setiap sync Meta dan **tiap 6 jam** saat `SYNC_CRON=1` (server harus menyala — Story yang kedaluwarsa saat server mati tidak bisa diambil lagi). Untuk bulan lalu / celah, import CSV Story dari Business Suite (Insight → Konten → filter Story → Ekspor) lewat halaman Import; terdeteksi otomatis sebagai *Meta · Instagram Stories*, upsert per ID (aman diulang, tidak menimpa post IG). Jam export Meta = Pacific Time → export 1 hari lebih lebar agar Story tepi bulan (WIB) ikut. Widget "Cek Publishing Log vs Instagram" menampilkan Story di log vs Story yang tayang di IG; angka IG termasuk repost & tiap frame, jadi kuota/KPI Story tetap dari Publishing Log. File CSV Story Jul–Sep ada di `data-samples/2026-0X/IG Stories *.csv`.
+
 Yang ditarik per bulan (tanggal WIB, sama dengan import CSV):
 - **Instagram**: `/{ig-user-id}/media` (Reels, Carousel, Feeds; Stories tidak tersedia di endpoint ini) → `/{media-id}/insights`: `reach, views, likes, comments, shares, saved, total_interactions` (+ `follows` untuk non-Reels). Metrik lama `impressions/plays/video_views` tidak dipakai karena sudah deprecated. Insight akun (`reach, views, total_interactions, accounts_engaged`, total satu bulan) disimpan sebagai metrik `ig_account_*`. `follower_count` tidak lagi terdokumentasi untuk rentang harian, jadi dilewati.
 - **Facebook**: `/{page-id}/posts` → `/{post-id}/insights`: `post_media_view` (Views) dan `post_total_media_view_unique` (Reach). `post_impressions*` tidak berlaku lagi sejak v25, dan sejumlah metrik Page dicabut Meta 15 Juni 2026 — kalau Meta menolak sebuah metrik, metrik diminta satu per satu, yang ditolak dilewati dan muncul sebagai peringatan di riwayat sync (sync tidak gagal).
@@ -220,7 +222,7 @@ Setup:
   ```
   Exit code 1 jika ada yang gagal. Contoh cron (macOS/Linux, tiap tanggal 3 jam 07:00):
   `0 7 3 * * cd /path/ke/dashboard && npm run sync >> sync.log 2>&1`
-- **Otomatis saat server jalan:** isi `SYNC_CRON=1` lalu restart `npm run dev` / `npm start`. Server menyinkronkan **bulan lalu** setiap **tanggal 3 jam 07:00 WIB** (lewat `instrumentation.ts`, runtime Node.js saja). Kalau laptop mati saat jadwal, sync dijalankan begitu server menyala lagi; tiap jadwal hanya sekali (tercatat sebagai *cron* di Riwayat sync).
+- **Otomatis saat server jalan:** isi `SYNC_CRON=1` lalu restart `npm run dev` / `npm start`. Server menyinkronkan **bulan lalu** setiap **tanggal 3 jam 07:00 WIB** dan menyimpan Story IG aktif tiap 6 jam (lewat `instrumentation.ts`, runtime Node.js saja). Kalau laptop mati saat jadwal, sync dijalankan begitu server menyala lagi; tiap jadwal hanya sekali (tercatat sebagai *cron* di Riwayat sync).
 - Semua sync tercatat di **Riwayat sync** (halaman Connectors API), termasuk pesan error dalam Bahasa Indonesia, mis. *"Service account belum ditambahkan ke properti GA4"*.
 
 ---

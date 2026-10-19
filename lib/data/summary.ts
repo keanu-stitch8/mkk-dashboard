@@ -465,6 +465,24 @@ export function reconcileSocial<P extends PostRow, L extends LogRow>(posts: P[],
 }
 export type SocialRecon = ReturnType<typeof reconcileSocial>;
 
+/**
+ * Story IG yang tayang bulan itu (tabel IgStory: CSV Business Suite / API selagi aktif). Hanya info — termasuk
+ * repost & tiap frame, jadi tidak dibandingkan sebagai selisih. `since`: Story sebelum tanggal ini belum tercatat
+ * (API baru mulai mengumpulkan dan tidak ada CSV yang menutup celahnya).
+ */
+async function storiesInfo(month: string, logCount: number) {
+  const [rows, firstApi] = await Promise.all([
+    prisma.igStory.findMany({ where: { month }, select: { date: true, source: true } }),
+    prisma.igStory.findFirst({ where: { source: "api" }, orderBy: { date: "asc" }, select: { date: true } }),
+  ]);
+  if (!rows.length) return null;
+  const csvLast = rows.filter((r) => r.source === "csv").reduce<string | null>((a, r) => (a && a > r.date ? a : r.date), null);
+  const apiStart = firstApi && firstApi.date > `${month}-01` && firstApi.date.startsWith(month) ? firstApi.date : null;
+  const dayBefore = (d: string) => new Date(Date.parse(`${d}T00:00:00Z`) - 86400_000).toISOString().slice(0, 10);
+  const since = apiStart && (!csvLast || csvLast < dayBefore(apiStart)) ? apiStart : null;
+  return { ig: rows.length, log: logCount, share: safeDiv(logCount, rows.length), since, sources: [...new Set(rows.map((r) => r.source))] };
+}
+
 /** Akun milik MKK per platform: dari OWN_SOCIAL_ACCOUNTS, atau akun terbanyak jika tidak ada yang cocok. */
 function ownAccounts(posts: { platform: string; account: string | null }[]): Set<string> {
   const out = new Set<string>();
@@ -591,6 +609,8 @@ export async function getSocialSummary(month: string) {
     postsNotInLog: logs.length ? enriched.filter((p) => !p.inLog) : [],
     /** cek konsistensi Publishing Log vs Instagram API (null jika log belum ada) */
     recon: logs.length && posts.length ? reconcileSocial(posts, logs, matched) : null,
+    /** Story IG yang tayang (termasuk repost) vs Story di log — hanya info, bukan KPI */
+    stories: await storiesInfo(month, publishedLogs.filter((l) => l.format === "story").length),
     /** post kolaborasi/repost milik akun lain — tidak dihitung ke performa maupun kuota */
     collabPosts,
     activeDays: activeDates.size,

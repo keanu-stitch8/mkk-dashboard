@@ -414,3 +414,18 @@ describe("News Content Logs (Google Sheets, logs only)", () => {
     expect(ds.rows[2]).toMatchObject({ date: "2026-09-30", path: "/news/akhir-bulan" });
   });
 });
+
+describe("meta stories", () => {
+  it("Story IG masuk dataset meta_ig_stories (bukan meta_instagram), jam Pacific → WIB, link clicks terbaca", () => {
+    const csv = [
+      `"Post ID","Account ID","Account username","Account name",Description,"Duration (sec)","Publish time",Permalink,"Post type","Data comment",Date,Views,Reach,Likes,Shares,Replies,Navigation,"Profile visits","Link clicks",Follows,"Sticker taps"`,
+      `111,1,main_ke_kudus,MKK,,15,"09/02/2026 02:43",https://www.instagram.com/stories/main_ke_kudus/1,"IG story",,Lifetime,2460,1803,0,0,0,10,1,,,`,
+      `222,1,main_ke_kudus,MKK,,11,"09/30/2026 18:25",https://www.instagram.com/stories/main_ke_kudus/2,"IG story",,Lifetime,124,93,1,0,0,5,3,4,,`,
+    ].join("\n");
+    const { datasets } = parseFiles([text("stories.csv", csv)], "auto");
+    expect(datasets.map((d) => d.key)).toEqual(["meta_ig_stories"]);
+    const rows = get(datasets, "meta_ig_stories").rows;
+    expect(rows[0]).toMatchObject({ storyId: "111", date: "2026-09-02", publishedAt: "2026-09-02 16:43", views: 2460, linkClicks: null, source: "csv" });
+    expect(rows[1]).toMatchObject({ storyId: "222", date: "2026-10-01", publishedAt: "2026-10-01 08:25", linkClicks: 4 });
+  });
+});

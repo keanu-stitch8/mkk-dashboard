@@ -23,6 +23,7 @@ export const META_FIELDS = {
   shares: ["Shares", "Bagikan", "Dibagikan", "Dibagikan ulang"],
   saves: ["Saves", "Simpan", "Disimpan"],
   follows: ["Follows", "Ikuti", "Mengikuti", "Pengikut baru"],
+  linkClicks: ["Link clicks", "Klik tautan"],
   rcs: [
     "Reactions, Comments and Shares",
     "Reactions, comments and shares",
@@ -67,6 +68,8 @@ export function detectMeta(table: RawTable): Dataset[] | null {
   const n = (r: unknown[], f: F) => (f === "duration" ? parseNumber : parseCount)(getCell(r as never, m, f));
 
   const byPlatform: Record<string, Dataset["rows"]> = { instagram: [], facebook: [] };
+  // Story IG → dataset terpisah (tabel IgStory, hanya info) supaya tidak menimpa post IG bulan itu
+  const stories: Dataset["rows"] = [];
   for (const r of dataRows(table, m)) {
     const postId = str(getCell(r, m, "postId"));
     if (!postId) continue;
@@ -83,13 +86,29 @@ export function detectMeta(table: RawTable): Dataset[] | null {
     const rcs = n(r, "rcs");
     const interactions = rcs ?? (likes ?? 0) + (comments ?? 0) + (shares ?? 0) + (saves ?? 0);
     const caption = strOrNull(getCell(r, m, "description")) ?? strOrNull(getCell(r, m, "title"));
+    const format = normalizeFormat(rawType, platform, permalink);
+    if (platform === "instagram" && format === "story") {
+      stories.push({
+        storyId: postId,
+        date: pub.date,
+        publishedAt: `${pub.date} ${pub.time ?? "00:00"}`,
+        permalink,
+        durationSec: n(r, "duration"),
+        views: n(r, "views"),
+        reach: n(r, "reach"),
+        linkClicks: n(r, "linkClicks"),
+        source: "csv",
+        _date: pub.date,
+      });
+      continue;
+    }
     byPlatform[platform].push({
       platform,
       account: strOrNull(getCell(r, m, "account"))?.replace(/^@/, "").toLowerCase() ?? null,
       postId,
       date: pub.date,
       publishedAt: `${pub.date} ${pub.time ?? "00:00"}`,
-      format: normalizeFormat(rawType, platform, permalink),
+      format,
       rawType: rawType || null,
       caption: caption ? caption.slice(0, 500) : null,
       permalink,
@@ -107,6 +126,16 @@ export function detectMeta(table: RawTable): Dataset[] | null {
   }
 
   const out: Dataset[] = [];
+  if (stories.length) {
+    out.push(
+      makeDataset("meta_ig_stories", table, m, {
+        month: dominantMonth(stories),
+        rows: stories,
+        rowDated: true,
+        warnings: ["Story IG (termasuk repost) — hanya info, tidak dihitung ke KPI/kuota. Waktu publish dikonversi dari Pacific Time ke WIB."],
+      }),
+    );
+  }
   for (const [platform, rows] of Object.entries(byPlatform)) {
     if (!rows.length) continue;
     const warnings: string[] = ["Waktu publish dikonversi dari Pacific Time (zona waktu export Meta) ke WIB."];
