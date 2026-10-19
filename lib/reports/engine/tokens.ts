@@ -1,6 +1,7 @@
 // Mesin template laporan (murni, tanpa Google): grid sel berpenanda {{…}} + data → rencana perubahan.
 //   {{key}}           → nilai dari data.values (sel persis penanda = nilai bertipe; di dalam teks = string)
 //   {{#tabel.kolom}}  → baris contoh tabel: digandakan sebanyak baris data (format & merge baris contoh diulang)
+//   {{pagebreak}}     → sel dikosongkan; PDF memulai halaman baru di baris ini
 import type { Cell, ReportData, Tone } from "../types";
 
 export interface Merge {
@@ -14,6 +15,8 @@ export interface SheetGrid {
   title: string;
   rows: string[][];
   merges: Merge[];
+  /** sheet tersembunyi (mis. Ref) tidak ikut PDF */
+  hidden?: boolean;
 }
 export interface Write {
   sheetTitle: string;
@@ -28,6 +31,10 @@ export interface Plan {
   merges: (Merge & { sheetId: number })[];
   writes: Write[];
   warnings: string[];
+  /** rentang baris (posisi akhir) tabel `data.autoHeight` → tinggi baris disesuaikan isi */
+  autoHeight: { sheetId: number; startRow: number; endRow: number }[];
+  /** baris (posisi akhir) tempat PDF memulai halaman baru */
+  pageBreaks: { sheetId: number; row: number }[];
 }
 
 const TOKEN = /\{\{\s*(#?[\w.-]+)\s*\}\}/g;
@@ -37,7 +44,7 @@ const a1 = (row: number, col: number) => `${String.fromCharCode(65 + col)}${row 
 const fmt = (v: Cell) => (v == null ? "" : typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : v);
 
 export function planFill(grids: SheetGrid[], data: ReportData): Plan {
-  const plan: Plan = { inserts: [], merges: [], writes: [], warnings: [] };
+  const plan: Plan = { inserts: [], merges: [], writes: [], warnings: [], autoHeight: [], pageBreaks: [] };
 
   for (const g of grids) {
     let offset = 0; // baris yang sudah disisipkan di atas baris ini
@@ -55,6 +62,10 @@ export function planFill(grids: SheetGrid[], data: ReportData): Plan {
     /** Isi satu sel → Write (atau null jika tidak ada yang berubah). */
     const resolve = (text: string, r: number, col: number, outRow: number, rec: Record<string, Cell> | null): Write | null => {
       const exact = text.match(EXACT);
+      if (exact?.[1] === "pagebreak") {
+        plan.pageBreaks.push({ sheetId: g.sheetId, row: outRow });
+        return { sheetTitle: g.title, row: outRow, col, value: "" };
+      }
       if (exact) {
         const { ok, value } = lookup(exact[1], rec);
         if (!ok) {
@@ -114,6 +125,7 @@ export function planFill(grids: SheetGrid[], data: ReportData): Plan {
         for (let i = 1; i < records.length; i++)
           for (const m of rowMerges) plan.merges.push({ sheetId: g.sheetId, startRow: row + i, endRow: row + i + 1, startCol: m.startCol, endCol: m.endCol });
       }
+      if (data.autoHeight?.includes(name)) plan.autoHeight.push({ sheetId: g.sheetId, startRow: row, endRow: row + records.length });
       records.forEach((rec, i) => {
         cells.forEach((text, col) => {
           if (!text) return;

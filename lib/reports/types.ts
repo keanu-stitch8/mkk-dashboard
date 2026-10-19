@@ -10,6 +10,8 @@ export interface ReportData {
   tables: Record<string, Record<string, Cell>[]>;
   /** key nilai yang selnya diwarnai (mis. kpi.views.change) */
   tones?: Record<string, Tone>;
+  /** tabel berteks panjang (judul/URL) yang tinggi barisnya disesuaikan isi setelah diisi */
+  autoHeight?: string[];
 }
 
 export interface ReportChannel {

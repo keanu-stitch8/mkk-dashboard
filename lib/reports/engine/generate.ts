@@ -33,9 +33,9 @@ export async function generateReport(channelId: string, month: string, trigger: 
     const grids = await readGrids(c, file.id);
     const plan = planFill(grids, data);
     await applyPlan(c, file.id, plan, grids);
-    // satu PDF berisi semua sheet (A4 landscape), disimpan di folder yang sama dengan laporan
+    // satu PDF berisi semua sheet yang tampil (A4 landscape), disimpan di folder yang sama dengan laporan
     const parents = (await gcall(() => c.drive.files.get({ fileId: file.id, fields: "parents" }))).data.parents ?? undefined;
-    const pdf = await uploadPdf(c, `${reportName(ch.title, month)}.pdf`, await exportPdf(c, file.id, grids), parents);
+    const pdf = await uploadPdf(c, `${reportName(ch.title, month)}.pdf`, await exportPdf(c, file.id, grids.filter((g) => !g.hidden), [], plan.pageBreaks), parents);
     for (const p of previous) {
       await renameFile(c, p.fileId!, `${reportName(ch.title, month)} (lama ${today()})`).catch(() => undefined);
       if (p.pdfFileId) await renameFile(c, p.pdfFileId, `${reportName(ch.title, month)} (lama ${today()}).pdf`).catch(() => undefined);

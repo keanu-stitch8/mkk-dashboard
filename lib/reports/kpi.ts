@@ -10,6 +10,8 @@ export interface KpiDef<S> {
   /** false: turun = bagus (bounce rate, posisi) */
   goodWhenUp?: boolean;
   get: (s: S) => number | null | undefined;
+  /** teks nilai pengganti angka (mis. "53 / 60"); perubahan tetap dihitung dari `get` */
+  display?: (s: S) => string | null;
   /** keterangan dashboard (tooltip) */
   hint?: string;
 }
@@ -25,8 +27,14 @@ export function fmtDurationEn(sec: number): string {
 
 /** Perubahan vs bulan lalu dalam bahasa Inggris + tone warna (aturan sama dengan DeltaBadge dashboard). */
 export function kpiChange(kind: KpiKind, cur: number | null | undefined, prev: number | null | undefined, goodWhenUp = true): { text: string; tone: Tone } {
-  if (cur == null || prev == null || (kind !== "rate" && prev === 0)) return { text: "No data last month", tone: "none" };
+  if (cur == null || prev == null) return { text: "No data last month", tone: "none" };
   const diff = cur - prev;
+  // persen dari 0 tidak terdefinisi → sebut saja "dari 0" (mis. artikel in review 0 bulan lalu)
+  if (kind !== "rate" && prev === 0 && cur !== 0) {
+    const good = diff > 0 === goodWhenUp;
+    return { text: `${diff > 0 ? "↑" : "↓"} from 0 last month${goodWhenUp ? "" : good ? " (up)" : " (down)"}`, tone: good ? "good" : "bad" };
+  }
+  if (kind !== "rate" && prev === 0) return { text: "→ 0.0% vs last month", tone: "flat" };
   const flat = kind === "rate" ? Math.abs(diff) < 0.0005 : Math.abs(diff / prev) < 0.0005;
   if (flat) return { text: `→ ${kind === "rate" ? "0.0 percentage points" : "0.0%"} vs last month`, tone: "flat" };
   const sign = diff > 0 ? "+" : MINUS;
@@ -46,7 +54,7 @@ export function kpiData<S>(defs: KpiDef<S>[], cur: S, prev: S | null): { values:
   for (const d of defs) {
     const v = d.get(cur) ?? null;
     values[`kpi.${d.key}.label`] = d.label;
-    values[`kpi.${d.key}.value`] = v == null ? null : d.kind === "duration" ? fmtDurationEn(v) : v;
+    values[`kpi.${d.key}.value`] = d.display?.(cur) ?? (v == null ? null : d.kind === "duration" ? fmtDurationEn(v) : v);
     const ch = kpiChange(d.kind, v, prev ? d.get(prev) : null, d.goodWhenUp ?? true);
     values[`kpi.${d.key}.change`] = ch.text;
     tones[`kpi.${d.key}.change`] = ch.tone;
@@ -84,4 +92,29 @@ export const WEBSITE_KPIS: KpiDef<WebsiteKpiSource>[] = [
   { key: "gsc_ctr", label: "GSC CTR", kind: "rate", get: (s) => s.gscCtr },
   { key: "gsc_position", label: "Avg position", kind: "decimal", goodWhenUp: false, get: (s) => s.gscPosition, hint: "Rata-rata posisi tertimbang impressions. Makin kecil makin baik." },
   { key: "engaged_sessions", label: "Engaged sessions", kind: "count", get: (s) => s.engagedSessions },
+];
+
+/** Field summary News yang dipakai kartu KPI. */
+export interface NewsKpiSource {
+  published: number;
+  inReview: number;
+  delivered: number;
+  quota: { value: number };
+  achievement: number | null;
+  totalViews: number | null;
+  viewsPerArticle: number | null;
+  readers: number | null;
+  avgEngagementTime: number | null;
+}
+
+/** Kartu KPI News (urutan = grid dashboard & blok kartu laporan): baris 1 produksi, baris 2 pembaca. */
+export const NEWS_KPIS: KpiDef<NewsKpiSource>[] = [
+  { key: "published", label: "Articles published", kind: "count", get: (s) => s.published },
+  { key: "in_review", label: "Articles in review", kind: "count", goodWhenUp: false, get: (s) => s.inReview, hint: "Artikel yang sudah dikirim tapi belum dipublish." },
+  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published + in review (definisi 'Delivered' di report News)." },
+  { key: "achievement", label: "Quota achievement", kind: "rate", get: (s) => s.achievement, hint: "Delivered ÷ kuota." },
+  { key: "views", label: "Article views", kind: "count", get: (s) => s.totalViews, hint: "Jumlah views artikel yang dipublish bulan ini (cocok via URL)." },
+  { key: "views_per_article", label: "Views per article", kind: "decimal", get: (s) => s.viewsPerArticle },
+  { key: "readers", label: "Readers", kind: "count", get: (s) => s.readers, hint: "Jumlah active users per artikel (satu orang bisa terhitung di beberapa artikel)." },
+  { key: "avg_engagement_time", label: "Avg engagement time", kind: "duration", get: (s) => s.avgEngagementTime, hint: "Rata-rata waktu engagement per pembaca, tertimbang jumlah pembaca." },
 ];

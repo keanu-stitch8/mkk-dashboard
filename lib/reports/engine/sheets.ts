@@ -56,11 +56,12 @@ export async function readGrids(c: ReportClients, spreadsheetId: string): Promis
   const res = await gcall(() => c.sheets.spreadsheets.get({
     spreadsheetId,
     includeGridData: true,
-    fields: "sheets(properties(sheetId,title),merges,data(rowData(values(userEnteredValue))))",
+    fields: "sheets(properties(sheetId,title,hidden),merges,data(rowData(values(userEnteredValue))))",
   }));
   return (res.data.sheets ?? []).map((s) => ({
     sheetId: s.properties!.sheetId!,
     title: s.properties!.title!,
+    hidden: !!s.properties!.hidden,
     rows: (s.data?.[0]?.rowData ?? []).map((r) => (r.values ?? []).map(cellText)),
     merges: (s.merges ?? []).map((m) => ({ startRow: m.startRowIndex!, endRow: m.endRowIndex!, startCol: m.startColumnIndex!, endCol: m.endColumnIndex! })),
   }));
@@ -113,4 +114,7 @@ export async function applyPlan(c: ReportClients, spreadsheetId: string, plan: P
       },
     }));
   if (toneReqs.length) await gcall(() => c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: toneReqs } }));
+
+  const fit = plan.autoHeight.map((r) => ({ autoResizeDimensions: { dimensions: { sheetId: r.sheetId, dimension: "ROWS", startIndex: r.startRow, endIndex: r.endRow } } }));
+  if (fit.length) await gcall(() => c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: fit } }));
 }

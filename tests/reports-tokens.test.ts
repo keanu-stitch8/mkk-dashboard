@@ -47,4 +47,12 @@ describe("planFill", () => {
     expect(plan.writes).toEqual([{ sheetTitle: "01 Summary", row: 0, col: 1, value: "↑ +2.6% vs last month", tone: "good" }]);
     expect(plan.warnings).toEqual(['01 Summary!A1: penanda "nope" tidak dikenal']);
   });
+
+  it("{{pagebreak}} dikosongkan + dicatat setelah sisipan tabel; autoHeight untuk tabel yang diminta", () => {
+    const plan = planFill([grid([["{{#a.title}}"], ["", "{{pagebreak}}"]])], { values: {}, tables: { a: [{ title: "x" }, { title: "y" }] }, autoHeight: ["a"] });
+    expect(plan.pageBreaks).toEqual([{ sheetId: 7, row: 2 }]);
+    expect(plan.writes.at(-1)).toEqual({ sheetTitle: "01 Summary", row: 2, col: 1, value: "" });
+    expect(plan.autoHeight).toEqual([{ sheetId: 7, startRow: 0, endRow: 2 }]);
+    expect(plan.warnings).toEqual([]);
+  });
 });

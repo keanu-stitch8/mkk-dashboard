@@ -6,6 +6,7 @@ import { contentQuota, getMonthAndPrev, getTrend, resolveMonth } from "@/lib/dat
 import { generateRecommendations } from "@/lib/recommendations";
 import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { monthLabel } from "@/lib/month";
+import { NEWS_KPIS } from "@/lib/reports/kpi";
 
 export const dynamic = "force-dynamic";
 
@@ -56,16 +57,31 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
         </Section>
       </div>
 
-      {/* 2. KPI — urutan sama di semua channel */}
+      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (lib/reports/kpi.ts) */}
       <KpiGrid cols={4}>
-        <KpiCard label="Published" value={`${fmtNum(n.published)}/${fmtNum(n.quota.value)}`} cur={n.published} prev={p?.published} note={`${fmtNum(n.inReview)} artikel masih review`} />
-        <KpiCard label="Views" value={fmtNum(n.totalViews)} cur={n.totalViews} prev={p?.totalViews} hint="Jumlah views artikel yang dipublish bulan ini (cocok via URL)." />
-        <KpiCard label="Views / artikel" value={fmtNum(n.viewsPerArticle)} cur={n.viewsPerArticle} prev={p?.viewsPerArticle} />
-        <KpiCard label="Pembaca" value={fmtNum(n.readers)} cur={n.readers} prev={p?.readers} hint="Jumlah active users per artikel (satu orang bisa terhitung di beberapa artikel)." />
-        <KpiCard label="Avg engagement" value={fmtDuration(n.avgEngagementTime)} cur={n.avgEngagementTime} prev={p?.avgEngagementTime} hint="Rata-rata waktu engagement per pembaca, tertimbang jumlah pembaca." />
-        <KpiCard label="Delivered" value={`${fmtNum(n.delivered)}/${fmtNum(n.quota.value)}`} cur={n.achievement} prev={p?.achievement} kind="rate" hint="Published + in review ÷ kuota (definisi 'Delivered' di report News)." note={fmtPct(n.achievement)} />
-        <KpiCard label="Cocok dengan GA4" value={`${fmtNum(n.matchedCount)}/${fmtNum(publishedCount)}`} note={n.unmatched.length ? `${n.unmatched.length} artikel tidak cocok` : "Semua URL cocok"} />
-        <KpiCard label="Hari aktif publish" value={`${fmtNum(n.activeDays)} hari`} cur={n.activeDays} prev={p?.activeDays} note={`Jeda terpanjang ${fmtNum(n.emptyStreak.length)} hari`} />
+        {NEWS_KPIS.map((k) => {
+          const cur = k.get(n);
+          const value = k.display?.(n) ?? (k.kind === "rate" ? fmtPct(cur) : k.kind === "duration" ? fmtDuration(cur) : k.kind === "decimal" ? fmtNum(cur, 1) : fmtNum(cur));
+          const note =
+            k.key === "published"
+              ? `${fmtNum(n.activeDays)} hari aktif · jeda terpanjang ${fmtNum(n.emptyStreak.length)} hari`
+              : k.key === "views"
+                ? `${fmtNum(n.matchedCount)}/${fmtNum(publishedCount)} URL cocok dengan GA4${n.unmatched.length ? ` · ${n.unmatched.length} tidak cocok` : ""}`
+                : undefined;
+          return (
+            <KpiCard
+              key={k.key}
+              label={k.label}
+              value={value}
+              cur={cur}
+              prev={p ? k.get(p) : null}
+              kind={k.kind === "rate" ? "rate" : undefined}
+              goodWhenUp={k.goodWhenUp}
+              hint={k.hint}
+              note={note}
+            />
+          );
+        })}
       </KpiGrid>
 
       {/* 3. Performa & aktivitas */}

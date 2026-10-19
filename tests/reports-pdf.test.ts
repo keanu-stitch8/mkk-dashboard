@@ -15,4 +15,9 @@ describe("pdfExportUrl", () => {
     expect(p.gid).toBe("42");
     expect(p.scale).toBe("4");
   });
+
+  it("potongan baris (penanda {{pagebreak}})", () => {
+    const p = Object.fromEntries(new URL(pdfExportUrl("abc123", { gid: 42, rows: [22, 100000], cols: 12 })).searchParams);
+    expect(p).toMatchObject({ r1: "22", r2: "100000", c1: "0", c2: "12" });
+  });
 });
