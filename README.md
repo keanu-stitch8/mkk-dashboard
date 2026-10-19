@@ -45,6 +45,20 @@ data-samples/
 
 ---
 
+## Laporan bulanan Google Sheets
+
+Dashboard membuat laporan untuk client sebagai **file Google Sheets baru** dari master template per channel
+(tahap 1: Website). File laporan/template buatan user tidak pernah diubah — app hanya bisa menulis ke file yang
+dibuatnya sendiri (scope `drive.file`).
+
+1. Aktifkan **Google Sheets API** di project Google Cloud OAuth client, lalu hubungkan ulang akun Google di kartu
+   Google Sheets (Pengaturan → Connectors) dan centang semua izin.
+2. Buat master template sekali: `npx tsx scripts/report-template-website.ts --from=<ID laporan contoh>` → isi
+   `REPORT_TEMPLATE_WEBSITE=<id>` di `.env.local`. Template bebas diedit (warna, posisi, teks) selama penanda
+   `{{…}}` tetap ada; `{{#tabel.kolom}}` = baris tabel yang digandakan otomatis sesuai jumlah data.
+3. Halaman **Report** → "Buat laporan Google Sheets". Cron membuat laporan otomatis tgl 3 setelah bulan dikunci.
+   Laporan lama bulan yang sama diberi akhiran "(lama …)", salinan yang gagal diisi diberi "(GAGAL …)".
+
 ## Halaman
 
 | Halaman | Isi |
