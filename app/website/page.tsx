@@ -6,6 +6,7 @@ import { getMonthAndPrev, getTrend, resolveMonth } from "@/lib/data/summary";
 import { generateRecommendations } from "@/lib/recommendations";
 import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { monthLabel } from "@/lib/month";
+import { WEBSITE_KPIS } from "@/lib/reports/kpi";
 
 export const dynamic = "force-dynamic";
 
@@ -39,18 +40,23 @@ export default async function WebsitePage({ searchParams }: PageProps<"/website"
       {!w.hasGsc && <Notice tone="warn">Data Search Console {monthLabel(month)} belum di-import.</Notice>}
 
       <KpiGrid>
-        <KpiCard label="Users" value={fmtNum(w.users)} cur={w.users} prev={p?.users} note={w.usersEstimated ? "Estimasi dari jumlah per kota" : undefined} />
-        <KpiCard label="New users" value={fmtNum(w.newUsers)} cur={w.newUsers} prev={p?.newUsers} />
-        <KpiCard label="Sessions" value={fmtNum(w.sessions)} cur={w.sessions} prev={p?.sessions} hint="Jumlah sesi semua channel (Traffic acquisition)." />
-        <KpiCard label="Views" value={fmtNum(w.pageviews)} cur={w.pageviews} prev={p?.pageviews} />
-        <KpiCard label="Engagement rate" value={fmtPct(w.engagementRate)} cur={w.engagementRate} prev={p?.engagementRate} kind="rate" hint="Engaged sessions ÷ sessions." />
-        <KpiCard label="Bounce rate" value={fmtPct(w.bounceRate)} cur={w.bounceRate} prev={p?.bounceRate} kind="rate" goodWhenUp={false} hint="1 − engagement rate (definisi GA4)." />
-        <KpiCard label="Avg engagement time" value={fmtDuration(w.avgEngagementTime)} cur={w.avgEngagementTime} prev={p?.avgEngagementTime} hint="Rata-rata waktu engagement per sesi." />
-        <KpiCard label="GSC clicks" value={fmtNum(w.gscClicks)} cur={w.gscClicks} prev={p?.gscClicks} />
-        <KpiCard label="GSC impressions" value={fmtNum(w.gscImpressions)} cur={w.gscImpressions} prev={p?.gscImpressions} />
-        <KpiCard label="GSC CTR" value={fmtPct(w.gscCtr)} cur={w.gscCtr} prev={p?.gscCtr} kind="rate" />
-        <KpiCard label="Avg position" value={fmtNum(w.gscPosition, 1)} cur={w.gscPosition} prev={p?.gscPosition} goodWhenUp={false} hint="Rata-rata posisi tertimbang impressions. Makin kecil makin baik." />
-        <KpiCard label="Engaged sessions" value={fmtNum(w.engagedSessions)} cur={w.engagedSessions} prev={p?.engagedSessions} />
+        {WEBSITE_KPIS.map((k) => {
+          const cur = k.get(w);
+          const value = k.kind === "rate" ? fmtPct(cur) : k.kind === "duration" ? fmtDuration(cur) : k.kind === "decimal" ? fmtNum(cur, 1) : fmtNum(cur);
+          return (
+            <KpiCard
+              key={k.key}
+              label={k.label}
+              value={value}
+              cur={cur}
+              prev={p ? k.get(p) : null}
+              kind={k.kind === "rate" ? "rate" : undefined}
+              goodWhenUp={k.goodWhenUp}
+              hint={k.hint}
+              note={k.key === "users" && w.usersEstimated ? "Estimasi dari jumlah per kota" : undefined}
+            />
+          );
+        })}
       </KpiGrid>
 
       <div className="grid gap-4 lg:grid-cols-2">
