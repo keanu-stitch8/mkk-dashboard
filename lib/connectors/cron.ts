@@ -75,6 +75,13 @@ async function tick() {
     if (!locked && metricResults.length && metricResults.every((r) => r.ok)) {
       await setMonthLock(month, true, "Otomatis setelah sync cron");
       console.log(`[sync-cron] 🔒 ${month} dikunci`);
+      // bulan final → buat laporan Google Sheets untuk channel yang master template-nya sudah ada
+      const { REPORT_CHANNELS } = await import("../reports/channels");
+      const { generateReport, templateId } = await import("../reports/engine/generate");
+      for (const ch of REPORT_CHANNELS.filter((c) => templateId(c.id))) {
+        const r = await generateReport(ch.id, month, "cron");
+        console.log(`[sync-cron] Laporan ${ch.title} ${month}: ${r.status === "success" ? r.url : r.error}`);
+      }
     }
   } catch (e) {
     console.error("[sync-cron] gagal:", e instanceof Error ? e.message : e);
