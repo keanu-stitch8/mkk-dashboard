@@ -42,8 +42,8 @@ const TEXT: Record<string, Record<string, string>> = {
     A58: "Views come from Google Analytics for {{period}} and are matched to each article in the Publishing Log by its exact URL. {{match_note}}",
   },
   [AP]: {
-    A3: "Published articles and their views, {{period}}",
-    A4: "Views from Google Analytics, matched to the Publishing Log by exact URL. Match rate: {{matched}} of {{listed}} articles.",
+    // subjudul satu baris seperti Website (dulu 2 baris: A3 + A4)
+    A3: "Published articles and their views, {{period}}. Views from Google Analytics, matched to the Publishing Log by exact URL ({{matched}} of {{listed}} matched).",
   },
   // strip angka = definisi dashboard: achievement = delivered (published + in review) ÷ kuota, sisa = kuota − delivered
   [PL]: {
@@ -78,10 +78,12 @@ const STYLE: RowStyleSpec = {
     ["text", 20],
     ["section", 23],
     ["header", 37],
-    ["row", [38, 55]],
-    ["text", 58],
+    ["row", [38, 54]],
+    ["total", 41, [1, 5]],
+    ["total", 55],
+    ["note", 58],
   ],
-  [AP]: [["sheetTitle", 1], ["subtitle", [3, 4]], ["header", 6], ["row", [7, 8]]],
+  [AP]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["row", 6], ["total", 7]],
   [PL]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
   [AR]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
   [MG]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["text", [6, 18]], ["section", 21], ["text", 22]],
@@ -92,6 +94,24 @@ async function patchText(c: ReportClients, id: string) {
   await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data } });
   // menulis teks ke sel mereset format angkanya → format strip 03 (A6:H6) dipasang lagi
   const meta = await c.sheets.spreadsheets.get({ spreadsheetId: id, fields: "sheets(properties(sheetId,title))" });
+  // baris kategori 11–15 (r48–52) dulu disisipkan tanpa format r47 (nama H:I tidak di-merge) → samakan; idempoten
+  const es = meta.data.sheets!.find((x) => x.properties!.title === ES)!.properties!.sheetId!;
+  const grid = (r0: number, r1: number, c0: number, c1: number) => ({ sheetId: es, startRowIndex: r0, endRowIndex: r1, startColumnIndex: c0, endColumnIndex: c1 });
+  await c.sheets.spreadsheets.batchUpdate({
+    spreadsheetId: id,
+    requestBody: {
+      requests: [
+        { unmergeCells: { range: grid(47, 52, 7, 12) } },
+        { copyPaste: { source: grid(46, 47, 7, 12), destination: grid(47, 52, 7, 12), pasteType: "PASTE_FORMAT" } },
+        ...[47, 48, 49, 50, 51].flatMap((r) => [{ mergeCells: { range: grid(r, r + 1, 7, 9), mergeType: "MERGE_ALL" } }, { mergeCells: { range: grid(r, r + 1, 10, 12), mergeType: "MERGE_ALL" } }]),
+      ],
+    },
+  });
+  // baris subjudul kedua 02 (A4) sudah digabung ke A3 → hapus barisnya; idempoten
+  const ap = meta.data.sheets!.find((x) => x.properties!.title === AP)!.properties!.sheetId!;
+  const a4 = (await c.sheets.spreadsheets.values.get({ spreadsheetId: id, range: `'${AP}'!A4` })).data.values?.[0]?.[0] ?? "";
+  if (a4.startsWith("Views from Google Analytics"))
+    await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: [{ deleteDimension: { range: { sheetId: ap, dimension: "ROWS", startIndex: 3, endIndex: 4 } } }] } });
   const pl = meta.data.sheets!.find((x) => x.properties!.title === PL)!.properties!.sheetId!;
   const num = (c0: number, c1: number, type: string, pattern: string) => ({
     repeatCell: { range: { sheetId: pl, startRowIndex: 5, endRowIndex: 6, startColumnIndex: c0, endColumnIndex: c1 }, cell: { userEnteredFormat: { numberFormat: { type, pattern } } }, fields: "userEnteredFormat.numberFormat" },

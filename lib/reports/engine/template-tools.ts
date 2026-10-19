@@ -36,61 +36,130 @@ export async function fitWidths(c: ReportClients, id: string) {
   if (requests.length) await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
 }
 
+const FONT = "Carlito";
+const WHITE = "#ffffff";
+const DARK = "#1f2329";
+const ORANGE = "#ff4d00";
+const INK = "#2b2f36";
+const MUTED = "#667085";
+const LINE = "#d0d5dd";
+
+interface RowStyle {
+  px: number;
+  fs: number;
+  bold?: boolean;
+  italic?: boolean;
+  fg?: string;
+  bg?: string;
+  hAlign?: "LEFT" | "CENTER" | "RIGHT";
+  wrap?: boolean;
+  /** garis bawah tiap sel berisi */
+  bottom?: { style: "SOLID" | "SOLID_MEDIUM"; color: string };
+  /** garis semua sisi (termasuk antar sel) sewarna latar → bar tanpa celah */
+  box?: string;
+  /** satu teks di kolom A → merge selebar sheet (seperti judul/bar Website) */
+  fullWidth?: boolean;
+  /** tinggi menyesuaikan isi, minimal `px` */
+  fit?: boolean;
+}
+
 /**
- * Gaya baris standar semua laporan (dasar: laporan News). Tinggi px + ukuran huruf; peran baris ditentukan per
- * template di script-nya. "text" = kalimat panjang: tinggi menyesuaikan isi, minimal `px`.
+ * Gaya baris standar semua laporan (dasar: laporan Website): tinggi, huruf, warna, rata, garis. Peran baris ditentukan
+ * per template di script-nya. Rata horizontal tabel tidak diubah (teks kiri, angka kanan per kolom).
  */
 export const ROW_STYLE = {
-  reportTitle: { px: 64, fs: 20 },
-  sheetTitle: { px: 40, fs: 18 },
-  subtitle: { px: 32, fs: 10 },
-  section: { px: 30, fs: 10 },
-  header: { px: 36, fs: 10 },
-  row: { px: 32, fs: 10 },
-  text: { px: 32, fs: 10 },
+  reportTitle: { px: 64, fs: 20, bold: true, fg: WHITE, bg: DARK, hAlign: "LEFT", box: DARK, fullWidth: true },
+  sheetTitle: { px: 40, fs: 18, bold: true, fg: WHITE, bg: DARK, hAlign: "LEFT", box: DARK, fullWidth: true },
+  subtitle: { px: 32, fs: 10, bold: false, italic: true, fg: MUTED, hAlign: "LEFT", wrap: true, fullWidth: true },
+  section: { px: 30, fs: 10, bold: true, italic: false, fg: WHITE, bg: DARK, hAlign: "LEFT", box: DARK, fullWidth: true },
+  header: { px: 36, fs: 10, bold: true, italic: false, fg: WHITE, bg: ORANGE, wrap: true, bottom: { style: "SOLID_MEDIUM", color: ORANGE } },
+  row: { px: 32, fs: 10, italic: false, fg: INK, bottom: { style: "SOLID", color: LINE } },
+  /** baris TOTAL tabel: tebal di latar oranye muda */
+  total: { px: 32, fs: 10, bold: true, italic: false, fg: DARK, bg: "#fff0e9", bottom: { style: "SOLID", color: LINE } },
+  text: { px: 32, fs: 10, italic: false, fg: INK, wrap: true, bottom: { style: "SOLID", color: LINE }, fullWidth: true, fit: true },
+  /** catatan berwarna (kotak NOTES Website): warna dari template tetap */
+  note: { px: 32, fs: 10, wrap: true, fullWidth: true, fit: true },
   cardLabel: { px: 20, fs: 9 },
   cardValue: { px: 34, fs: 18 },
-} as const;
+} satisfies Record<string, RowStyle>;
 export type RowRole = keyof typeof ROW_STYLE;
 
-/** Peran baris per sheet: [peran, baris (1-based) atau [dari, sampai]]. */
-export type RowStyleSpec = Record<string, [RowRole, number | [number, number]][]>;
+/** Peran baris per sheet: [peran, baris (1-based) atau [dari, sampai], opsional kolom (1-based) [dari, sampai]]. */
+export type RowStyleSpec = Record<string, ([RowRole, number | [number, number]] | [RowRole, number | [number, number], [number, number]])[]>;
+
+const rgb = (hex: string) => ({ red: parseInt(hex.slice(1, 3), 16) / 255, green: parseInt(hex.slice(3, 5), 16) / 255, blue: parseInt(hex.slice(5, 7), 16) / 255 });
 
 /**
- * Pasang ROW_STYLE ke template: tinggi baris + ukuran huruf + rata tengah vertikal (format lain tidak disentuh). Baris awal merge vertikal
- * (mis. judul A1:A2) → tinggi dibagi rata ke baris-baris merge. Baris "text" di-auto-fit lalu dinaikkan ke minimal.
+ * Pasang ROW_STYLE ke template (format lain seperti format angka tidak disentuh). Huruf semua sel = Carlito.
+ * Gaya dipasang ke tiap sel berisi (beserta merge-nya), jadi celah antar tabel berdampingan tetap kosong.
+ * Baris awal merge vertikal (mis. judul A1:A2) → tinggi dibagi rata ke baris-baris merge.
  */
 export async function applyRowStyles(c: ReportClients, id: string, spec: RowStyleSpec) {
-  const r = await c.sheets.spreadsheets.get({ spreadsheetId: id, fields: "sheets(properties(sheetId,title,gridProperties(columnCount)),merges)" });
+  const r = await c.sheets.spreadsheets.get({
+    spreadsheetId: id,
+    includeGridData: true,
+    fields: "sheets(properties(sheetId,title,gridProperties(rowCount)),merges,data(rowData(values(formattedValue))))",
+  });
   const sheets = new Map((r.data.sheets ?? []).map((s) => [s.properties!.title!, s]));
+  const structural: Req[] = [];
   const requests: Req[] = [];
   const fitRows: { sheetId: number; row: number }[] = [];
-  const height = (sheetId: number, r0: number, r1: number, px: number) =>
-    requests.push({ updateDimensionProperties: { range: { sheetId, dimension: "ROWS", startIndex: r0, endIndex: r1 }, properties: { pixelSize: px }, fields: "pixelSize" } });
   for (const [title, roles] of Object.entries(spec)) {
     const sh = sheets.get(title);
     if (!sh) throw new Error(`Sheet "${title}" tidak ada`);
     const sheetId = sh.properties!.sheetId!;
-    const cols = sh.properties!.gridProperties!.columnCount!;
-    for (const [role, rows] of roles) {
-      const { px, fs } = ROW_STYLE[role];
+    const merges = sh.merges ?? [];
+    const rowsData = sh.data?.[0]?.rowData ?? [];
+    // penanda {{pagebreak}} bukan isi (dikosongkan saat generate), tapi ikut diberi gaya baris
+    const marker = (row: number) => (rowsData[row]?.values ?? []).findIndex((v) => v.formattedValue === "{{pagebreak}}");
+    const filled = (row: number) => (rowsData[row]?.values ?? []).flatMap((v, j) => (v.formattedValue && v.formattedValue !== "{{pagebreak}}" ? [j] : []));
+    let used = 0;
+    rowsData.forEach((_, i) => [...filled(i), marker(i)].forEach((j) => (used = Math.max(used, j + 1))));
+    merges.forEach((m) => (used = Math.max(used, m.endColumnIndex!)));
+    const range = (r0: number, r1: number, c0: number, c1: number) => ({ sheetId, startRowIndex: r0, endRowIndex: r1, startColumnIndex: c0, endColumnIndex: c1 });
+    // huruf seragam di seluruh area terpakai
+    requests.push({ repeatCell: { range: range(0, sh.properties!.gridProperties!.rowCount!, 0, used), cell: { userEnteredFormat: { textFormat: { fontFamily: FONT } } }, fields: "userEnteredFormat.textFormat.fontFamily" } });
+    for (const [role, rows, colLimit] of roles) {
+      const st: RowStyle = ROW_STYLE[role];
       const [from, to] = typeof rows === "number" ? [rows, rows] : rows;
       for (let row = from - 1; row < to; row++) {
-        const span = (sh.merges ?? []).find((m) => m.startRowIndex === row && m.endRowIndex! - row > 1);
-        const n = span ? span.endRowIndex! - row : 1;
-        height(sheetId, row, row + n, Math.round(px / n));
-        if (role === "text") fitRows.push({ sheetId, row });
+        const vspan = merges.find((m) => m.startRowIndex === row && m.endRowIndex! - row > 1);
+        const n = vspan ? vspan.endRowIndex! - row : 1;
+        requests.push({ updateDimensionProperties: { range: { sheetId, dimension: "ROWS", startIndex: row, endIndex: row + n }, properties: { pixelSize: Math.round(st.px / n) }, fields: "pixelSize" } });
+        if (st.fit) fitRows.push({ sheetId, row });
+        const cols = filled(row);
+        // potongan sel berisi: [kolom awal, kolom akhir) termasuk merge
+        let spans = cols.filter((j) => !colLimit || (j >= colLimit[0] - 1 && j < colLimit[1])).map((j) => {
+          const m = merges.find((mm) => mm.startRowIndex === row && mm.startColumnIndex === j);
+          return [j, m ? m.endColumnIndex! : j + 1] as [number, number];
+        });
+        if (st.fullWidth && !colLimit && cols.length === 1 && cols[0] === 0) {
+          const end = marker(row) > 0 ? marker(row) : used; // sel penanda tidak ikut merge (isinya akan hilang)
+          structural.push({ unmergeCells: { range: range(row, row + n, 0, used) } }, { mergeCells: { range: range(row, row + n, 0, end), mergeType: "MERGE_ALL" } });
+          spans = [[0, used]];
+        }
+        const tf: Record<string, unknown> = { fontSize: st.fs };
+        const tfFields = ["fontSize"];
+        if (st.bold != null) (tf.bold = st.bold), tfFields.push("bold");
+        if (st.italic != null) (tf.italic = st.italic), tfFields.push("italic");
+        if (st.fg) (tf.foregroundColor = rgb(st.fg)), tfFields.push("foregroundColor");
+        const fmt: Record<string, unknown> = { textFormat: tf, verticalAlignment: "MIDDLE" };
+        const fields = [`textFormat(${tfFields.join(",")})`, "verticalAlignment"];
+        if (st.bg) (fmt.backgroundColor = rgb(st.bg)), fields.push("backgroundColor");
+        if (st.hAlign) (fmt.horizontalAlignment = st.hAlign), fields.push("horizontalAlignment");
+        if (st.wrap) (fmt.wrapStrategy = "WRAP"), fields.push("wrapStrategy");
+        for (const [c0, c1] of spans) {
+          requests.push({ repeatCell: { range: range(row, row + n, c0, c1), cell: { userEnteredFormat: fmt }, fields: `userEnteredFormat(${fields.join(",")})` } });
+          if (st.box) {
+            const b = { style: "SOLID", color: rgb(st.box) };
+            requests.push({ updateBorders: { range: range(row, row + n, c0, c1), top: b, bottom: b, left: b, right: b, innerVertical: b } });
+          }
+          if (st.bottom) requests.push({ updateBorders: { range: range(row, row + n, c0, c1), bottom: { style: st.bottom.style, color: rgb(st.bottom.color) } } });
+        }
       }
-      requests.push({
-        repeatCell: {
-          range: { sheetId, startRowIndex: from - 1, endRowIndex: to, startColumnIndex: 0, endColumnIndex: cols },
-          // teks rata tengah vertikal di semua baris (template contoh kadang campur bawah/tengah)
-          cell: { userEnteredFormat: { textFormat: { fontSize: fs }, verticalAlignment: "MIDDLE" } },
-          fields: "userEnteredFormat(textFormat.fontSize,verticalAlignment)",
-        },
-      });
     }
   }
+  if (structural.length) await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: structural } });
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
   await fitTextRows(c, id, fitRows, ROW_STYLE.text.px);
 }
