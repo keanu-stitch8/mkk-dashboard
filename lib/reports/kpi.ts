@@ -28,9 +28,10 @@ export function kpiChange(kind: KpiKind, cur: number | null | undefined, prev: n
   if (cur == null || prev == null || (kind !== "rate" && prev === 0)) return { text: "No data last month", tone: "none" };
   const diff = cur - prev;
   const flat = kind === "rate" ? Math.abs(diff) < 0.0005 : Math.abs(diff / prev) < 0.0005;
-  if (flat) return { text: `→ ${kind === "rate" ? "0.0 pp" : "0.0%"} vs last month`, tone: "flat" };
+  if (flat) return { text: `→ ${kind === "rate" ? "0.0 percentage points" : "0.0%"} vs last month`, tone: "flat" };
   const sign = diff > 0 ? "+" : MINUS;
-  const body = kind === "rate" ? `${sign}${en1(diff * 100)} pp` : `${sign}${en1((diff / prev) * 100)}%`;
+  // laporan client: "percentage points" ditulis lengkap (bukan "pp") supaya tidak membingungkan
+  const body = kind === "rate" ? `${sign}${en1(diff * 100)} percentage points` : `${sign}${en1((diff / prev) * 100)}%`;
   return { text: `${diff > 0 ? "↑" : "↓"} ${body} vs last month`, tone: diff > 0 === goodWhenUp ? "good" : "bad" };
 }
 

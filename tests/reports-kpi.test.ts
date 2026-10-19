@@ -16,7 +16,7 @@ describe("kpiData", () => {
     expect(d.values["kpi.views.value"]).toBe(732);
     expect(d.values["kpi.views.change"]).toBe("↓ −70.2% vs last month");
     expect(d.tones["kpi.views.change"]).toBe("bad");
-    expect(d.values["kpi.er.change"]).toBe("↓ −0.9 pp vs last month");
+    expect(d.values["kpi.er.change"]).toBe("↓ −0.9 percentage points vs last month");
     expect(d.values["kpi.pos.change"]).toBe("↓ −10.4% vs last month");
     expect(d.tones["kpi.pos.change"]).toBe("good");
     expect(d.values["kpi.time.value"]).toBe("1m 44s");

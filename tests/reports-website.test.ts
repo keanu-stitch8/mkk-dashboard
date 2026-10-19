@@ -16,8 +16,9 @@ const sep: WebsiteNarrativeInput = {
   cities: [
     { city: "Kudus", users: 301 },
     { city: "Semarang", users: 168 },
-    { city: "Tel Aviv-Yafo", users: 23 },
+    { city: "Jakarta", users: 98 },
   ],
+  excluded: { outsideUsers: 202, outsideTop: ["Tel Aviv-Yafo", "Prineville", "Lulea"], notSetUsers: 20 },
   notSetSessions: 147,
   gsc: { clicks: 98, impressions: 546, ctr: 0.1795, position: 8.62, prevCtr: 0.2123 },
 };
@@ -32,28 +33,20 @@ describe("website narrative", () => {
       "Direct sessions rose 126.3% MoM (400 → 905).",
       "The landing-page dimension was “(not set)” for 147 sessions (8.0%); these sessions restarted without a page load (typically a tab left open past GA4's 30-minute session timeout), so no landing page is recorded.",
       "Google Search Console recorded 98 clicks and 546 impressions (17.95% CTR) at an average position of 8.6.",
-      "Search CTR fell 3.3 pp vs August 2026; review titles and meta descriptions of top-impression pages.",
-      "City attribution is approximate. Treat Tel Aviv-Yafo as a location to validate before interpretation.",
+      "Search CTR fell 3.3 percentage points vs August 2026; review titles and meta descriptions of top-impression pages.",
+      "Locations outside Indonesia accounted for 202 active users (24.2%), led by Tel Aviv-Yafo, Prineville and Lulea — largely data-centre locations typical of crawler/bot traffic. They are excluded from the city ranking, as are 20 users without an identified city.",
     ]);
   });
 
-  it("catatan kota", () => {
+  it("catatan kota (hanya kota Indonesia)", () => {
     const notes = cityNotes(sep.cities, sep.users);
     expect(notes[0]).toEqual({ readout: "Largest city audience; 36.0% of site-wide active users.", note: "City attribution is approximate in GA4." });
     expect(notes[1].readout).toBe("Second-largest city audience.");
-    expect(notes[2]).toEqual({ readout: "Unusual location for the target audience; validate before interpretation.", note: "Not in the Indonesian city reference list; validate before interpreting." });
+    expect(notes[2].readout).toBe("Third-largest city audience.");
   });
 
-  it("(not set) bukan lokasi tak biasa; daftar kota memakai koma", () => {
-    const cities = [
-      { city: "Kudus", users: 301 },
-      { city: "(not set)", users: 32 },
-      { city: "Tel Aviv-Yafo", users: 23 },
-      { city: "Prineville", users: 17 },
-      { city: "Lulea", users: 13 },
-    ];
-    expect(websiteFindings({ ...sep, cities }).at(-1)).toBe("City attribution is approximate. Treat Tel Aviv-Yafo, Prineville and Lulea as locations to validate before interpretation.");
-    expect(cityNotes(cities, 835)[1]).toEqual({ readout: "Location not identified by GA4.", note: "GA4 could not attribute a city to these users." });
+  it("tanpa kota luar negeri / not set → tidak ada kalimat pengecualian", () => {
+    expect(websiteFindings({ ...sep, excluded: { outsideUsers: 0, outsideTop: [], notSetUsers: 0 } }).some((f) => f.includes("outside Indonesia"))).toBe(false);
   });
 
   it("landing '/(not set)' lama dibaca sebagai '(not set)'", () => {

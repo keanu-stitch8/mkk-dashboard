@@ -38,6 +38,15 @@ async function main() {
         fields: "userEnteredFormat(numberFormat,horizontalAlignment)",
       },
     });
+  // header di atas kolom angka ikut rata kanan (kolom angka diberi rata kanan oleh numFmt)
+  const headerRight = (sheet: string, r1: number, c0: number, c1: number) =>
+    formats.push({
+      repeatCell: {
+        range: { sheetId: sid(sheet), startRowIndex: r1 - 1, endRowIndex: r1, startColumnIndex: c0, endColumnIndex: c1 },
+        cell: { userEnteredFormat: { horizontalAlignment: "RIGHT" } },
+        fields: "userEnteredFormat.horizontalAlignment",
+      },
+    });
   const tidy = (sheet: string, frozen: number) =>
     requests.push({ updateSheetProperties: { properties: { sheetId: sid(sheet), gridProperties: { hideGridlines: true, frozenRowCount: frozen } }, fields: "gridProperties(hideGridlines,frozenRowCount)" } });
 
@@ -56,23 +65,25 @@ async function main() {
     numFmt(TA, r, 6, 7, "#,##0");
     numFmt(TA, r, 7, 8, "0.00");
   }
+  headerRight(TA, 4, 1, 8);
   tidy(TA, 4);
 
   // ── 03 Visitor Cities: data r5–11 → contoh r5; total r12; site r14; gap r15; readout r18–21 → contoh r18
   const VC = "03 Visitor Cities";
   del(VC, 19, 21);
   del(VC, 6, 11);
-  put(VC, "A2", ["GA4 · Active users by city · {{period}} · top 10 cities"]);
+  put(VC, "A2", ["GA4 · Active users by city · {{period}} · top 10 Indonesian cities (locations abroad & unidentified cities excluded)"]);
   put(VC, "A4", ["Rank", "City", "Active Users", "Share of Site Active Users", "Share of Cities Shown", "Audience Readout", "Data Quality Note"]);
   put(VC, "A5", ["{{#cities.rank}}", "{{#cities.city}}", "{{#cities.users}}", "{{#cities.share_site}}", "{{#cities.share_shown}}", "{{#cities.readout}}", "{{#cities.note}}"]);
   put(VC, "A6", ["", "CITIES SHOWN", "{{cities.shown_users}}", "{{cities.shown_share}}", 1, "Sum of the city rows shown.", "Not an exhaustive city list."]);
   put(VC, "A8", ["SITE-WIDE ACTIVE USERS", "", "{{pages.total_users}}", 1, "", "GA4 site-wide active users."]);
-  put(VC, "A9", ["GAP VS CITIES SHOWN", "", "{{cities.gap_users}}", "{{cities.gap_share}}", "", "Users in cities outside the list shown (or unattributed)."]);
+  put(VC, "A9", ["GAP VS CITIES SHOWN", "", "{{cities.gap_users}}", "{{cities.gap_share}}", "", "Users in smaller Indonesian cities, abroad (mostly crawler/data-centre traffic) or without an identified city."]);
   put(VC, "A12", ["{{#geo.text}}"]);
   for (const r of [5, 6, 8, 9]) {
     numFmt(VC, r, 2, 3, "#,##0");
     numFmt(VC, r, 3, 5, "0.0%", "PERCENT");
   }
+  headerRight(VC, 4, 2, 5);
   tidy(VC, 4);
 
   // ── 04 Page Performance: total r5, data r6–15 → contoh r6
@@ -87,6 +98,7 @@ async function main() {
     numFmt(PP, r, 4, 5, '0" sec"');
     numFmt(PP, r, 5, 6, "#,##0");
   }
+  headerRight(PP, 4, 1, 6);
   tidy(PP, 4);
 
   // ── 05 Landing Pages: total r5, data r6–15 → contoh r6
@@ -99,6 +111,7 @@ async function main() {
     numFmt(LP, r, 1, 4, "#,##0");
     numFmt(LP, r, 4, 5, '0" sec"');
   }
+  headerRight(LP, 4, 1, 5);
   tidy(LP, 4);
 
   // ── 06 Search Console: total r5; harian r10–39 → contoh r10
@@ -115,6 +128,8 @@ async function main() {
   numFmt(SC, 10, 1, 3, "#,##0");
   numFmt(SC, 10, 3, 4, "0.00%", "PERCENT");
   numFmt(SC, 10, 4, 5, "0.00");
+  headerRight(SC, 4, 0, 4);
+  headerRight(SC, 9, 1, 5);
   tidy(SC, 0);
 
   // ── 07 Search Queries & 08 Search Pages: data r5.. → contoh r5
@@ -128,6 +143,7 @@ async function main() {
     numFmt(sheet, 5, 1, 3, "#,##0");
     numFmt(sheet, 5, 3, 4, "0.00%", "PERCENT");
     numFmt(sheet, 5, 4, 5, "0.00");
+    headerRight(sheet, 4, 1, 5);
     tidy(sheet, 4);
   }
 
@@ -142,6 +158,10 @@ async function main() {
     numFmt(DC, r, 1, 3, "#,##0");
     numFmt(DC, r, 3, 4, "0.00%", "PERCENT");
   }
+  headerRight(DC, 4, 1, 5);
+  headerRight(DC, 9, 1, 5);
+  headerRight(DC, 5, 4, 5); // "—" Avg Position
+  headerRight(DC, 10, 4, 5);
   tidy(DC, 0);
 
   // ── 10 Metric Guide & Sources: catatan September dari ChatGPT diganti metodologi umum (berbasis API)
@@ -189,6 +209,8 @@ async function main() {
   numFmt(ES, 7, 2, 4, "0.0%", "PERCENT");
   numFmt(ES, 7, 6, 7, "#,##0");
   numFmt(ES, 7, 7, 8, "0.0%", "PERCENT");
+  headerRight(ES, 6, 1, 4);
+  headerRight(ES, 6, 6, 8);
   tidy(ES, 0);
 
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });

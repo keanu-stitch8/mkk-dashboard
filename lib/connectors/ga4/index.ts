@@ -9,6 +9,7 @@ import { monthRange, serviceAccountKey, withRetry } from "../common";
 import { googleErrorMessage, isRetryableGoogleError } from "../google-errors";
 import { authorizedClient, oauthAccount, oauthClientConfigured } from "../google-oauth";
 import { mapGa4Month, type Ga4MonthReports, type Ga4Report } from "./map";
+import { prisma } from "../../db";
 
 type RunReportRequest = protos.google.analytics.data.v1beta.IRunReportRequest;
 type AuthInfo = { mode: "service_account" | "oauth"; account?: string };
@@ -58,6 +59,32 @@ function translate(e: unknown, auth?: AuthInfo): ConnectorError {
     googleErrorMessage(e, { api: "ga4", authMode: auth?.mode, account: auth?.account, propertyId: process.env.GA4_PROPERTY_ID }),
     String((e as Error)?.message ?? e),
   );
+}
+
+/**
+ * Active users per kota + negara selama bulan itu → tabel Ga4City (laporan: peringkat kota Indonesia saja).
+ * Data per periode (stabil); bulan terkunci hanya diisi jika belum ada — data lain tidak disentuh.
+ */
+export async function saveGa4Cities(month: string, client?: BetaAnalyticsDataClient): Promise<number> {
+  const { isMonthLocked } = await import("../lock");
+  if ((await isMonthLocked(month)) && (await prisma.ga4City.count({ where: { month } }))) return 0;
+  const { start, end } = monthRange(month);
+  const c = client ?? (await resolveClient()).client;
+  const res = await runReport(c, {
+    property: `properties/${propertyId()}`,
+    dateRanges: [{ startDate: start, endDate: end }],
+    dimensions: [{ name: "city" }, { name: "country" }],
+    metrics: [{ name: "activeUsers" }, { name: "newUsers" }],
+  });
+  const rows = (res.rows ?? []).map((r) => ({
+    month,
+    city: r.dimensionValues?.[0]?.value || "(not set)",
+    country: r.dimensionValues?.[1]?.value || "(not set)",
+    activeUsers: Number(r.metricValues?.[0]?.value ?? 0),
+    newUsers: Number(r.metricValues?.[1]?.value ?? 0),
+  }));
+  await prisma.$transaction([prisma.ga4City.deleteMany({ where: { month } }), prisma.ga4City.createMany({ data: rows })]);
+  return rows.length;
 }
 
 export const ga4: Connector = {
@@ -132,6 +159,7 @@ export const ga4: Connector = {
         runReport(c, { ...base, dimensions: d("city"), metrics: m("activeUsers", "newUsers"), orderBys: byDesc("activeUsers") }),
       ]);
       const reports: Ga4MonthReports = { totals, channels, pages, pageTitles, landing, firstChannel, city };
+      await saveGa4Cities(month, c);
       const via = auth.mode === "oauth" ? `akun ${auth.account ?? "Google"}` : "service account";
       const datasets = mapGa4Month(reports, month, `API GA4 · properti ${propertyId()} · ${via} · ${start} s/d ${end}`);
       if (partial) for (const ds of datasets) ds.warnings.push(`Bulan berjalan — data sampai ${end}.`);

@@ -444,3 +444,17 @@ model GeneratedReport {
 
   @@index([channel, month])
 }
+
+/// Active users GA4 per kota + negara selama bulan itu (per periode, stabil). Dipakai laporan untuk
+/// menyaring kota di luar Indonesia (sering crawler/data center) & "(not set)" dari peringkat kota.
+model Ga4City {
+  month       String
+  city        String
+  country     String
+  activeUsers Float
+  newUsers    Float?
+  updatedAt   DateTime @updatedAt
+
+  @@id([month, city, country])
+  @@index([month])
+}

@@ -19,7 +19,7 @@ export async function buildWebsite(month: string): Promise<ReportData> {
     prisma.ga4Channel.findMany({ where: { month: prev } }),
     prisma.ga4Page.findMany({ where: { month } }),
     prisma.ga4Landing.findMany({ where: { month }, orderBy: { sessions: "desc" } }),
-    prisma.breakdown.findMany({ where: { month, channel: "website", dimension: "city", metric: "activeUsers" }, orderBy: { value: "desc" } }),
+    prisma.ga4City.findMany({ where: { month }, orderBy: { activeUsers: "desc" } }),
     prisma.gscDaily.findMany({ where: { month }, orderBy: { date: "asc" } }),
     prisma.gscQuery.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 100 }),
     prisma.gscPage.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 100 }),
@@ -59,10 +59,19 @@ export async function buildWebsite(month: string): Promise<ReportData> {
   const landingRows = landings.slice(0, 10).map((l) => ({ path: landingPath(l.path), sessions: l.sessions, users: l.activeUsers ?? null, new_users: l.newUsers ?? null, avg_time: sec(l.avgEngagementTime) }));
   const notSet = landings.find((l) => landingPath(l.path) === "(not set)")?.sessions ?? null;
 
-  const cities = cityRows.slice(0, 10).map((c) => ({ city: c.label, users: c.value }));
+  // peringkat kota: hanya Indonesia & kota teridentifikasi; luar negeri (umumnya crawler/data center) & "(not set)" dikeluarkan
+  const isNotSet = (c: { city: string }) => c.city === "(not set)";
+  const idCities = cityRows.filter((c) => c.country === "Indonesia" && !isNotSet(c));
+  const outside = cityRows.filter((c) => c.country !== "Indonesia");
+  const excluded = {
+    outsideUsers: sumOf(outside.map((c) => c.activeUsers)),
+    outsideTop: [...new Set(outside.filter((c) => !isNotSet(c)).map((c) => c.city))].slice(0, 3),
+    notSetUsers: sumOf(cityRows.filter((c) => c.country === "Indonesia" && isNotSet(c)).map((c) => c.activeUsers)),
+  };
+  const cities = idCities.slice(0, 10).map((c) => ({ city: c.city, users: c.activeUsers }));
   const notes = cityNotes(cities, w.users);
   const shownUsers = sumOf(cities.map((c) => c.users));
-  const kudus = cityRows.find((c) => c.label.toLowerCase() === "kudus")?.value ?? null;
+  const kudus = idCities.find((c) => c.city.toLowerCase() === "kudus")?.activeUsers ?? null;
 
   // GSC device / negara: dua metrik (clicks, impressions) per label
   const gscBreakdown = (rows: typeof devices) =>
@@ -84,6 +93,7 @@ export async function buildWebsite(month: string): Promise<ReportData> {
     prevSessions: p?.sessions ?? null,
     channels: channelRows.map((c) => ({ label: c.name, sessions: c.sessions, share: c.share, prevSessions: prevChannels.find((x) => x.channel === c.name)?.sessions ?? null })),
     cities,
+    excluded,
     notSetSessions: notSet,
     gsc: { clicks: w.gscClicks, impressions: w.gscImpressions, ctr: w.gscCtr, position: w.gscPosition, prevCtr: p?.gscCtr ?? null },
   });
