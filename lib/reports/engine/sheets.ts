@@ -3,6 +3,7 @@
 import { google, type sheets_v4 } from "googleapis";
 import { authorizedClient, DRIVE_FILE_SCOPE, grantedScopes } from "../../connectors/google-oauth";
 import type { Tone } from "../types";
+import { fitTextRows, ROW_STYLE } from "./template-tools";
 import type { Plan, SheetGrid } from "./tokens";
 import { isRetryableGoogleError } from "../../connectors/google-errors";
 
@@ -115,6 +116,7 @@ export async function applyPlan(c: ReportClients, spreadsheetId: string, plan: P
     }));
   if (toneReqs.length) await gcall(() => c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: toneReqs } }));
 
-  const fit = plan.autoHeight.map((r) => ({ autoResizeDimensions: { dimensions: { sheetId: r.sheetId, dimension: "ROWS", startIndex: r.startRow, endIndex: r.endRow } } }));
-  if (fit.length) await gcall(() => c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: fit } }));
+  // tabel berteks panjang: tinggi sesuai isi, minimal tinggi baris data standar (ROW_STYLE.row)
+  const fit = plan.autoHeight.flatMap((r) => Array.from({ length: r.endRow - r.startRow }, (_, k) => ({ sheetId: r.sheetId, row: r.startRow + k })));
+  await gcall(() => fitTextRows(c, spreadsheetId, fit, ROW_STYLE.row.px));
 }

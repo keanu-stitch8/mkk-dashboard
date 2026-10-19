@@ -7,6 +7,7 @@
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 import type { ReportClients } from "../lib/reports/engine/sheets";
+import type { RowStyleSpec } from "../lib/reports/engine/template-tools";
 
 type Req = Record<string, unknown>;
 
@@ -35,7 +36,7 @@ const GUIDE: [string, string, string][] = [
 
 const TEXT: Record<string, Record<string, string>> = {
   [ES]: {
-    A1: "MAIN KE KUDUS - NEWS MONTHLY PERFORMANCE REPORT - {{month_upper}}",
+    A1: "MAIN KE KUDUS | NEWS MONTHLY PERFORMANCE REPORT - {{month_label}}",
     A3: "Reporting period: {{period}} · Sources: News Publishing Log and Google Analytics 4",
     A19: "KEY FINDINGS",
     A58: "Views come from Google Analytics for {{period}} and are matched to each article in the Publishing Log by its exact URL. {{match_note}}",
@@ -66,6 +67,26 @@ const TEXT: Record<string, Record<string, string>> = {
   },
 };
 
+/** Peran baris tiap sheet (posisi akhir template) → tinggi & ukuran huruf standar semua laporan (ROW_STYLE). */
+const STYLE: RowStyleSpec = {
+  [ES]: [
+    ["reportTitle", 1],
+    ["subtitle", 3],
+    ...[5, 9].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
+    ["section", 13],
+    ["section", 19],
+    ["text", 20],
+    ["section", 23],
+    ["header", 37],
+    ["row", [38, 55]],
+    ["text", 58],
+  ],
+  [AP]: [["sheetTitle", 1], ["subtitle", [3, 4]], ["header", 6], ["row", [7, 8]]],
+  [PL]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
+  [AR]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
+  [MG]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["text", [6, 18]], ["section", 21], ["text", 22]],
+};
+
 async function patchText(c: ReportClients, id: string) {
   const data = Object.entries(TEXT).flatMap(([sheet, cells]) => Object.entries(cells).map(([a1, v]) => ({ range: `'${sheet.replace(/'/g, "''")}'!${a1}`, values: [[v]] })));
   await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data } });
@@ -80,13 +101,14 @@ async function patchText(c: ReportClients, id: string) {
 
 async function main() {
   const { reportClients, copyFile, readGrids } = await import("../lib/reports/engine/sheets");
-  const { fitWidths } = await import("../lib/reports/engine/template-tools");
+  const { applyRowStyles, fitWidths } = await import("../lib/reports/engine/template-tools");
   const { NEWS_CATEGORY_SLOTS } = await import("../lib/reports/channels/news");
   const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1];
   const c = await reportClients();
   if (arg("fit-widths")) return fitWidths(c, arg("fit-widths")!);
   if (arg("patch")) {
     await patchText(c, arg("patch")!);
+    await applyRowStyles(c, arg("patch")!, STYLE);
     await fitWidths(c, arg("patch")!);
     return console.log(`Teks template diperbarui: https://docs.google.com/spreadsheets/d/${arg("patch")}/edit`);
   }

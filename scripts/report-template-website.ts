@@ -6,11 +6,14 @@
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
+import type { RowStyleSpec } from "../lib/reports/engine/template-tools";
+
 type Req = Record<string, unknown>;
 
 // Teks laporan untuk client: kalimat pendek & lugas, tanpa jargon teknis (dipakai saat build & --patch).
 const TEXT: Record<string, Record<string, string>> = {
   "01 Executive Summary": {
+    A1: "MAIN KE KUDUS | WEBSITE MONTHLY PERFORMANCE REPORT - {{month_label}}",
     A2: "Reporting period: {{period}} · Sources: Google Analytics 4 and Google Search Console",
     H21: "Share of Users",
     A24: "KEY FINDINGS",
@@ -77,6 +80,32 @@ const TEXT: Record<string, Record<string, string>> = {
   },
 };
 
+/** Peran baris tiap sheet (posisi template) → tinggi & ukuran huruf standar semua laporan (ROW_STYLE). */
+const titled = (...rest: RowStyleSpec[string]): RowStyleSpec[string] => [["sheetTitle", 1], ["subtitle", 2], ...rest];
+const STYLE: RowStyleSpec = {
+  "01 Executive Summary": [
+    ["reportTitle", 1],
+    ["subtitle", 2],
+    ...[5, 10, 15].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
+    ["section", 20],
+    ["header", 21],
+    ["row", 22],
+    ["section", 24],
+    ["text", 25],
+    ["section", 27],
+    ["text", 28],
+  ],
+  "02 Traffic Acquisition": titled(["header", 4], ["row", [5, 6]]),
+  "03 Visitor Cities": titled(["header", 4], ["row", [5, 6]], ["row", [8, 9]]),
+  "04 Page Performance": titled(["header", 4], ["row", [5, 6]]),
+  "05 Landing Pages": titled(["header", 4], ["row", [5, 6]]),
+  "06 Search Console": titled(["cardLabel", 4], ["cardValue", 5], ["section", 7], ["header", 9], ["row", 10]),
+  "07 Search Queries": titled(["header", 4], ["row", 5]),
+  "08 Search Pages": titled(["header", 4], ["row", 5]),
+  "09 GSC Devices & Countries": titled(["header", 4], ["row", 5], ["section", 7], ["header", 9], ["row", 10]),
+  "10 Metric Guide & Sources": titled(["header", 4], ["text", [5, 21]]),
+};
+
 /** Tulis TEXT + format kolom baru sheet 03 ke template yang sudah ada (desain/edit user lain tidak disentuh). */
 async function patchText(c: Awaited<ReturnType<typeof import("../lib/reports/engine/sheets").reportClients>>, id: string) {
   const data = Object.entries(TEXT).flatMap(([sheet, cells]) => Object.entries(cells).map(([a1, v]) => ({ range: `'${sheet.replace(/'/g, "''")}'!${a1}`, values: [[v]] })));
@@ -91,17 +120,12 @@ async function patchText(c: Awaited<ReturnType<typeof import("../lib/reports/eng
     requests.push(cell(r, 5, { numberFormat: { type: "NUMBER", pattern: "#,##0" }, horizontalAlignment: "RIGHT" }, "userEnteredFormat(numberFormat,horizontalAlignment)"));
     requests.push(cell(r, 6, { numberFormat: { type: "PERCENT", pattern: "+0.0%;-0.0%;0.0%" }, horizontalAlignment: "RIGHT" }, "userEnteredFormat(numberFormat,horizontalAlignment)"));
   }
-  // baris tabel kota dirapatkan supaya sheet 03 muat 1 halaman PDF setelah lebar disamakan (PAGE_WIDTH_PX)
-  const rowPx = (r1: number, px: number) => ({ updateDimensionProperties: { range: { sheetId: vc, dimension: "ROWS", startIndex: r1 - 1, endIndex: r1 }, properties: { pixelSize: px }, fields: "pixelSize" } });
-  for (const r of [5, 6, 8, 9]) requests.push(rowPx(r, 24));
-  requests.push(rowPx(7, 12));
+  // tinggi baris diatur ROW_STYLE (STYLE di bawah); baris spasi r7 dirapatkan
+  requests.push({ updateDimensionProperties: { range: { sheetId: vc, dimension: "ROWS", startIndex: 6, endIndex: 7 }, properties: { pixelSize: 12 }, fields: "pixelSize" } });
   // bagian SUMMARY (r10 spasi, r11 judul, r12 kalimat) dihapus — isinya sudah ada di Key Findings; idempoten
   const vcRows = (await c.sheets.spreadsheets.values.get({ spreadsheetId: id, range: "'03 Visitor Cities'!A11" })).data.values?.[0]?.[0];
   if (vcRows === "SUMMARY" || vcRows === "GEOGRAPHIC READOUT")
     requests.push({ deleteDimension: { range: { sheetId: vc, dimension: "ROWS", startIndex: 9, endIndex: 12 } } });
-  // Metric Guide: baris isi 40 → 32 px supaya muat 1 halaman PDF
-  const mg = meta.data.sheets!.find((x) => x.properties!.title === "10 Metric Guide & Sources")!.properties!.sheetId!;
-  requests.push({ updateDimensionProperties: { range: { sheetId: mg, dimension: "ROWS", startIndex: 4, endIndex: 21 }, properties: { pixelSize: 32 }, fields: "pixelSize" } });
   // kolom F–G dulu berisi kalimat panjang; sekarang angka → lebar disesuaikan
   for (const col of [5, 6]) requests.push({ updateDimensionProperties: { range: { sheetId: vc, dimension: "COLUMNS", startIndex: col, endIndex: col + 1 }, properties: { pixelSize: 120 }, fields: "pixelSize" } });
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
@@ -118,9 +142,10 @@ async function main() {
   const patch = process.argv.find((a) => a.startsWith("--patch="))?.split("=")[1];
   if (patch) {
     const { reportClients } = await import("../lib/reports/engine/sheets");
-    const { fitWidths } = await import("../lib/reports/engine/template-tools");
+    const { applyRowStyles, fitWidths } = await import("../lib/reports/engine/template-tools");
     const c = await reportClients();
     await patchText(c, patch);
+    await applyRowStyles(c, patch, STYLE);
     await fitWidths(c, patch);
     console.log(`Teks template diperbarui: https://docs.google.com/spreadsheets/d/${patch}/edit`);
     return;

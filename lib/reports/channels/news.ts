@@ -138,7 +138,7 @@ export async function buildNews(month: string): Promise<ReportData> {
   return {
     values,
     tones: kpi.tones,
-    autoHeight: ["articles", "log", "review"],
+    autoHeight: ["findings", "articles", "log", "review"],
     tables: {
       findings: findings.map((text) => ({ text })),
       articles: published.map((a, i) => ({

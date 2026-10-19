@@ -162,6 +162,7 @@ export async function buildWebsite(month: string): Promise<ReportData> {
   return {
     values,
     tones: kpi.tones,
+    autoHeight: ["findings", "pages", "landing", "queries", "gsc_pages"],
     tables: {
       mix,
       channels: channelRows,
