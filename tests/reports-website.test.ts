@@ -30,7 +30,7 @@ describe("website narrative", () => {
       "Kudus is the largest city audience with 301 active users (36.0% of site-wide active users).",
       "Sessions rose 22.6% vs August 2026 (1,500 → 1,839).",
       "Direct sessions rose 126.3% MoM (400 → 905).",
-      "The landing-page dimension was “(not set)” for 147 sessions (8.0%); review landing-page tagging.",
+      "The landing-page dimension was “(not set)” for 147 sessions (8.0%); these sessions restarted without a page load (typically a tab left open past GA4's 30-minute session timeout), so no landing page is recorded.",
       "Google Search Console recorded 98 clicks and 546 impressions (17.95% CTR) at an average position of 8.6.",
       "Search CTR fell 3.3 pp vs August 2026; review titles and meta descriptions of top-impression pages.",
       "City attribution is approximate. Treat Tel Aviv-Yafo as a location to validate before interpretation.",

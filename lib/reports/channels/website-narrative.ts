@@ -39,7 +39,7 @@ export function websiteFindings(i: WebsiteNarrativeInput): string[] {
     if (c.prevSessions != null && c.prevSessions >= 50 && Math.abs(c.sessions - c.prevSessions) / c.prevSessions > 0.5)
       out.push(`${c.label} sessions ${change(c.sessions, c.prevSessions)} MoM (${n(c.prevSessions)} → ${n(c.sessions)}).`);
   if (i.notSetSessions && i.sessions && i.notSetSessions / i.sessions > 0.05)
-    out.push(`The landing-page dimension was “(not set)” for ${n(i.notSetSessions)} sessions (${pct(i.notSetSessions / i.sessions)}); review landing-page tagging.`);
+    out.push(`The landing-page dimension was “(not set)” for ${n(i.notSetSessions)} sessions (${pct(i.notSetSessions / i.sessions)}); these sessions restarted without a page load (typically a tab left open past GA4's 30-minute session timeout), so no landing page is recorded.`);
   const g = i.gsc;
   if (g.clicks != null && g.impressions != null)
     out.push(`Google Search Console recorded ${n(g.clicks)} clicks and ${n(g.impressions)} impressions (${pct(g.ctr ?? 0, 2)} CTR)${g.position != null ? ` at an average position of ${g.position.toFixed(1)}` : ""}.`);
