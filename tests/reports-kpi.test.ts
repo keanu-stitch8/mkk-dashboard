@@ -17,8 +17,8 @@ describe("kpiData", () => {
     expect(d.values["kpi.views.change"]).toBe("↓ −70.2% vs last month");
     expect(d.tones["kpi.views.change"]).toBe("bad");
     expect(d.values["kpi.er.change"]).toBe("↓ −0.9 percentage points vs last month");
-    // metrik "turun = bagus": diberi kata better/worse supaya panah ↓ hijau tidak membingungkan
-    expect(d.values["kpi.pos.change"]).toBe("↓ −10.4% vs last month (better)");
+    // metrik "turun = bagus": diberi kata (up)/(down) supaya panah ↓ hijau tidak membingungkan
+    expect(d.values["kpi.pos.change"]).toBe("↓ −10.4% vs last month (up)");
     expect(d.tones["kpi.pos.change"]).toBe("good");
     expect(d.values["kpi.time.value"]).toBe("1m 44s");
   });
@@ -30,9 +30,9 @@ describe("kpiData", () => {
     expect(d.values["kpi.er.value"]).toBe(null);
   });
 
-  it("metrik turun = bagus yang naik → (worse)", () => {
+  it("metrik turun = bagus yang naik → (down)", () => {
     const d = kpiData(defs, { views: 1, er: 0.1, pos: 9.6, time: 1 }, { views: 1, er: 0.1, pos: 8.6, time: 1 });
-    expect(d.values["kpi.pos.change"]).toBe("↑ +11.6% vs last month (worse)");
+    expect(d.values["kpi.pos.change"]).toBe("↑ +11.6% vs last month (down)");
     expect(d.tones["kpi.pos.change"]).toBe("bad");
     expect(d.values["kpi.views.change"]).toBe("→ 0.0% vs last month");
   });

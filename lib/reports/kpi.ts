@@ -33,8 +33,9 @@ export function kpiChange(kind: KpiKind, cur: number | null | undefined, prev: n
   // laporan client: "percentage points" ditulis lengkap (bukan "pp") supaya tidak membingungkan
   const body = kind === "rate" ? `${sign}${en1(diff * 100)} percentage points` : `${sign}${en1((diff / prev) * 100)}%`;
   const good = diff > 0 === goodWhenUp;
-  // metrik "turun = bagus" (bounce rate, posisi): panah = arah angka, kata = maknanya, supaya ↓ hijau tidak membingungkan
-  const meaning = goodWhenUp ? "" : good ? " (better)" : " (worse)";
+  // metrik "turun = bagus" (bounce rate, posisi): panah = arah angka, kata dalam kurung = arah performanya
+  // (posisi turun = naik peringkat → "(up)"), supaya ↓ hijau tidak membingungkan
+  const meaning = goodWhenUp ? "" : good ? " (up)" : " (down)";
   return { text: `${diff > 0 ? "↑" : "↓"} ${body} vs last month${meaning}`, tone: good ? "good" : "bad" };
 }
 
