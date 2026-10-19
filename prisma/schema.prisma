@@ -428,3 +428,19 @@ model IgAccountByType {
 
   @@id([month, metric, type])
 }
+
+/// Laporan bulanan yang dibuat dashboard (file Google Sheets baru dari master template).
+model GeneratedReport {
+  id        String   @id @default(cuid())
+  channel   String // website | news | youtube | social
+  month     String // YYYY-MM
+  fileId    String?
+  url       String?
+  status    String // success | error
+  trigger   String // manual | cron
+  warnings  String?
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([channel, month])
+}
