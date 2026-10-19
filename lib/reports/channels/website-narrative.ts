@@ -64,14 +64,3 @@ export function websiteFindings(i: WebsiteNarrativeInput): string[] {
   } else if (x.notSetUsers > 0) out.push(`${n(x.notSetUsers)} users could not be matched to a city and are left out of the city ranking.`);
   return out;
 }
-
-/** Ringkasan geografis (sheet 03): porsi 3 kota teratas + perubahan kota terbesar vs bulan lalu. */
-export function geoReadout(cities: WebsiteNarrativeInput["cities"], siteUsers: number | null, prevMonthLabel: string): string[] {
-  if (!cities.length || !siteUsers) return [];
-  const top3 = cities.slice(0, 3);
-  const top3Users = top3.reduce((a, c) => a + c.users, 0);
-  const out = [`${list(top3.map((c) => c.city))} account for ${n(top3Users)} users, ${pct(top3Users / siteUsers)} of the total.`];
-  const lead = cities[0];
-  if (lead.prevUsers) out.push(`${lead.city} users ${change(lead.users, lead.prevUsers)} from ${prevMonthLabel} (${n(lead.prevUsers)} to ${n(lead.users)}).`);
-  return out;
-}

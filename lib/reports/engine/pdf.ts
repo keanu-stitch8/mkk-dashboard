@@ -1,6 +1,7 @@
 // Export laporan Google Sheets → satu PDF A4 landscape. Endpoint export Sheets mendukung parameter tata letak
 // (ukuran, orientasi, skala) yang tidak tersedia di Drive files.export, tapi skalanya berlaku untuk semua sheet.
-// Karena itu tiap sheet di-export sendiri (Executive Summary dipaskan 1 halaman, sisanya pas lebar) lalu digabung.
+// Karena itu tiap sheet di-export sendiri (default pas lebar; opsional sheet tertentu 1 halaman) lalu digabung.
+// Supaya tiap halaman penuh kiri–kanan, lebar kolom template disamakan (scripts/report-template-website.ts → PAGE_WIDTH_PX).
 import { Readable } from "node:stream";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { gcall, type ReportClients } from "./sheets";

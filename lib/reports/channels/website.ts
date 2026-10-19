@@ -5,7 +5,7 @@ import { daysInMonth, prevMonth } from "../../month";
 import { kpiData, WEBSITE_KPIS } from "../kpi";
 import { enMonth } from "../month";
 import type { Cell, ReportChannel, ReportData } from "../types";
-import { geoReadout, landingPath, topLandings, websiteFindings } from "./website-narrative";
+import { landingPath, topLandings, websiteFindings } from "./website-narrative";
 
 const div = (a: number | null | undefined, b: number | null | undefined) => (a == null || !b ? null : a / b);
 const sumOf = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
@@ -22,8 +22,8 @@ export async function buildWebsite(month: string): Promise<ReportData> {
     prisma.ga4City.findMany({ where: { month }, orderBy: { activeUsers: "desc" } }),
     prisma.ga4City.findMany({ where: { month: prev, country: "Indonesia" } }),
     prisma.gscDaily.findMany({ where: { month }, orderBy: { date: "asc" } }),
-    prisma.gscQuery.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 100 }),
-    prisma.gscPage.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 100 }),
+    prisma.gscQuery.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 10 }),
+    prisma.gscPage.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 10 }),
     prisma.breakdown.findMany({ where: { month, channel: "website", dimension: "device" } }),
     prisma.breakdown.findMany({ where: { month, channel: "website", dimension: "country" } }),
   ]);
@@ -174,7 +174,6 @@ export async function buildWebsite(month: string): Promise<ReportData> {
       devices: gscBreakdown(devices),
       countries: gscBreakdown(countries),
       findings: findings.map((text) => ({ text })),
-      geo: geoReadout(cities, w.users, enMonth(prev)).map((text) => ({ text })),
     },
   };
 }

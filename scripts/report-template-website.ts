@@ -1,6 +1,7 @@
 // Sekali jalan: buat master template laporan Website dari laporan September user.
 // npx tsx scripts/report-template-website.ts --from=<ID file laporan contoh>   → template baru
 // npx tsx scripts/report-template-website.ts --patch=<ID template>          → perbarui teks template yang ada
+// npx tsx scripts/report-template-website.ts --fit-widths=<ID template>     → samakan lebar kolom semua sheet (PDF penuh)
 // Sumber hanya DISALIN (file user tidak diubah); semua perubahan di file baru milik app.
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
@@ -34,7 +35,6 @@ const TEXT: Record<string, Record<string, string>> = {
     A9: "OTHER LOCATIONS",
     F9: "{{cities.prev_gap_users}}",
     G9: "{{cities.gap_change}}",
-    A11: "SUMMARY",
   },
   "04 Page Performance": { A2: "Top 10 of {{pages.count}} pages by views, {{period}}", A5: "TOTAL (all {{pages.count}} pages)", E4: "Avg Engagement Time" },
   "05 Landing Pages": {
@@ -42,8 +42,8 @@ const TEXT: Record<string, Record<string, string>> = {
     E4: "Avg Engagement Time",
   },
   "06 Search Console": { A2: "Google web search results for mainkekudus.com, {{period}}" },
-  "07 Search Queries": { A2: "Top 100 search queries by clicks, {{period}}. Google does not report rare queries, so rows do not add up to the totals." },
-  "08 Search Pages": { A2: "Top 100 pages in Google Search by clicks, {{period}}" },
+  "07 Search Queries": { A2: "Top 10 search queries by clicks, {{period}}. Google does not report rare queries, so rows do not add up to the totals." },
+  "08 Search Pages": { A2: "Top 10 pages in Google Search by clicks, {{period}}" },
   "09 GSC Devices & Countries": { A2: "Google Search clicks by device and country, {{period}}", E4: "", E5: "", E9: "", E10: "" },
   "10 Metric Guide & Sources": {
     A1: "METRIC GUIDE & SOURCES",
@@ -57,7 +57,7 @@ const TEXT: Record<string, Record<string, string>> = {
           ["Coverage", "Pages", "Totals include all {{pages.count}} pages. The table shows the 10 most viewed."],
           ["Coverage", "Landing pages", "Totals include all {{landing.count}} landing pages. The table shows the 10 with the most sessions, excluding sessions without a recorded landing page."],
           ["Coverage", "Cities", "Top 10 cities in Indonesia. Visits from abroad, mostly automated traffic from data centres, and users without an identified city are not ranked."],
-          ["Coverage", "Search queries and pages", "Top 100 rows by clicks. Google does not report rare queries, so rows do not add up to the totals."],
+          ["Coverage", "Search queries and pages", "Top 10 queries and top 10 pages by clicks. Google does not report rare queries, so rows do not add up to the totals."],
           ["Definition", "Users", "People who visited the site during the month."],
           ["Definition", "Sessions", "Visits to the site. One person can make several visits."],
           ["Definition", "Views", "Pages viewed, including repeat views."],
@@ -91,16 +91,63 @@ async function patchText(c: Awaited<ReturnType<typeof import("../lib/reports/eng
     requests.push(cell(r, 5, { numberFormat: { type: "NUMBER", pattern: "#,##0" }, horizontalAlignment: "RIGHT" }, "userEnteredFormat(numberFormat,horizontalAlignment)"));
     requests.push(cell(r, 6, { numberFormat: { type: "PERCENT", pattern: "+0.0%;-0.0%;0.0%" }, horizontalAlignment: "RIGHT" }, "userEnteredFormat(numberFormat,horizontalAlignment)"));
   }
+  // baris tabel kota dirapatkan supaya sheet 03 muat 1 halaman PDF setelah lebar disamakan (PAGE_WIDTH_PX)
+  const rowPx = (r1: number, px: number) => ({ updateDimensionProperties: { range: { sheetId: vc, dimension: "ROWS", startIndex: r1 - 1, endIndex: r1 }, properties: { pixelSize: px }, fields: "pixelSize" } });
+  for (const r of [5, 6, 8, 9]) requests.push(rowPx(r, 24));
+  requests.push(rowPx(7, 12));
+  // bagian SUMMARY (r10 spasi, r11 judul, r12 kalimat) dihapus — isinya sudah ada di Key Findings; idempoten
+  const vcRows = (await c.sheets.spreadsheets.values.get({ spreadsheetId: id, range: "'03 Visitor Cities'!A11" })).data.values?.[0]?.[0];
+  if (vcRows === "SUMMARY" || vcRows === "GEOGRAPHIC READOUT")
+    requests.push({ deleteDimension: { range: { sheetId: vc, dimension: "ROWS", startIndex: 9, endIndex: 12 } } });
+  // Metric Guide: baris isi 40 → 32 px supaya muat 1 halaman PDF
+  const mg = meta.data.sheets!.find((x) => x.properties!.title === "10 Metric Guide & Sources")!.properties!.sheetId!;
+  requests.push({ updateDimensionProperties: { range: { sheetId: mg, dimension: "ROWS", startIndex: 4, endIndex: 21 }, properties: { pixelSize: 32 }, fields: "pixelSize" } });
   // kolom F–G dulu berisi kalimat panjang; sekarang angka → lebar disesuaikan
   for (const col of [5, 6]) requests.push({ updateDimensionProperties: { range: { sheetId: vc, dimension: "COLUMNS", startIndex: col, endIndex: col + 1 }, properties: { pixelSize: 120 }, fields: "pixelSize" } });
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
 }
 
+/**
+ * Lebar total kolom terpakai di setiap sheet (px). Export PDF "fit to width" hanya mengecilkan konten yang lebih
+ * lebar dari halaman, tidak membesarkan yang sempit — jadi semua sheet disamakan dengan 05 Landing Pages (1.087 px,
+ * pas penuh di A4 landscape) supaya tiap halaman penuh kiri–kanan dengan ukuran huruf yang sama.
+ */
+const PAGE_WIDTH_PX = 1087;
+
+/** Skala lebar kolom terpakai tiap sheet secara proporsional sampai totalnya PAGE_WIDTH_PX. */
+async function fitWidths(c: Awaited<ReturnType<typeof import("../lib/reports/engine/sheets").reportClients>>, id: string) {
+  const r = await c.sheets.spreadsheets.get({ spreadsheetId: id, includeGridData: true, fields: "sheets(properties(sheetId,title),merges,data(columnMetadata(pixelSize),rowData(values(userEnteredValue))))" });
+  const requests: Req[] = [];
+  for (const sh of r.data.sheets ?? []) {
+    const d = sh.data![0];
+    let last = 0;
+    (d.rowData ?? []).forEach((row) => (row.values ?? []).forEach((v, j) => v.userEnteredValue && (last = Math.max(last, j))));
+    for (const m of sh.merges ?? []) last = Math.max(last, (m.endColumnIndex ?? 1) - 1);
+    const widths = (d.columnMetadata ?? []).slice(0, last + 1).map((m) => m.pixelSize ?? 100);
+    const total = widths.reduce((a, b) => a + b, 0);
+    const scaled = widths.map((w) => Math.round((w * PAGE_WIDTH_PX) / total));
+    scaled[scaled.length - 1] += PAGE_WIDTH_PX - scaled.reduce((a, b) => a + b, 0); // sisa pembulatan
+    scaled.forEach((px, col) =>
+      requests.push({ updateDimensionProperties: { range: { sheetId: sh.properties!.sheetId!, dimension: "COLUMNS", startIndex: col, endIndex: col + 1 }, properties: { pixelSize: px }, fields: "pixelSize" } }),
+    );
+    console.log(`${sh.properties!.title}: ${total} → ${PAGE_WIDTH_PX} px`);
+  }
+  await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
+}
+
 async function main() {
+  const fit = process.argv.find((a) => a.startsWith("--fit-widths="))?.split("=")[1];
+  if (fit) {
+    const { reportClients } = await import("../lib/reports/engine/sheets");
+    await fitWidths(await reportClients(), fit);
+    return;
+  }
   const patch = process.argv.find((a) => a.startsWith("--patch="))?.split("=")[1];
   if (patch) {
     const { reportClients } = await import("../lib/reports/engine/sheets");
-    await patchText(await reportClients(), patch);
+    const c = await reportClients();
+    await patchText(c, patch);
+    await fitWidths(c, patch);
     console.log(`Teks template diperbarui: https://docs.google.com/spreadsheets/d/${patch}/edit`);
     return;
   }
@@ -175,7 +222,6 @@ async function main() {
   put(VC, "A6", ["", "CITIES SHOWN", "{{cities.shown_users}}", "{{cities.shown_share}}", 1, "Sum of the city rows shown.", "Not an exhaustive city list."]);
   put(VC, "A8", ["SITE-WIDE ACTIVE USERS", "", "{{pages.total_users}}", 1, "", "GA4 site-wide active users."]);
   put(VC, "A9", ["GAP VS CITIES SHOWN", "", "{{cities.gap_users}}", "{{cities.gap_share}}", "", "Users in smaller Indonesian cities, abroad (mostly crawler/data-centre traffic) or without an identified city."]);
-  put(VC, "A12", ["{{#geo.text}}"]);
   for (const r of [5, 6, 8, 9]) {
     numFmt(VC, r, 2, 3, "#,##0");
     numFmt(VC, r, 3, 5, "0.0%", "PERCENT");
@@ -347,6 +393,7 @@ async function main() {
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: cardFormats } });
 
   await patchText(c, id);
+  await fitWidths(c, id);
   console.log(`Template dibuat: ${file.url}`);
   console.log(`Isi di .env.local: REPORT_TEMPLATE_WEBSITE=${id}`);
 }

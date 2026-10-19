@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { geoReadout, landingPath, topLandings, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
+import { landingPath, topLandings, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
 
 const sep: WebsiteNarrativeInput = {
   monthLabel: "September 2026",
@@ -42,13 +42,6 @@ describe("website narrative", () => {
 
   it("tanpa kota luar negeri / not set → tidak ada kalimat pengecualian", () => {
     expect(websiteFindings({ ...sep, excluded: { outsideUsers: 0, outsideTop: [], notSetUsers: 0 } }).some((f) => f.includes("outside Indonesia"))).toBe(false);
-  });
-
-  it("geo readout: ringkas, dengan perubahan kota utama", () => {
-    expect(geoReadout(sep.cities, 835, "August 2026")).toEqual([
-      "Kudus, Semarang and Jakarta account for 567 users, 67.9% of the total.",
-      "Kudus users rose 27.0% from August 2026 (237 to 301).",
-    ]);
   });
 
   it("landing '/(not set)' lama dibaca sebagai '(not set)'", () => {
