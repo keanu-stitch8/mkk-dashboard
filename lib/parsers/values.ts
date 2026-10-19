@@ -225,6 +225,8 @@ export function normalizePath(url: string | null | undefined): string | null {
   if (!url) return null;
   let s = url.trim();
   if (!s) return null;
+  // nilai khusus GA4 ("(not set)", "(other)") bukan path — jangan diberi "/"
+  if (/^\(.*\)$/.test(s)) return s.toLowerCase();
   s = s.replace(/^https?:\/\/[^/]+/i, "").replace(/^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(?=\/|$)/i, "");
   s = s.split("#")[0].split("?")[0];
   try {

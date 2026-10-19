@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cityNotes, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
+import { cityNotes, landingPath, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
 
 const sep: WebsiteNarrativeInput = {
   monthLabel: "September 2026",
@@ -54,5 +54,10 @@ describe("website narrative", () => {
     ];
     expect(websiteFindings({ ...sep, cities }).at(-1)).toBe("City attribution is approximate. Treat Tel Aviv-Yafo, Prineville and Lulea as locations to validate before interpretation.");
     expect(cityNotes(cities, 835)[1]).toEqual({ readout: "Location not identified by GA4.", note: "GA4 could not attribute a city to these users." });
+  });
+
+  it("landing '/(not set)' lama dibaca sebagai '(not set)'", () => {
+    expect(landingPath("/(not set)")).toBe("(not set)");
+    expect(landingPath("/news")).toBe("/news");
   });
 });

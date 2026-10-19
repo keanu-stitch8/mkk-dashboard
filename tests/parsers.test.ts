@@ -63,6 +63,11 @@ describe("values", () => {
     expect(normalizePath("mainkekudus.com/news/abc")).toBe("/news/abc");
     expect(normalizePath("https://mainkekudus.com/")).toBe("/");
   });
+
+  it("normalizePath membiarkan nilai GA4 '(not set)' / '(other)'", () => {
+    expect(normalizePath("(not set)")).toBe("(not set)");
+    expect(normalizePath("(other)")).toBe("(other)");
+  });
 });
 
 describe("header matching", () => {

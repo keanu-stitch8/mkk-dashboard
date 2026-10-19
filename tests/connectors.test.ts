@@ -67,7 +67,7 @@ describe("GA4 connector: mapping runReport → dataset", () => {
 
   it("landing & city", () => {
     const landing = get(ds, "ga4_landing");
-    expect(landing.rows[1]).toMatchObject({ path: "/(not set)", sessions: 147 });
+    expect(landing.rows[1]).toMatchObject({ path: "(not set)", sessions: 147 });
     expect(metric(landing, "landing_sessions")).toBe(663);
     const city = get(ds, "ga4_city");
     expect(city.breakdowns[0]).toMatchObject({ dimension: "city", label: "Kudus", metric: "activeUsers", value: 301 });

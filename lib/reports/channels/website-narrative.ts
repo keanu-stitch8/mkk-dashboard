@@ -21,6 +21,8 @@ const change = (cur: number, prev: number) => `${cur >= prev ? "rose" : "fell"} 
 const ORDINAL = ["Largest", "Second-largest", "Third-largest"];
 const NOT_SET = "(not set)";
 const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : xs[0]);
+/** Data lama menyimpan landing "(not set)" sebagai "/(not set)" (path dinormalisasi) — tampilkan apa adanya. */
+export const landingPath = (path: string) => (/^\/\(.*\)$/.test(path) ? path.slice(1) : path);
 const unusual = (city: string) => city !== NOT_SET && !isIndonesianCity(city);
 
 export function websiteFindings(i: WebsiteNarrativeInput): string[] {
