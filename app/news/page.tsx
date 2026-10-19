@@ -77,6 +77,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
               prev={p ? k.get(p) : null}
               kind={k.kind === "rate" ? "rate" : undefined}
               goodWhenUp={k.goodWhenUp}
+              neutral={k.neutral}
               hint={k.hint}
               note={note}
             />
@@ -170,7 +171,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
             { label: "Views / artikel", cur: n.viewsPerArticle, prev: p?.viewsPerArticle, fmt: fmtNum },
             { label: "Pembaca", cur: n.readers, prev: p?.readers, fmt: fmtNum },
             { label: "Avg engagement", cur: n.avgEngagementTime, prev: p?.avgEngagementTime, fmt: fmtDuration },
-            { label: "In review", cur: n.inReview, prev: p?.inReview, fmt: fmtNum, goodWhenUp: false },
+            { label: "In review", cur: n.inReview, prev: p?.inReview, fmt: fmtNum, neutral: true },
             { label: "Hari aktif publish", cur: n.activeDays, prev: p?.activeDays, fmt: fmtNum },
           ]}
         />

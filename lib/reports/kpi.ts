@@ -9,6 +9,8 @@ export interface KpiDef<S> {
   kind: KpiKind;
   /** false: turun = bagus (bounce rate, posisi) */
   goodWhenUp?: boolean;
+  /** arah tidak dinilai (mis. artikel in review): perubahan tetap ditulis, warna abu-abu, tanpa (up)/(down) */
+  neutral?: boolean;
   get: (s: S) => number | null | undefined;
   /** teks nilai pengganti angka (mis. "53 / 60"); perubahan tetap dihitung dari `get` */
   display?: (s: S) => string | null;
@@ -57,7 +59,7 @@ export function kpiData<S>(defs: KpiDef<S>[], cur: S, prev: S | null): { values:
     values[`kpi.${d.key}.value`] = d.display?.(cur) ?? (v == null ? null : d.kind === "duration" ? fmtDurationEn(v) : v);
     const ch = kpiChange(d.kind, v, prev ? d.get(prev) : null, d.goodWhenUp ?? true);
     values[`kpi.${d.key}.change`] = ch.text;
-    tones[`kpi.${d.key}.change`] = ch.tone;
+    tones[`kpi.${d.key}.change`] = d.neutral && ch.tone !== "none" ? "flat" : ch.tone;
   }
   return { values, tones };
 }
@@ -110,7 +112,7 @@ export interface NewsKpiSource {
 /** Kartu KPI News (urutan = grid dashboard & blok kartu laporan): baris 1 produksi, baris 2 pembaca. */
 export const NEWS_KPIS: KpiDef<NewsKpiSource>[] = [
   { key: "published", label: "Articles published", kind: "count", get: (s) => s.published },
-  { key: "in_review", label: "Articles in review", kind: "count", goodWhenUp: false, get: (s) => s.inReview, hint: "Artikel yang sudah dikirim tapi belum dipublish." },
+  { key: "in_review", label: "Articles in review", kind: "count", neutral: true, get: (s) => s.inReview, hint: "Artikel yang sudah dikirim tapi belum dipublish." },
   { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published + in review (definisi 'Delivered' di report News)." },
   { key: "achievement", label: "Quota achievement", kind: "rate", get: (s) => s.achievement, hint: "Delivered ÷ kuota." },
   { key: "views", label: "Article views", kind: "count", get: (s) => s.totalViews, hint: "Jumlah views artikel yang dipublish bulan ini (cocok via URL)." },

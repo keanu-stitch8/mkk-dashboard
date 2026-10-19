@@ -30,7 +30,7 @@ const GUIDE: [string, string, string][] = [
   ["Avg engagement", "Average time the article was open and in view, per active user.", "Shows depth of attention, not just page opens."],
   ["GA4 match", "Whether the article URL in the Publishing Log was found in Google Analytics.", "Views are only counted for matched URLs."],
   ["Content type and category", "Format (Features, Editorial, Hard News) and topic of each article.", "Shows the balance and breadth of coverage."],
-  ["Month-on-month", "KPI cards compare with {{prev_month_label}}.", "Green marks an improvement and red a decline. More articles in review counts as a decline, shown as (down)."],
+  ["Month-on-month", "KPI cards compare with {{prev_month_label}}.", "Green marks an improvement and red a decline. Articles in review are shown in grey."],
 ];
 
 const TEXT: Record<string, Record<string, string>> = {
@@ -44,7 +44,19 @@ const TEXT: Record<string, Record<string, string>> = {
     A3: "Published articles and their views, {{period}}",
     A4: "Views from Google Analytics, matched to the Publishing Log by exact URL. Match rate: {{matched}} of {{listed}} articles.",
   },
-  [PL]: { A1: "PUBLISHING LOG · {{month_upper}}", A3: "Articles published in {{month_label}}" },
+  // strip angka = definisi dashboard: achievement = delivered (published + in review) ÷ kuota, sisa = kuota − delivered
+  [PL]: {
+    A1: "PUBLISHING LOG · {{month_upper}}",
+    A3: "Articles published in {{month_label}}",
+    A5: "PUBLISHED",
+    C5: "MONTHLY QUOTA",
+    E5: "QUOTA ACHIEVEMENT",
+    G5: "REMAINING QUOTA",
+    A6: "{{published}}",
+    C6: "{{quota}}",
+    E6: "{{achievement}}",
+    G6: "{{remaining}}",
+  },
   [AR]: { A1: "ARTICLES UNDER REVIEW · {{month_upper}}", A3: "Articles submitted and waiting for approval at the end of {{month_label}}" },
   [MG]: {
     A3: "How the figures in this report are defined",
@@ -57,6 +69,13 @@ const TEXT: Record<string, Record<string, string>> = {
 async function patchText(c: ReportClients, id: string) {
   const data = Object.entries(TEXT).flatMap(([sheet, cells]) => Object.entries(cells).map(([a1, v]) => ({ range: `'${sheet.replace(/'/g, "''")}'!${a1}`, values: [[v]] })));
   await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data } });
+  // menulis teks ke sel mereset format angkanya → format strip 03 (A6:H6) dipasang lagi
+  const meta = await c.sheets.spreadsheets.get({ spreadsheetId: id, fields: "sheets(properties(sheetId,title))" });
+  const pl = meta.data.sheets!.find((x) => x.properties!.title === PL)!.properties!.sheetId!;
+  const num = (c0: number, c1: number, type: string, pattern: string) => ({
+    repeatCell: { range: { sheetId: pl, startRowIndex: 5, endRowIndex: 6, startColumnIndex: c0, endColumnIndex: c1 }, cell: { userEnteredFormat: { numberFormat: { type, pattern } } }, fields: "userEnteredFormat.numberFormat" },
+  });
+  await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: [num(0, 4, "NUMBER", "#,##0"), num(4, 6, "PERCENT", "0.0%"), num(6, 9, "NUMBER", "#,##0")] } });
 }
 
 async function main() {
@@ -156,8 +175,6 @@ async function main() {
   await write([
     put(AP, "A7", tableRow("articles", ["no", "date", "title", "type", "category", "views", "users", "views_per_user", "avg_time", "match"])),
     put(AP, "A8", ["", "", "TOTAL ({{listed}} articles)", "", "", "{{articles.total_views}}", "{{articles.total_users}}", "{{articles.total_vpu}}", "{{articles.total_avg_time}}", "{{matched}} / {{listed}}"]),
-    put(PL, "A5", ["PUBLISHED", "", "MONTHLY QUOTA", "", "SHARE OF QUOTA", "", "REMAINING QUOTA"]),
-    put(PL, "A6", ["{{published}}", "", "{{quota}}", "", "{{published_share}}", "", "{{remaining}}"]),
     put(PL, "A10", tableRow("log", ["no", "date", "title", "url", "reporter", "category", "type", "status", "method"])),
     put(AR, "A5", ["ARTICLES IN REVIEW", "", "MONTHLY QUOTA", "", "SHARE OF QUOTA", "", "PUBLISHED"]),
     put(AR, "A6", ["{{in_review}}", "", "{{quota}}", "", "{{review_share}}", "", "{{published}}"]),
@@ -197,9 +214,6 @@ async function main() {
     ...colPx(AP, [34, 86, 420, 80, 100, 56, 66, 66, 85, 94]),
     tidy(AP, 6),
     // 03 / 04: strip angka & tanggal
-    fmt(PL, 6, 0, 4, "#,##0"),
-    fmt(PL, 6, 4, 6, "0.0%", "PERCENT"),
-    fmt(PL, 6, 6, 9, "#,##0"),
     fmt(PL, 10, 1, 2, DATE[1], DATE[0]),
     { setDataValidation: { range: range(PL, 10, 0, 9) } }, // dropdown status/tipe input log tidak relevan di laporan
     tidy(PL, 9),

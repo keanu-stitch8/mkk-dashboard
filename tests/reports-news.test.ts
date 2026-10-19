@@ -86,8 +86,9 @@ describe("news report data", () => {
     expect(d.values["kpi.delivered.value"]).toBe("53 / 60");
     expect(d.values["kpi.delivered.change"]).toBe("↑ +23.3% vs last month");
     expect(d.values["kpi.achievement.change"]).toBe("↑ +16.7 percentage points vs last month");
-    expect(d.values["kpi.in_review.change"]).toBe("↑ from 0 last month (down)");
-    expect(d.tones["kpi.in_review.change"]).toBe("bad");
+    // in review netral: perubahan tetap ditulis, abu-abu, tanpa (up)/(down)
+    expect(d.values["kpi.in_review.change"]).toBe("↑ from 0 last month");
+    expect(d.tones["kpi.in_review.change"]).toBe("flat");
     expect(d.values["kpi.avg_engagement_time.value"]).toBe("56s");
   });
 });

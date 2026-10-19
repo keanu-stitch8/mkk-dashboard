@@ -32,17 +32,18 @@ export function Section({ title, subtitle, action, children, className }: { titl
 
 export type DeltaKind = "count" | "rate";
 
-function deltaTone(cur: number, prev: number, goodWhenUp: boolean) {
+/** neutral: arah tidak dinilai baik/buruk (mis. artikel in review) → selalu abu-abu */
+function deltaTone(cur: number, prev: number, goodWhenUp: boolean, neutral = false) {
   const d = delta(cur, prev)!;
   const flat = d.abs === 0 || (d.pct != null && Math.abs(d.pct) < 0.0005);
-  const good = flat ? null : d.abs > 0 === goodWhenUp;
+  const good = flat || neutral ? null : d.abs > 0 === goodWhenUp;
   return { d, flat, up: d.abs > 0, good };
 }
 
 /** Badge MoM: panah + teks + warna (warna tidak pernah jadi satu-satunya penanda). */
-export function DeltaBadge({ cur, prev, kind = "count", goodWhenUp = true, partial = false, emptyText = "Belum ada data bulan lalu" }: { cur: number | null | undefined; prev: number | null | undefined; kind?: DeltaKind; goodWhenUp?: boolean; partial?: boolean; emptyText?: string }) {
+export function DeltaBadge({ cur, prev, kind = "count", goodWhenUp = true, neutral = false, partial = false, emptyText = "Belum ada data bulan lalu" }: { cur: number | null | undefined; prev: number | null | undefined; kind?: DeltaKind; goodWhenUp?: boolean; neutral?: boolean; partial?: boolean; emptyText?: string }) {
   if (cur == null || prev == null || !delta(cur, prev)) return <span className="text-xs text-muted-foreground">{emptyText}</span>;
-  const { d, flat, up, good } = deltaTone(cur, prev, goodWhenUp);
+  const { d, flat, up, good } = deltaTone(cur, prev, goodWhenUp, neutral);
   const Icon = flat ? ArrowRight : up ? ArrowUp : ArrowDown;
   return (
     <span className="inline-flex items-center gap-1.5 text-xs">
@@ -65,6 +66,7 @@ export function KpiCard({
   prev,
   kind = "count",
   goodWhenUp = true,
+  neutral,
   note,
   hint,
   partial,
@@ -76,6 +78,7 @@ export function KpiCard({
   prev?: number | null;
   kind?: DeltaKind;
   goodWhenUp?: boolean;
+  neutral?: boolean;
   note?: ReactNode;
   hint?: string;
   partial?: boolean;
@@ -101,7 +104,7 @@ export function KpiCard({
       </CardHeader>
       {(cur !== undefined || note) && (
         <CardContent className="flex flex-col gap-1.5">
-          {cur !== undefined && <DeltaBadge cur={cur} prev={prev} kind={kind} goodWhenUp={goodWhenUp} partial={partial} emptyText={emptyText} />}
+          {cur !== undefined && <DeltaBadge cur={cur} prev={prev} kind={kind} goodWhenUp={goodWhenUp} neutral={neutral} partial={partial} emptyText={emptyText} />}
           {note && <div className="text-xs text-muted-foreground">{note}</div>}
         </CardContent>
       )}
@@ -157,10 +160,11 @@ export interface CompareRow {
   fmt: (v: number | null | undefined) => string;
   kind?: DeltaKind;
   goodWhenUp?: boolean;
+  neutral?: boolean;
 }
 
-function DeltaInline({ cur, prev, kind = "count", goodWhenUp = true }: { cur: number; prev: number; kind?: DeltaKind; goodWhenUp?: boolean }) {
-  const { d, flat, up, good } = deltaTone(cur, prev, goodWhenUp);
+function DeltaInline({ cur, prev, kind = "count", goodWhenUp = true, neutral = false }: { cur: number; prev: number; kind?: DeltaKind; goodWhenUp?: boolean; neutral?: boolean }) {
+  const { d, flat, up, good } = deltaTone(cur, prev, goodWhenUp, neutral);
   const Icon = flat ? ArrowRight : up ? ArrowUp : ArrowDown;
   return (
     <span className={cn("num inline-flex items-center gap-0.5 text-xs font-medium", good == null ? "text-muted-foreground" : good ? "text-success" : "text-danger")}>
@@ -191,7 +195,7 @@ export function CompareTable({ month, rows, hasPrev, footnote }: { month: string
               <TableCell className="num text-right font-medium">{r.fmt(r.cur)}</TableCell>
               <TableCell className="num text-right text-muted-foreground">{r.fmt(r.prev)}</TableCell>
               <TableCell className="text-right">
-                {r.cur != null && r.prev != null ? <DeltaInline cur={r.cur} prev={r.prev} kind={r.kind} goodWhenUp={r.goodWhenUp} /> : <span className="text-muted-foreground">{DASH}</span>}
+                {r.cur != null && r.prev != null ? <DeltaInline cur={r.cur} prev={r.prev} kind={r.kind} goodWhenUp={r.goodWhenUp} neutral={r.neutral} /> : <span className="text-muted-foreground">{DASH}</span>}
               </TableCell>
             </TableRow>
           ))}

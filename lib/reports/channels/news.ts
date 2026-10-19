@@ -85,7 +85,8 @@ export async function buildNews(month: string): Promise<ReportData> {
     achievement: n.achievement,
     published_share: div(n.published, quota),
     review_share: div(n.inReview, quota),
-    remaining: Math.max(quota - n.published, 0),
+    // sama dengan QuotaHero dashboard: sisa = kuota − delivered
+    remaining: Math.max(quota - n.delivered, 0),
     total_views: n.totalViews,
     matched: n.matchedCount,
     listed: published.length,
