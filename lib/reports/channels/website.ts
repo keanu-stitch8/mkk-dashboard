@@ -5,7 +5,7 @@ import { daysInMonth, prevMonth } from "../../month";
 import { kpiData, WEBSITE_KPIS } from "../kpi";
 import { enMonth } from "../month";
 import type { Cell, ReportChannel, ReportData } from "../types";
-import { cityNotes, geoReadout, landingPath, topLandings, websiteFindings } from "./website-narrative";
+import { geoReadout, landingPath, topLandings, websiteFindings } from "./website-narrative";
 
 const div = (a: number | null | undefined, b: number | null | undefined) => (a == null || !b ? null : a / b);
 const sumOf = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
@@ -13,13 +13,14 @@ const sec = (v: number | null | undefined) => (v == null ? null : Math.round(v))
 
 export async function buildWebsite(month: string): Promise<ReportData> {
   const prev = prevMonth(month);
-  const [{ cur, prev: prevBundle }, channels, prevChannels, pages, landings, cityRows, gscDaily, queries, gscPages, devices, countries] = await Promise.all([
+  const [{ cur, prev: prevBundle }, channels, prevChannels, pages, landings, cityRows, prevCityRows, gscDaily, queries, gscPages, devices, countries] = await Promise.all([
     getMonthAndPrev(month),
     prisma.ga4Channel.findMany({ where: { month }, orderBy: { sessions: "desc" } }),
     prisma.ga4Channel.findMany({ where: { month: prev } }),
     prisma.ga4Page.findMany({ where: { month } }),
     prisma.ga4Landing.findMany({ where: { month }, orderBy: { sessions: "desc" } }),
     prisma.ga4City.findMany({ where: { month }, orderBy: { activeUsers: "desc" } }),
+    prisma.ga4City.findMany({ where: { month: prev, country: "Indonesia" } }),
     prisma.gscDaily.findMany({ where: { month }, orderBy: { date: "asc" } }),
     prisma.gscQuery.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 100 }),
     prisma.gscPage.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 100 }),
@@ -68,9 +69,13 @@ export async function buildWebsite(month: string): Promise<ReportData> {
     outsideTop: [...new Set(outside.filter((c) => !isNotSet(c)).map((c) => c.city))].slice(0, 3),
     notSetUsers: sumOf(cityRows.filter((c) => c.country === "Indonesia" && isNotSet(c)).map((c) => c.activeUsers)),
   };
-  const cities = idCities.slice(0, 10).map((c) => ({ city: c.city, users: c.activeUsers }));
-  const notes = cityNotes(cities, w.users);
+  const prevUsersOf = (city: string) => (prevCityRows.length ? (prevCityRows.find((c) => c.city === city)?.activeUsers ?? 0) : null);
+  const cities = idCities.slice(0, 10).map((c) => ({ city: c.city, users: c.activeUsers, prevUsers: prevUsersOf(c.city) }));
   const shownUsers = sumOf(cities.map((c) => c.users));
+  const prevShown = prevCityRows.length ? sumOf(cities.map((c) => c.prevUsers)) : null;
+  const delta = (cur: number | null, before: number | null) => (cur == null || !before ? null : (cur - before) / before);
+  const gapUsers = w.users != null ? w.users - shownUsers : null;
+  const prevGap = p?.users != null && prevShown != null ? p.users - prevShown : null;
   const kudus = idCities.find((c) => c.city.toLowerCase() === "kudus")?.activeUsers ?? null;
 
   // GSC device / negara: dua metrik (clicks, impressions) per label
@@ -129,7 +134,13 @@ export async function buildWebsite(month: string): Promise<ReportData> {
     "total.events_per_session": div(totalEvents, totalSessions),
     "cities.shown_users": shownUsers,
     "cities.shown_share": div(shownUsers, w.users),
-    "cities.gap_users": w.users != null ? w.users - shownUsers : null,
+    "cities.gap_users": gapUsers,
+    "cities.prev_shown_users": prevShown,
+    "cities.shown_change": delta(shownUsers, prevShown),
+    "cities.prev_site_users": p?.users ?? null,
+    "cities.site_change": delta(w.users, p?.users ?? null),
+    "cities.prev_gap_users": prevGap,
+    "cities.gap_change": delta(gapUsers, prevGap),
     "cities.gap_share": w.users ? (w.users - shownUsers) / w.users : null,
     "pages.count": pageMap.size,
     "pages.total_views": w.pageviews,
@@ -154,7 +165,7 @@ export async function buildWebsite(month: string): Promise<ReportData> {
     tables: {
       mix,
       channels: channelRows,
-      cities: cities.map((c, i) => ({ rank: i + 1, city: c.city, users: c.users, share_site: div(c.users, w.users), share_shown: div(c.users, shownUsers), readout: notes[i].readout, note: notes[i].note })),
+      cities: cities.map((c, i) => ({ rank: i + 1, city: c.city, users: c.users, share_site: div(c.users, w.users), share_shown: div(c.users, shownUsers), prev_users: c.prevUsers, change: delta(c.users, c.prevUsers) })),
       pages: pageRows,
       landing: landingRows,
       gsc_daily: gscDaily.map((d) => ({ date: d.date, clicks: d.clicks, impressions: d.impressions, ctr: d.ctr, position: d.position })),
@@ -163,7 +174,7 @@ export async function buildWebsite(month: string): Promise<ReportData> {
       devices: gscBreakdown(devices),
       countries: gscBreakdown(countries),
       findings: findings.map((text) => ({ text })),
-      geo: geoReadout(cities, w.users).map((text) => ({ text })),
+      geo: geoReadout(cities, w.users, enMonth(prev)).map((text) => ({ text })),
     },
   };
 }

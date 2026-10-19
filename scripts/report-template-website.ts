@@ -1,14 +1,111 @@
 // Sekali jalan: buat master template laporan Website dari laporan September user.
-// npx tsx scripts/report-template-website.ts --from=<ID file laporan contoh>
+// npx tsx scripts/report-template-website.ts --from=<ID file laporan contoh>   → template baru
+// npx tsx scripts/report-template-website.ts --patch=<ID template>          → perbarui teks template yang ada
 // Sumber hanya DISALIN (file user tidak diubah); semua perubahan di file baru milik app.
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 type Req = Record<string, unknown>;
 
+// Teks laporan untuk client: kalimat pendek & lugas, tanpa jargon teknis (dipakai saat build & --patch).
+const TEXT: Record<string, Record<string, string>> = {
+  "01 Executive Summary": {
+    A2: "Reporting period: {{period}} · Sources: Google Analytics 4 and Google Search Console",
+    H21: "Share of Users",
+    A24: "KEY FINDINGS",
+    A27: "NOTES",
+    A28: "Figures cover {{period}}. City figures in Google Analytics are estimates, and visits from outside Indonesia are not included in the city ranking.",
+  },
+  "02 Traffic Acquisition": { A2: "Sessions by channel, {{period}}", F4: "Avg Engagement Time" },
+  "03 Visitor Cities": {
+    A2: "Top 10 cities in Indonesia by active users, {{period}}",
+    D4: "Share of All Users",
+    E4: "Share of Top 10",
+    F4: "Last Month",
+    G4: "Change",
+    F5: "{{#cities.prev_users}}",
+    G5: "{{#cities.change}}",
+    B6: "TOP 10 TOTAL",
+    F6: "{{cities.prev_shown_users}}",
+    G6: "{{cities.shown_change}}",
+    A8: "ALL USERS",
+    F8: "{{cities.prev_site_users}}",
+    G8: "{{cities.site_change}}",
+    A9: "OTHER LOCATIONS",
+    F9: "{{cities.prev_gap_users}}",
+    G9: "{{cities.gap_change}}",
+    A11: "SUMMARY",
+  },
+  "04 Page Performance": { A2: "Top 10 of {{pages.count}} pages by views, {{period}}", A5: "TOTAL (all {{pages.count}} pages)", E4: "Avg Engagement Time" },
+  "05 Landing Pages": {
+    A2: "Top 10 of {{landing.count}} landing pages by sessions, {{period}}. Sessions without a recorded landing page are not listed.",
+    E4: "Avg Engagement Time",
+  },
+  "06 Search Console": { A2: "Google web search results for mainkekudus.com, {{period}}" },
+  "07 Search Queries": { A2: "Top 100 search queries by clicks, {{period}}. Google does not report rare queries, so rows do not add up to the totals." },
+  "08 Search Pages": { A2: "Top 100 pages in Google Search by clicks, {{period}}" },
+  "09 GSC Devices & Countries": { A2: "Google Search clicks by device and country, {{period}}", E4: "", E5: "", E9: "", E10: "" },
+  "10 Metric Guide & Sources": {
+    A1: "METRIC GUIDE & SOURCES",
+    A2: "How the figures in this report are defined",
+    ...Object.fromEntries(
+      (
+        [
+          ["Source", "Google Analytics 4", "Main Ke Kudus website property, full calendar month."],
+          ["Source", "Google Search Console", "Google web search results for mainkekudus.com. Totals may differ from the sum of the rows."],
+          ["Comparison", "Month-on-month", "KPI cards compare with {{prev_month_label}}. Green marks an improvement and red a decline; a lower bounce rate or position counts as an improvement."],
+          ["Coverage", "Pages", "Totals include all {{pages.count}} pages. The table shows the 10 most viewed."],
+          ["Coverage", "Landing pages", "Totals include all {{landing.count}} landing pages. The table shows the 10 with the most sessions, excluding sessions without a recorded landing page."],
+          ["Coverage", "Cities", "Top 10 cities in Indonesia. Visits from abroad, mostly automated traffic from data centres, and users without an identified city are not ranked."],
+          ["Coverage", "Search queries and pages", "Top 100 rows by clicks. Google does not report rare queries, so rows do not add up to the totals."],
+          ["Definition", "Users", "People who visited the site during the month."],
+          ["Definition", "Sessions", "Visits to the site. One person can make several visits."],
+          ["Definition", "Views", "Pages viewed, including repeat views."],
+          ["Definition", "Engagement rate", "Share of visits that lasted longer than 10 seconds, viewed two or more pages, or included a key event."],
+          ["Definition", "Bounce rate", "Share of visits that were not engaged (100% minus the engagement rate)."],
+          ["Definition", "Avg engagement time", "Average time the site was open and in view, per visit."],
+          ["Definition", "Search clicks vs sessions", "Google Search clicks and Organic Search sessions are measured differently and will not match exactly."],
+          ["Definition", "CTR and position", "CTR is clicks divided by impressions. Position is the average ranking in Google results; lower is better."],
+          ["Data", "Final figures", "Figures are final. The month is closed after the last data refresh."],
+        ] as const
+      ).flatMap(([a, b, c], i) => [
+        [`A${6 + i}`, a],
+        [`B${6 + i}`, b],
+        [`C${6 + i}`, c],
+      ]),
+    ),
+  },
+};
+
+/** Tulis TEXT + format kolom baru sheet 03 ke template yang sudah ada (desain/edit user lain tidak disentuh). */
+async function patchText(c: Awaited<ReturnType<typeof import("../lib/reports/engine/sheets").reportClients>>, id: string) {
+  const data = Object.entries(TEXT).flatMap(([sheet, cells]) => Object.entries(cells).map(([a1, v]) => ({ range: `'${sheet.replace(/'/g, "''")}'!${a1}`, values: [[v]] })));
+  await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data } });
+  const meta = await c.sheets.spreadsheets.get({ spreadsheetId: id, fields: "sheets(properties(sheetId,title))" });
+  const vc = meta.data.sheets!.find((x) => x.properties!.title === "03 Visitor Cities")!.properties!.sheetId!;
+  const cell = (r1: number, c0: number, format: Record<string, unknown>, fields: string) => ({
+    repeatCell: { range: { sheetId: vc, startRowIndex: r1 - 1, endRowIndex: r1, startColumnIndex: c0, endColumnIndex: c0 + 1 }, cell: { userEnteredFormat: format }, fields },
+  });
+  const requests: Req[] = [cell(4, 5, { horizontalAlignment: "RIGHT" }, "userEnteredFormat.horizontalAlignment"), cell(4, 6, { horizontalAlignment: "RIGHT" }, "userEnteredFormat.horizontalAlignment")];
+  for (const r of [5, 6, 8, 9]) {
+    requests.push(cell(r, 5, { numberFormat: { type: "NUMBER", pattern: "#,##0" }, horizontalAlignment: "RIGHT" }, "userEnteredFormat(numberFormat,horizontalAlignment)"));
+    requests.push(cell(r, 6, { numberFormat: { type: "PERCENT", pattern: "+0.0%;-0.0%;0.0%" }, horizontalAlignment: "RIGHT" }, "userEnteredFormat(numberFormat,horizontalAlignment)"));
+  }
+  // kolom F–G dulu berisi kalimat panjang; sekarang angka → lebar disesuaikan
+  for (const col of [5, 6]) requests.push({ updateDimensionProperties: { range: { sheetId: vc, dimension: "COLUMNS", startIndex: col, endIndex: col + 1 }, properties: { pixelSize: 120 }, fields: "pixelSize" } });
+  await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
+}
+
 async function main() {
+  const patch = process.argv.find((a) => a.startsWith("--patch="))?.split("=")[1];
+  if (patch) {
+    const { reportClients } = await import("../lib/reports/engine/sheets");
+    await patchText(await reportClients(), patch);
+    console.log(`Teks template diperbarui: https://docs.google.com/spreadsheets/d/${patch}/edit`);
+    return;
+  }
   const from = process.argv.find((a) => a.startsWith("--from="))?.split("=")[1];
-  if (!from) throw new Error("--from=<ID laporan September> wajib");
+  if (!from) throw new Error("--from=<ID laporan contoh> (buat template baru) atau --patch=<ID template> (perbarui teks) wajib");
   const { reportClients, copyFile, readGrids } = await import("../lib/reports/engine/sheets");
   const c = await reportClients();
   const file = await copyFile(c, from, "TEMPLATE – MKK Website Monthly Performance Report");
@@ -249,6 +346,7 @@ async function main() {
   await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data: cardVals } });
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: cardFormats } });
 
+  await patchText(c, id);
   console.log(`Template dibuat: ${file.url}`);
   console.log(`Isi di .env.local: REPORT_TEMPLATE_WEBSITE=${id}`);
 }

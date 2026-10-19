@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cityNotes, landingPath, topLandings, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
+import { geoReadout, landingPath, topLandings, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
 
 const sep: WebsiteNarrativeInput = {
   monthLabel: "September 2026",
@@ -14,9 +14,9 @@ const sep: WebsiteNarrativeInput = {
     { label: "Organic Search", sessions: 632, share: 0.344, prevSessions: 600 },
   ],
   cities: [
-    { city: "Kudus", users: 301 },
-    { city: "Semarang", users: 168 },
-    { city: "Jakarta", users: 98 },
+    { city: "Kudus", users: 301, prevUsers: 237 },
+    { city: "Semarang", users: 168, prevUsers: 181 },
+    { city: "Jakarta", users: 98, prevUsers: null },
   ],
   excluded: { outsideUsers: 202, outsideTop: ["Tel Aviv-Yafo", "Prineville", "Lulea"], notSetUsers: 20 },
   notSetSessions: 147,
@@ -24,29 +24,31 @@ const sep: WebsiteNarrativeInput = {
 };
 
 describe("website narrative", () => {
-  it("temuan utama + watchout", () => {
-    expect(websiteFindings(sep)).toEqual([
-      "Direct generated 905 sessions (49.2%), followed by Organic Search at 632 (34.4%).",
-      "The website recorded 7,203 page views across 431 page paths and 835 active users (8.63 views per user).",
-      "Kudus is the largest city audience with 301 active users (36.0% of site-wide active users).",
-      "Sessions rose 22.6% vs August 2026 (1,500 → 1,839).",
-      "Direct sessions rose 126.3% MoM (400 → 905).",
-      "The landing-page dimension was “(not set)” for 147 sessions (8.0%); these sessions restarted without a page load (typically a tab left open past GA4's 30-minute session timeout), so no landing page is recorded.",
-      "Google Search Console recorded 98 clicks and 546 impressions (17.95% CTR) at an average position of 8.6.",
-      "Search CTR fell 3.3 percentage points vs August 2026; review titles and meta descriptions of top-impression pages.",
-      "Locations outside Indonesia accounted for 202 active users (24.2%), led by Tel Aviv-Yafo, Prineville and Lulea — largely data-centre locations typical of crawler/bot traffic. They are excluded from the city ranking, as are 20 users without an identified city.",
+  it("temuan: kalimat pendek tanpa tanda pisah", () => {
+    const f = websiteFindings(sep);
+    expect(f).toEqual([
+      "Direct brought in 905 sessions (49.2%), followed by Organic Search with 632 (34.4%).",
+      "835 users viewed 7,203 pages across 431 URLs, an average of 8.6 pages per user.",
+      "Kudus is the largest audience with 301 users, 36.0% of the total.",
+      "Sessions rose 22.6% from August 2026 (1,500 to 1,839).",
+      "Direct sessions rose 126.3% from August 2026 (400 to 905).",
+      "147 sessions (8.0%) had no recorded landing page. This usually happens when a visitor returns to a tab left open for more than 30 minutes.",
+      "Google Search sent 98 clicks from 546 impressions, a click-through rate of 17.95% at an average position of 8.6.",
+      "Click-through rate from Google fell 3.3 percentage points from August 2026. The titles and descriptions of the most-shown pages are worth reviewing.",
+      "202 users (24.2%) were located outside Indonesia, mainly in Tel Aviv-Yafo, Prineville and Lulea. This is largely automated traffic from data centres, so these locations are left out of the city ranking, together with 20 users whose city could not be identified.",
     ]);
-  });
-
-  it("catatan kota (hanya kota Indonesia)", () => {
-    const notes = cityNotes(sep.cities, sep.users);
-    expect(notes[0]).toEqual({ readout: "Largest city audience; 36.0% of site-wide active users.", note: "City attribution is approximate in GA4." });
-    expect(notes[1].readout).toBe("Second-largest city audience.");
-    expect(notes[2].readout).toBe("Third-largest city audience.");
+    expect(f.join(" ")).not.toMatch(/—|“|”/);
   });
 
   it("tanpa kota luar negeri / not set → tidak ada kalimat pengecualian", () => {
     expect(websiteFindings({ ...sep, excluded: { outsideUsers: 0, outsideTop: [], notSetUsers: 0 } }).some((f) => f.includes("outside Indonesia"))).toBe(false);
+  });
+
+  it("geo readout: ringkas, dengan perubahan kota utama", () => {
+    expect(geoReadout(sep.cities, 835, "August 2026")).toEqual([
+      "Kudus, Semarang and Jakarta account for 567 users, 67.9% of the total.",
+      "Kudus users rose 27.0% from August 2026 (237 to 301).",
+    ]);
   });
 
   it("landing '/(not set)' lama dibaca sebagai '(not set)'", () => {
