@@ -4,7 +4,8 @@ import { prisma } from "../../db";
 import { reportChannel } from "../channels";
 import { enMonth } from "../month";
 import { planFill } from "./tokens";
-import { applyPlan, copyFile, readGrids, renameFile, ReportError, reportClients } from "./sheets";
+import { exportPdf, uploadPdf } from "./pdf";
+import { applyPlan, copyFile, gcall, readGrids, renameFile, ReportError, reportClients } from "./sheets";
 
 export const reportName = (title: string, month: string) => `MKK ${title} Monthly Performance Report – ${enMonth(month)}`;
 const today = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -32,9 +33,15 @@ export async function generateReport(channelId: string, month: string, trigger: 
     const grids = await readGrids(c, file.id);
     const plan = planFill(grids, data);
     await applyPlan(c, file.id, plan, grids);
-    for (const p of previous) await renameFile(c, p.fileId!, `${reportName(ch.title, month)} (lama ${today()})`).catch(() => undefined);
+    // satu PDF berisi semua sheet (A4 landscape), disimpan di folder yang sama dengan laporan
+    const parents = (await gcall(() => c.drive.files.get({ fileId: file.id, fields: "parents" }))).data.parents ?? undefined;
+    const pdf = await uploadPdf(c, `${reportName(ch.title, month)}.pdf`, await exportPdf(c, file.id, grids, ["01 Executive Summary"]), parents);
+    for (const p of previous) {
+      await renameFile(c, p.fileId!, `${reportName(ch.title, month)} (lama ${today()})`).catch(() => undefined);
+      if (p.pdfFileId) await renameFile(c, p.pdfFileId, `${reportName(ch.title, month)} (lama ${today()}).pdf`).catch(() => undefined);
+    }
     return prisma.generatedReport.create({
-      data: { channel: ch.id, month, fileId, url, status: "success", trigger, warnings: plan.warnings.length ? plan.warnings.join("\n") : null },
+      data: { channel: ch.id, month, fileId, url, pdfFileId: pdf.id, pdfUrl: pdf.url, status: "success", trigger, warnings: plan.warnings.length ? plan.warnings.join("\n") : null },
     });
   } catch (e) {
     const error = e instanceof ReportError ? e.message : `Gagal membuat laporan: ${(e as Error)?.message ?? e}`;

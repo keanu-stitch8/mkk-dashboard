@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, FileSpreadsheet, Loader2 } from "lucide-react";
+import { ExternalLink, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface ReportRow {
   channel: string;
   title: string;
   configured: boolean;
-  latest: { url: string | null; status: string; createdAt: string; error: string | null; warnings: string | null } | null;
+  latest: { url: string | null; pdfUrl: string | null; status: string; createdAt: string; error: string | null; warnings: string | null } | null;
 }
 
 const fmtTime = (iso: string) => new Date(iso).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" });
@@ -48,6 +48,13 @@ export function ReportGenerator({ month, locked, rows }: { month: string; locked
               <Button variant="ghost" size="sm" asChild>
                 <a href={r.latest.url} target="_blank" rel="noreferrer">
                   <ExternalLink /> Buka
+                </a>
+              </Button>
+            )}
+            {r.latest?.status === "success" && r.latest.pdfUrl && (
+              <Button variant="ghost" size="sm" asChild>
+                <a href={r.latest.pdfUrl} target="_blank" rel="noreferrer">
+                  <FileText /> PDF
                 </a>
               </Button>
             )}

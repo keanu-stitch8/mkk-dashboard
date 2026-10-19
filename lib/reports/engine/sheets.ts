@@ -4,29 +4,45 @@ import { google, type sheets_v4 } from "googleapis";
 import { authorizedClient, DRIVE_FILE_SCOPE, grantedScopes } from "../../connectors/google-oauth";
 import type { Tone } from "../types";
 import type { Plan, SheetGrid } from "./tokens";
+import { isRetryableGoogleError } from "../../connectors/google-errors";
 
 export class ReportError extends Error {}
+
+/** Kuota Drive/Sheets per menit ("User rate limit exceeded", 403/429) → coba ulang dengan jeda 2–32 dtk. */
+const isRateLimit = (e: unknown) => isRetryableGoogleError(e) || /rate ?limit|quota/i.test(String((e as Error)?.message ?? e));
+export async function gcall<T>(fn: () => Promise<T>, attempts = 6): Promise<T> {
+  let delay = 2000;
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i >= attempts || !isRateLimit(e)) throw e;
+      await new Promise((r) => setTimeout(r, delay + Math.random() * 500));
+      delay *= 2;
+    }
+  }
+}
 
 export async function reportClients() {
   const auth = await authorizedClient("sheets");
   if (!auth) throw new ReportError("Akun Google belum terhubung. Hubungkan di Pengaturan → Connectors → Google Sheets.");
   if (!(await grantedScopes("sheets")).includes(DRIVE_FILE_SCOPE))
     throw new ReportError("Akun Google belum memberi izin membuat file laporan. Hubungkan ulang Google Sheets di Pengaturan → Connectors dan centang semua izin.");
-  return { drive: google.drive({ version: "v3", auth: auth.client as never }), sheets: google.sheets({ version: "v4", auth: auth.client as never }) };
+  return { auth: auth.client, drive: google.drive({ version: "v3", auth: auth.client as never }), sheets: google.sheets({ version: "v4", auth: auth.client as never }) };
 }
 export type ReportClients = Awaited<ReturnType<typeof reportClients>>;
 
 /** Salin file → file baru milik app (di folder tujuan, default folder sumber). File sumber tidak diubah. */
 export async function copyFile(c: ReportClients, sourceId: string, name: string, folderId?: string): Promise<{ id: string; url: string }> {
-  const src = await c.drive.files.get({ fileId: sourceId, fields: "parents" });
+  const src = await gcall(() => c.drive.files.get({ fileId: sourceId, fields: "parents" }));
   const parents = folderId ? [folderId] : (src.data.parents ?? undefined);
-  const res = await c.drive.files.copy({ fileId: sourceId, requestBody: { name, parents }, fields: "id,webViewLink" });
+  const res = await gcall(() => c.drive.files.copy({ fileId: sourceId, requestBody: { name, parents }, fields: "id,webViewLink" }));
   return { id: res.data.id!, url: res.data.webViewLink ?? `https://docs.google.com/spreadsheets/d/${res.data.id}/edit` };
 }
 
 /** Rename — hanya dipakai untuk file buatan app (drive.file menolak file lain). */
 export async function renameFile(c: ReportClients, fileId: string, name: string) {
-  await c.drive.files.update({ fileId, requestBody: { name } });
+  await gcall(() => c.drive.files.update({ fileId, requestBody: { name } }));
 }
 
 const cellText = (v: sheets_v4.Schema$CellData | undefined): string => {
@@ -37,11 +53,11 @@ const cellText = (v: sheets_v4.Schema$CellData | undefined): string => {
 
 /** Isi sel (nilai yang diketik) + merge semua sheet. */
 export async function readGrids(c: ReportClients, spreadsheetId: string): Promise<SheetGrid[]> {
-  const res = await c.sheets.spreadsheets.get({
+  const res = await gcall(() => c.sheets.spreadsheets.get({
     spreadsheetId,
     includeGridData: true,
     fields: "sheets(properties(sheetId,title),merges,data(rowData(values(userEnteredValue))))",
-  });
+  }));
   return (res.data.sheets ?? []).map((s) => ({
     sheetId: s.properties!.sheetId!,
     title: s.properties!.title!,
@@ -76,14 +92,14 @@ export async function applyPlan(c: ReportClients, spreadsheetId: string, plan: P
   }
   for (const m of plan.merges)
     structural.push({ mergeCells: { range: { sheetId: m.sheetId, startRowIndex: m.startRow, endRowIndex: m.endRow, startColumnIndex: m.startCol, endColumnIndex: m.endCol }, mergeType: "MERGE_ALL" } });
-  if (structural.length) await c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: structural } });
+  if (structural.length) await gcall(() => c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: structural } }));
 
   for (let i = 0; i < plan.writes.length; i += 500) {
     const chunk = plan.writes.slice(i, i + 500);
-    await c.sheets.spreadsheets.values.batchUpdate({
+    await gcall(() => c.sheets.spreadsheets.values.batchUpdate({
       spreadsheetId,
       requestBody: { valueInputOption: "RAW", data: chunk.map((w) => ({ range: `${quote(w.sheetTitle)}!${colName(w.col)}${w.row + 1}`, values: [[w.value ?? ""]] })) },
-    });
+    }));
   }
 
   const sheetIds = new Map(grids.map((g) => [g.title, g.sheetId]));
@@ -96,5 +112,5 @@ export async function applyPlan(c: ReportClients, spreadsheetId: string, plan: P
         fields: "userEnteredFormat(backgroundColor,textFormat.foregroundColor)",
       },
     }));
-  if (toneReqs.length) await c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: toneReqs } });
+  if (toneReqs.length) await gcall(() => c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: toneReqs } }));
 }

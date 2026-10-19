@@ -436,6 +436,9 @@ model GeneratedReport {
   month     String // YYYY-MM
   fileId    String?
   url       String?
+  /// PDF seluruh workbook (A4 landscape) di folder Drive yang sama
+  pdfFileId String?
+  pdfUrl    String?
   status    String // success | error
   trigger   String // manual | cron
   warnings  String?

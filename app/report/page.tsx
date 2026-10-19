@@ -87,7 +87,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
       channel: ch.id,
       title: ch.title,
       configured: !!templateId(ch.id),
-      latest: latest ? { url: latest.url, status: latest.status, createdAt: latest.createdAt.toISOString(), error: latest.error, warnings: latest.warnings } : null,
+      latest: latest ? { url: latest.url, pdfUrl: latest.pdfUrl, status: latest.status, createdAt: latest.createdAt.toISOString(), error: latest.error, warnings: latest.warnings } : null,
     };
   });
   const quotaLabel = (q: typeof qn) => `Kuota tercapai (${q.achievedLabel.toLowerCase()} ${q.available ? fmtNum(q.achieved) : "—"}/${fmtNum(q.target)} ${q.unit})`;
