@@ -14,8 +14,9 @@ export const GOOGLE_SCOPES: Record<GoogleOAuthConnector, string[]> = {
   ga4: ["https://www.googleapis.com/auth/analytics.readonly"],
   gsc: ["https://www.googleapis.com/auth/webmasters.readonly"],
   youtube: ["https://www.googleapis.com/auth/yt-analytics.readonly", "https://www.googleapis.com/auth/youtube.readonly"],
-  // drive.readonly: satu-satunya scope yang bisa mencari file by nama + export spreadsheet ke XLSX (files.export)
-  sheets: ["https://www.googleapis.com/auth/drive.readonly"],
+  // drive.readonly: cari file by nama + export ke XLSX (Publishing Log).
+  // drive.file: buat & edit file milik app ini (laporan hasil generate) — tidak bisa menyentuh file user lain.
+  sheets: ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/drive.file"],
 };
 
 /** Connector yang hanya bisa lewat login akun Google (service account tidak punya akses ke file/channel milik akun). */
@@ -90,6 +91,15 @@ export async function completeOAuth(connector: GoogleOAuthConnector, code: strin
 export async function oauthAccount(connector: GoogleOAuthConnector): Promise<{ connected: boolean; account?: string }> {
   const row = await prisma.connectorCredential.findUnique({ where: { connector } });
   return { connected: !!row, account: row?.account ?? undefined };
+}
+
+export const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+
+/** Scope yang benar-benar diberikan user saat menghubungkan akun (kosong jika belum terhubung). */
+export async function grantedScopes(connector: GoogleOAuthConnector): Promise<string[]> {
+  const row = await prisma.connectorCredential.findUnique({ where: { connector } });
+  if (!row) return [];
+  return ((JSON.parse(decrypt(row.data)) as StoredToken).scope ?? "").split(/\s+/).filter(Boolean);
 }
 
 /** OAuth2Client siap pakai (refresh token terpasang), atau null jika belum terhubung. */
