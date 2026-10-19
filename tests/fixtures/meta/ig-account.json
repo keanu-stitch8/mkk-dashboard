@@ -1,0 +1,6 @@
+{ "data": [
+  { "name": "reach", "period": "day", "title": "Accounts reached", "total_value": { "value": 15800 }, "id": "1784/insights/reach/day" },
+  { "name": "views", "period": "day", "title": "Views", "total_value": { "value": 48200 }, "id": "1784/insights/views/day" },
+  { "name": "total_interactions", "period": "day", "total_value": { "value": 1390 }, "id": "1784/insights/total_interactions/day" },
+  { "name": "accounts_engaged", "period": "day", "total_value": { "value": 610 }, "id": "1784/insights/accounts_engaged/day" }
+] }

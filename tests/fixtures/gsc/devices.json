@@ -1,0 +1,23 @@
+{
+ "rows": [
+  {
+   "keys": [
+    "MOBILE"
+   ],
+   "clicks": 77,
+   "impressions": 410,
+   "ctr": 0.1878,
+   "position": 5.45
+  },
+  {
+   "keys": [
+    "DESKTOP"
+   ],
+   "clicks": 21,
+   "impressions": 133,
+   "ctr": 0.1579,
+   "position": 18.38
+  }
+ ],
+ "responseAggregationType": "byProperty"
+}

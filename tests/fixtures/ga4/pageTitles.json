@@ -1,0 +1,69 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "pagePath"
+  },
+  {
+   "name": "pageTitle"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "screenPageViews",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "/"
+    },
+    {
+     "value": "Main ke Kudus"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "894"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "/news/wushu-indonesia-kudus/"
+    },
+    {
+     "value": "Wushu Indonesia Kudus - Main ke Kudus"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "85"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "/news/wushu-indonesia-kudus/"
+    },
+    {
+     "value": "Wushu (lama)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "5"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3,
+ "metadata": {
+  "currencyCode": "IDR",
+  "timeZone": "Asia/Jakarta"
+ },
+ "kind": "analyticsData#runReport"
+}

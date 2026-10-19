@@ -69,6 +69,13 @@ export const PLATFORM_LABEL: Record<string, string> = {
  */
 export const OWN_SOCIAL_ACCOUNTS = ["main_ke_kudus", "mainkekudus"];
 
+/**
+ * Platform sosmed yang dihitung ke performa dashboard (reach, views, interaksi, follows, top post).
+ * Post platform lain tetap boleh tersimpan tapi diabaikan, dan connector Meta hanya menarik platform ini.
+ * Kuota tetap dari Publishing Log (semua channel). Tambahkan "facebook" untuk menghitung Facebook lagi.
+ */
+export const ACTIVE_SOCIAL_PLATFORMS: string[] = ["instagram"];
+
 /** Kuota bulanan default (bisa diubah di halaman Import → Kuota). */
 export const QUOTA_DEFAULTS: { key: string; label: string; value: number }[] = [
   { key: "news", label: "Artikel News", value: 60 },

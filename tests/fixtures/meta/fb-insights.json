@@ -1,0 +1,10 @@
+{
+  "1000_2001": { "data": [
+    { "name": "post_media_view", "period": "lifetime", "values": [{ "value": 950 }] },
+    { "name": "post_total_media_view_unique", "period": "lifetime", "values": [{ "value": 610 }] }
+  ] },
+  "1000_2002": { "data": [
+    { "name": "post_media_view", "period": "lifetime", "values": [{ "value": 400 }] },
+    { "name": "post_total_media_view_unique", "period": "lifetime", "values": [{ "value": 280 }] }
+  ] }
+}

@@ -1,0 +1,32 @@
+{
+ "rows": [
+  {
+   "keys": [
+    "idn"
+   ],
+   "clicks": 97,
+   "impressions": 530,
+   "ctr": 0.183,
+   "position": 8.13
+  },
+  {
+   "keys": [
+    "mys"
+   ],
+   "clicks": 1,
+   "impressions": 1,
+   "ctr": 1,
+   "position": 1
+  },
+  {
+   "keys": [
+    "xkx"
+   ],
+   "clicks": 0,
+   "impressions": 1,
+   "ctr": 0,
+   "position": 3
+  }
+ ],
+ "responseAggregationType": "byProperty"
+}

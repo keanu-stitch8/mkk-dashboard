@@ -1,0 +1,67 @@
+{
+ "dimensionHeaders": [],
+ "metricHeaders": [
+  {
+   "name": "activeUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "newUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "sessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "screenPageViews",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "engagementRate",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "userEngagementDuration",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "bounceRate",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [],
+   "metricValues": [
+    {
+     "value": "835"
+    },
+    {
+     "value": "773"
+    },
+    {
+     "value": "1839"
+    },
+    {
+     "value": "7203"
+    },
+    {
+     "value": "0.5275"
+    },
+    {
+     "value": "114012"
+    },
+    {
+     "value": "0.4725"
+    }
+   ]
+  }
+ ],
+ "rowCount": 1,
+ "metadata": {
+  "currencyCode": "IDR",
+  "timeZone": "Asia/Jakarta"
+ },
+ "kind": "analyticsData#runReport"
+}

@@ -198,6 +198,9 @@ model YtVideo {
   uniqueViewers      Float?
   subsGained         Float?
   subsLost           Float?
+  likes              Float?
+  comments           Float?
+  shares             Float?
   import             Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   @@index([month])
@@ -312,4 +315,78 @@ model NewsView {
   import            Import @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   @@index([month])
+}
+
+/// Kredensial connector yang didapat lewat OAuth (mis. refresh token YouTube).
+/// `data` = JSON terenkripsi AES-256-GCM (lib/crypto.ts) dengan ENCRYPTION_KEY.
+model ConnectorCredential {
+  id        String   @id @default(cuid())
+  connector String   @unique // ga4 | gsc | youtube | meta
+  data      String
+  account   String? // label akun yang terhubung (mis. nama channel)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Riwayat sync connector API.
+model SyncLog {
+  id         String    @id @default(cuid())
+  connector  String // ga4 | gsc | youtube | meta
+  month      String // YYYY-MM
+  status     String // running | success | error
+  rows       Int       @default(0)
+  /// ringkasan dataset yang disimpan, mis. "GA4 · Traffic acquisition: 7 baris"
+  detail     String?
+  /// pesan error yang sudah diterjemahkan (Bahasa Indonesia)
+  error      String?
+  /// error asli dari API (untuk debugging)
+  rawError   String?
+  trigger    String    @default("manual") // manual | script | cron
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([connector, month])
+  @@index([startedAt])
+}
+
+/// Impressions & CTR thumbnail harian per video dari YouTube Reporting API (laporan "Reach").
+/// Disimpan permanen karena laporan di API hanya tersedia 60 hari.
+model YtReachDaily {
+  id          String @id @default(cuid())
+  date        String // YYYY-MM-DD (hari laporan, zona Pacific)
+  videoId     String
+  impressions Float
+  ctr         Float // pecahan 0–1
+
+  @@unique([date, videoId])
+  @@index([date])
+}
+
+/// Laporan Reporting API yang sudah diunduh (supaya tidak diunduh ulang).
+model YtReachReport {
+  id        String   @id // id laporan dari API
+  date      String // hari yang dicakup
+  createdAt DateTime @default(now())
+}
+
+/// Snapshot metrik lifetime post Instagram (post 90 hari terakhir), diambil maks. 1x per hari saat sync Meta.
+/// Selisih dua snapshot = performa post di antara keduanya (dasar views per post per bulan — opsi B).
+/// Disimpan permanen (tidak terhapus saat sync ulang), seperti YtReachDaily.
+model IgMediaSnapshot {
+  id            String   @id @default(cuid())
+  date          String // YYYY-MM-DD (WIB) saat snapshot diambil
+  mediaId       String
+  publishedDate String // YYYY-MM-DD (WIB)
+  format        String
+  views         Float?
+  reach         Float?
+  likes         Float?
+  comments      Float?
+  shares        Float?
+  saves         Float?
+  interactions  Float?
+  createdAt     DateTime @default(now())
+
+  @@unique([date, mediaId])
+  @@index([date])
 }

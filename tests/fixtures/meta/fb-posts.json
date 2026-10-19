@@ -1,0 +1,8 @@
+{
+  "data": [
+    { "id": "1000_2001", "message": "Video kuliner Kudus", "created_time": "2026-09-25T09:00:00+0000", "permalink_url": "https://www.facebook.com/reel/2001", "attachments": { "data": [{ "media_type": "video", "type": "video_inline" }] }, "reactions": { "data": [], "summary": { "total_count": 33 } }, "comments": { "data": [], "summary": { "total_count": 4 } }, "shares": { "count": 2 } },
+    { "id": "1000_2002", "message": "Album foto Dandangan", "created_time": "2026-09-12T02:00:00+0000", "permalink_url": "https://www.facebook.com/mainkekudus/posts/2002", "attachments": { "data": [{ "media_type": "album", "type": "album" }] }, "reactions": { "data": [], "summary": { "total_count": 18 } }, "comments": { "data": [], "summary": { "total_count": 0 } } },
+    { "id": "1000_2003", "message": "Info jadwal bus", "created_time": "2026-09-05T01:00:00+0000", "permalink_url": "https://www.facebook.com/mainkekudus/posts/2003", "reactions": { "data": [], "summary": { "total_count": 5 } }, "comments": { "data": [], "summary": { "total_count": 1 } } }
+  ],
+  "paging": { "cursors": { "before": "a", "after": "b" } }
+}

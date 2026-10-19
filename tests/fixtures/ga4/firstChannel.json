@@ -1,0 +1,57 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "firstUserDefaultChannelGroup"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "newUsers",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "Direct"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "483"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "Organic Social"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "202"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "Organic Search"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "76"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3,
+ "metadata": {
+  "currencyCode": "IDR",
+  "timeZone": "Asia/Jakarta"
+ },
+ "kind": "analyticsData#runReport"
+}

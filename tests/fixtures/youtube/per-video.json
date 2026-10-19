@@ -1,0 +1,74 @@
+{
+ "kind": "youtubeAnalytics#resultTable",
+ "columnHeaders": [
+  {
+   "name": "video",
+   "columnType": "DIMENSION",
+   "dataType": "INTEGER"
+  },
+  {
+   "name": "views",
+   "columnType": "METRIC",
+   "dataType": "INTEGER"
+  },
+  {
+   "name": "estimatedMinutesWatched",
+   "columnType": "METRIC",
+   "dataType": "INTEGER"
+  },
+  {
+   "name": "averageViewDuration",
+   "columnType": "METRIC",
+   "dataType": "INTEGER"
+  },
+  {
+   "name": "subscribersGained",
+   "columnType": "METRIC",
+   "dataType": "INTEGER"
+  },
+  {
+   "name": "subscribersLost",
+   "columnType": "METRIC",
+   "dataType": "INTEGER"
+  },
+  {
+   "name": "likes",
+   "columnType": "METRIC",
+   "dataType": "INTEGER"
+  },
+  {
+   "name": "comments",
+   "columnType": "METRIC",
+   "dataType": "INTEGER"
+  },
+  {
+   "name": "shares",
+   "columnType": "METRIC",
+   "dataType": "INTEGER"
+  }
+ ],
+ "rows": [
+  [
+   "-qgU4zJuOpU",
+   350,
+   488.742,
+   128,
+   1,
+   0,
+   21,
+   3,
+   5
+  ],
+  [
+   "w6jFZhBhHpI",
+   190,
+   163.128,
+   89,
+   4,
+   1,
+   9,
+   0,
+   2
+  ]
+ ]
+}

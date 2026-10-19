@@ -195,8 +195,13 @@ export function applyPublishCohort(ds: Dataset, month: string): Dataset {
     { channel: "youtube", key: "subsGained", value: total("subsGained") },
   ];
   if (impressions) metrics.push({ channel: "youtube", key: "ctr", value: sum(keep.map((r) => Number(r.ctr ?? 0) * Number(r.impressions ?? 0))) / impressions });
-  if (views) metrics.push({ channel: "youtube", key: "avgViewDurationSec", value: (watchHours * 3600) / views });
+  // Avg view duration total YouTube ≠ watch time ÷ views (selalu kerendahan). Angka resmi Studio tidak bisa
+  // dihitung ulang dari data per video; pendekatan terdekat = rata-rata per video tertimbang views.
+  const withAvg = keep.filter((r) => typeof r.avgViewDurationSec === "number" && typeof r.views === "number" && r.views > 0);
+  const avgViews = sum(withAvg.map((r) => r.views as number));
+  if (avgViews) metrics.push({ channel: "youtube", key: "avgViewDurationSec", value: sum(withAvg.map((r) => (r.avgViewDurationSec as number) * (r.views as number))) / avgViews });
+  else if (views) metrics.push({ channel: "youtube", key: "avgViewDurationSec", value: (watchHours * 3600) / views });
   if (keep.some((r) => typeof r.subsLost === "number")) metrics.push({ channel: "youtube", key: "subsLost", value: total("subsLost") });
-  warnings.push("Total dihitung ulang dari video yang tersisa (unique viewers tidak bisa dijumlah, jadi dikosongkan). Grafik harian (Totals.csv) masih memuat semua video di file.");
+  warnings.push("Total dihitung ulang dari video yang tersisa (unique viewers tidak bisa dijumlah, jadi dikosongkan; avg view duration = rata-rata per video tertimbang views, bisa sedikit beda dari angka Studio). Grafik harian (Totals.csv) masih memuat semua video di file.");
   return { ...ds, rows: keep, metrics, warnings };
 }

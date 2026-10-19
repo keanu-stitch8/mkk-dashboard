@@ -1,0 +1,135 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "sessionDefaultChannelGroup"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "sessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "engagedSessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "engagementRate",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "userEngagementDuration",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "eventCount",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "activeUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "newUsers",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "Direct"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "905"
+    },
+    {
+     "value": "408"
+    },
+    {
+     "value": "0.450828729281768"
+    },
+    {
+     "value": "60197"
+    },
+    {
+     "value": "5634"
+    },
+    {
+     "value": "420"
+    },
+    {
+     "value": "390"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "Organic Search"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "632"
+    },
+    {
+     "value": "411"
+    },
+    {
+     "value": "0.6503164556962026"
+    },
+    {
+     "value": "46065"
+    },
+    {
+     "value": "5203"
+    },
+    {
+     "value": "280"
+    },
+    {
+     "value": "250"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "Organic Social"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "283"
+    },
+    {
+     "value": "143"
+    },
+    {
+     "value": "0.5053"
+    },
+    {
+     "value": "7438"
+    },
+    {
+     "value": "1170"
+    },
+    {
+     "value": "150"
+    },
+    {
+     "value": "133"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3,
+ "metadata": {
+  "currencyCode": "IDR",
+  "timeZone": "Asia/Jakarta"
+ },
+ "kind": "analyticsData#runReport"
+}

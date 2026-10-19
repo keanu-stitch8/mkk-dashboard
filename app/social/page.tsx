@@ -12,6 +12,14 @@ export const dynamic = "force-dynamic";
 
 const fmtLabel = (platform: string, format: string) => `${PLATFORM_LABEL[platform] ?? platform} · ${FORMAT_LABEL[format] ?? format}`;
 const perPost = (v: number | null | undefined, n: number | null | undefined) => (v == null || !n ? null : v / n);
+const ACCOUNT_NOTE = "Insight akun Instagram selama bulan ini (API) — termasuk Stories & post lama, bukan hanya post yang dipublish bulan ini.";
+const POSTS_NOTE = "Jumlah metrik lifetime post yang dipublish bulan ini (export CSV lama).";
+
+const FOLLOWS_HINT: Record<"manual" | "account" | "posts", string> = {
+  account: "Follow baru ke akun Instagram selama bulan ini (insight akun via API). Catatan: berbeda dari export CSV lama yang hanya menjumlah follow per post.",
+  posts: "Jumlah follow per post (export CSV Meta). Bulan yang disync lewat API memakai follow akun.",
+  manual: "Diisi lewat input manual.",
+};
 
 export default async function SocialPage({ searchParams }: PageProps<"/social">) {
   const { month, months } = await resolveMonth((await searchParams).m);
@@ -55,6 +63,13 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
         </Notice>
       )}
       {cmp?.partial && <Notice>MoM hanya membandingkan platform yang ada di kedua bulan: {cmp.platforms.map((x) => PLATFORM_LABEL[x] ?? x).join(", ")}.</Notice>}
+      {s.metricsSource === "account" && (
+        <Notice>
+          Views, reach, interactions, engagement rate & follows = <b>selama {monthLabel(month)}</b> dari insight akun Instagram (termasuk Stories & post lama). Tabel per post, per
+          format & per kategori = metrik lifetime post yang dipublish bulan ini (sejak publish).
+          {prev.social.hasData && prev.social.metricsSource !== s.metricsSource && ` ${monthLabel(prevMonth(month))} masih dari export CSV (definisi lama), jadi MoM metrik ini tidak dihitung.`}
+        </Notice>
+      )}
       {!s.hasLog && <Notice>Publishing log belum di-import — jumlah post dihitung dari export Meta dan breakdown kategori belum tersedia.</Notice>}
 
       {/* 1. Kuota tercapai + produksi vs kuota */}
@@ -74,12 +89,48 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
           prev={prevQuota?.available ? prevQuota.published : null}
           note={`Total ${fmtNum(s.postsPublished)} post · ${s.countSource === "log" ? "dari publishing log" : "dari export Meta"}`}
         />
-        <KpiCard label="Views" value={fmtNum(s.views)} cur={c?.views ?? null} prev={p?.views ?? null} />
-        <KpiCard label="Views / post" value={fmtNum(perPost(s.views, s.posts.length))} cur={perPost(c?.views, c?.posts)} prev={perPost(p?.views, p?.posts)} />
-        <KpiCard label="Reach" value={fmtNum(s.reach)} cur={c?.reach ?? null} prev={p?.reach ?? null} hint="Jumlah reach per post (bukan reach unik akun)." />
-        <KpiCard label="Engagement rate" value={fmtPct(s.engagementRate, 2)} cur={c?.engagementRate ?? null} prev={p?.engagementRate ?? null} kind="rate" hint="Interactions ÷ reach." />
-        <KpiCard label="Interactions" value={fmtNum(s.interactions)} cur={c?.interactions ?? null} prev={p?.interactions ?? null} hint="IG: likes + comments + shares + saves. FB: reactions, comments & shares." />
-        <KpiCard label="Follows" value={fmtNum(s.follows)} cur={c?.follows ?? null} prev={p?.follows ?? null} hint="Follow yang berasal dari post." />
+        <KpiCard label="Views" value={fmtNum(s.views)} cur={c?.views ?? null} prev={p?.views ?? null} hint={s.metricsSource === "account" ? ACCOUNT_NOTE : POSTS_NOTE} />
+        <KpiCard
+          label="Views / post"
+          value={fmtNum(perPost(s.postViews, s.posts.length))}
+          cur={perPost(c?.postViews, c?.posts)}
+          prev={perPost(p?.postViews, p?.posts)}
+          hint="Rata-rata views lifetime per post yang dipublish bulan ini (sejak publish)."
+        />
+        <KpiCard
+          label="Reach"
+          value={fmtNum(s.reach)}
+          cur={c?.reach ?? null}
+          prev={p?.reach ?? null}
+          hint={
+            s.metricsSource === "account"
+              ? "Akun unik yang melihat konten selama bulan ini (insight akun). Untuk bulan 31 hari Meta hanya memberi 30 hari pertama."
+              : "Jumlah reach per post (bukan reach unik akun)."
+          }
+        />
+        <KpiCard
+          label="Engagement rate"
+          value={fmtPct(s.engagementRate, 2)}
+          cur={c?.engagementRate ?? null}
+          prev={p?.engagementRate ?? null}
+          kind="rate"
+          hint={s.metricsSource === "account" ? "Interactions ÷ reach akun selama bulan ini. Catatan: lebih tinggi dari ER per post karena pembaginya akun unik." : "Interactions ÷ reach."}
+        />
+        <KpiCard
+          label="Interactions"
+          value={fmtNum(s.interactions)}
+          cur={c?.interactions ?? null}
+          prev={p?.interactions ?? null}
+          hint={s.metricsSource === "account" ? "Total interaksi (likes, comments, shares, saves, replies) di semua konten selama bulan ini — insight akun." : "IG: likes + comments + shares + saves. FB: reactions, comments & shares."}
+        />
+        <KpiCard
+          label="Follows"
+          value={fmtNum(s.follows)}
+          cur={c?.follows ?? null}
+          prev={p?.follows ?? null}
+          hint={FOLLOWS_HINT[s.followsSource ?? "posts"]}
+          note={prev.social.hasData && prev.social.followsSource !== s.followsSource && s.follows != null ? "Definisi beda dari bulan lalu — tidak dibandingkan" : undefined}
+        />
         <KpiCard label="Hari aktif publish" value={`${fmtNum(s.activeDays)} hari`} cur={s.activeDays} prev={prev.social.hasData ? prev.social.activeDays : null} note={`Jeda terpanjang ${fmtNum(s.emptyStreak.length)} hari`} />
       </KpiGrid>
 
@@ -95,7 +146,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
 
       {/* 4. Breakdown + top konten */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Section title="Per format" subtitle="Views per post">
+        <Section title="Per format" subtitle="Views lifetime per post">
           <BreakdownBars data={s.byFormat.map((f) => ({ label: fmtLabel(f.platform, f.format), value: f.avgViews }))} name="Views/post" />
           <DataTable
             rows={s.byFormat}
@@ -107,7 +158,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
             ]}
           />
         </Section>
-        <Section title="Top post" subtitle="Berdasarkan views" className="lg:col-span-2">
+        <Section title="Top post" subtitle="Berdasarkan views lifetime (sejak publish)" className="lg:col-span-2">
           <DataTable
             rows={[...s.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)}
             columns={[
@@ -217,7 +268,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
             { label: "Published (kuota)", cur: quota.available ? quota.published : null, prev: prevQuota?.available ? prevQuota.published : null, fmt: fmtNum },
             { label: "Kuota tercapai", cur: quota.rate, prev: prevQuota?.rate, fmt: (v) => fmtPct(v), kind: "rate" },
             { label: "Views", cur: c?.views ?? s.views, prev: p?.views, fmt: fmtNum },
-            { label: "Views / post", cur: perPost(c?.views ?? s.views, c?.posts ?? s.posts.length), prev: perPost(p?.views, p?.posts), fmt: fmtNum },
+            { label: "Views / post", cur: perPost(c?.postViews ?? s.postViews, c?.posts ?? s.posts.length), prev: perPost(p?.postViews, p?.posts), fmt: fmtNum },
             { label: "Reach", cur: c?.reach ?? s.reach, prev: p?.reach, fmt: fmtNum },
             { label: "Engagement rate", cur: c?.engagementRate ?? s.engagementRate, prev: p?.engagementRate, fmt: (v) => fmtPct(v, 2), kind: "rate" },
             { label: "Interactions", cur: c?.interactions ?? s.interactions, prev: p?.interactions, fmt: fmtNum },

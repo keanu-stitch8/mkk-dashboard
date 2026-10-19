@@ -1,0 +1,12 @@
+{
+ "rows": [
+  {
+   "keys": null,
+   "clicks": 98,
+   "impressions": 546,
+   "ctr": 0.1794871794871795,
+   "position": 7.92
+  }
+ ],
+ "responseAggregationType": "byProperty"
+}

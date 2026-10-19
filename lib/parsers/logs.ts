@@ -7,9 +7,11 @@ import { normalizePath, parseCount, parseDate, parseDuration, str, strOrNull } f
 
 export const NEWS_FIELDS = {
   date: ["Publish Date", "Tanggal Publish", "Tanggal Terbit", "Tanggal Tayang", "Tanggal", "Date", "Planned Date", "Tanggal Rencana"],
-  submittedDate: ["Submitted Date", "Tanggal Submit", "Tanggal Kirim", "Tanggal Masuk"],
-  title: ["Headline", "Judul", "Judul Artikel", "Title", "Article"],
-  url: ["Article URL", "URL", "URL Artikel", "Link", "Link Artikel", "Tautan"],
+  /** tanggal terbit aktual (News Content Logs Google Sheets punya Planned Date + Published Date) */
+  publishedDate: ["Published Date", "Actual Publish Date", "Tanggal Terbit Aktual"],
+  submittedDate: ["Submitted Date", "Submitted Article Date", "Tanggal Submit", "Tanggal Kirim", "Tanggal Masuk"],
+  title: ["Headline", "Judul", "Judul Artikel", "Judul Berita", "Title", "Article"],
+  url: ["Article URL", "URL", "URL Artikel", "Link", "Link Artikel", "Link Berita", "Tautan"],
   category: ["Category", "Kategori", "Rubrik"],
   reporter: ["Reporter", "Kontributor", "Contributor", "Penulis", "Writer", "Author", "Wartawan", "Jurnalis"],
   status: ["Status"],
@@ -80,7 +82,8 @@ export function detectNewsLog(table: RawTable): Dataset[] | null {
     .map((r) => {
       const title = str(getCell(r, m, "title"));
       const url = strOrNull(getCell(r, m, "url")) ?? findUrlInRow(r);
-      const date = parseDate(getCell(r, m, "date"))?.date ?? null;
+      // Published Date (jika ada & terisi) didahulukan; artikel review/draft memakai Planned Date
+      const date = parseDate(getCell(r, m, "publishedDate"))?.date ?? parseDate(getCell(r, m, "date"))?.date ?? null;
       return {
         date,
         submittedDate: parseDate(getCell(r, m, "submittedDate"))?.date ?? null,

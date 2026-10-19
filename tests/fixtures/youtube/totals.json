@@ -1,0 +1,9 @@
+{
+  "kind": "youtubeAnalytics#resultTable",
+  "columnHeaders": [
+    { "name": "views", "columnType": "METRIC", "dataType": "INTEGER" },
+    { "name": "estimatedMinutesWatched", "columnType": "METRIC", "dataType": "INTEGER" },
+    { "name": "averageViewDuration", "columnType": "METRIC", "dataType": "INTEGER" }
+  ],
+  "rows": [[732, 729, 104]]
+}

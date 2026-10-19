@@ -1,0 +1,23 @@
+{
+ "rows": [
+  {
+   "keys": [
+    "https://mainkekudus.com/"
+   ],
+   "clicks": 88,
+   "impressions": 190,
+   "ctr": 0.4632,
+   "position": 3.66
+  },
+  {
+   "keys": [
+    "https://mainkekudus.com/news/wushu-indonesia-kudus/?utm=x"
+   ],
+   "clicks": 1,
+   "impressions": 40,
+   "ctr": 0.025,
+   "position": 2.48
+  }
+ ],
+ "responseAggregationType": "byPage"
+}

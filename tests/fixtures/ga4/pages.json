@@ -1,0 +1,117 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "pagePath"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "screenPageViews",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "activeUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "userEngagementDuration",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "eventCount",
+   "type": "TYPE_INTEGER"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "/"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "894"
+    },
+    {
+     "value": "271"
+    },
+    {
+     "value": "14043"
+    },
+    {
+     "value": "1991"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "/news"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "872"
+    },
+    {
+     "value": "45"
+    },
+    {
+     "value": "12311"
+    },
+    {
+     "value": "1073"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "/news/wushu-indonesia-kudus/"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "90"
+    },
+    {
+     "value": "60"
+    },
+    {
+     "value": "4200"
+    },
+    {
+     "value": "200"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "/news/wushu-indonesia-kudus?utm_source=ig"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "12"
+    },
+    {
+     "value": "6"
+    },
+    {
+     "value": "300"
+    },
+    {
+     "value": "20"
+    }
+   ]
+  }
+ ],
+ "rowCount": 4,
+ "metadata": {
+  "currencyCode": "IDR",
+  "timeZone": "Asia/Jakarta"
+ },
+ "kind": "analyticsData#runReport"
+}

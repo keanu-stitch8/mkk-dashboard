@@ -1,0 +1,69 @@
+// Helper bersama untuk connector API.
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { Dataset, DatasetKey } from "../parsers/types";
+import { ConnectorError } from "./types";
+
+/** Rentang tanggal satu bulan; bulan berjalan dipotong sampai hari ini (WIB), bulan depan ditolak. */
+export function monthRange(month: string, today = new Date()): { start: string; end: string; partial: boolean } {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new ConnectorError(`Format bulan tidak valid: "${month}" (pakai YYYY-MM).`);
+  const [y, m] = month.split("-").map(Number);
+  const start = `${month}-01`;
+  const last = `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, "0")}`;
+  const todayWib = new Date(today.getTime() + 7 * 3600_000).toISOString().slice(0, 10);
+  if (start > todayWib) throw new ConnectorError(`${month} belum dimulai — tidak ada data untuk ditarik.`);
+  return last > todayWib ? { start, end: todayWib, partial: true } : { start, end: last, partial: false };
+}
+
+/** Dataset dari API dengan bentuk yang sama seperti hasil parser CSV. */
+export function apiDataset(key: DatasetKey, source: string, month: string, init: Partial<Dataset>): Dataset {
+  return {
+    key,
+    file: source,
+    month,
+    range: null,
+    rowDated: false,
+    priority: 0,
+    columns: [],
+    unmatched: [],
+    rows: [],
+    metrics: [],
+    breakdowns: [],
+    warnings: [],
+    ...init,
+  };
+}
+
+export const num = (v: string | number | null | undefined): number => {
+  const n = typeof v === "number" ? v : Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Baca JSON kunci service account dari GOOGLE_APPLICATION_CREDENTIALS. */
+export function serviceAccountKey(): { path: string; clientEmail: string; projectId?: string } {
+  const p = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+  if (!p) throw new ConnectorError("GOOGLE_APPLICATION_CREDENTIALS belum diisi di .env.local (path ke file JSON kunci service account).");
+  const path = resolve(p);
+  if (!existsSync(path)) throw new ConnectorError(`File kunci service account tidak ditemukan: ${path}`);
+  try {
+    const json = JSON.parse(readFileSync(path, "utf8")) as { client_email?: string; project_id?: string; type?: string };
+    if (json.type !== "service_account" || !json.client_email) throw new Error("bukan service account");
+    return { path, clientEmail: json.client_email, projectId: json.project_id };
+  } catch {
+    throw new ConnectorError(`File ${path} bukan kunci JSON service account yang valid. Download ulang dari Google Cloud → IAM → Service Accounts → Keys.`);
+  }
+}
+
+/** Retry dengan exponential backoff untuk error sementara (rate limit / 5xx / jaringan). */
+export async function withRetry<T>(fn: () => Promise<T>, isRetryable: (e: unknown) => boolean, attempts = 4): Promise<T> {
+  let delay = 1000;
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i >= attempts || !isRetryable(e)) throw e;
+      await new Promise((r) => setTimeout(r, delay + Math.random() * 250));
+      delay *= 2;
+    }
+  }
+}

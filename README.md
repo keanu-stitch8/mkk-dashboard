@@ -24,6 +24,7 @@ Perintah lain:
 | `npm run build` | Build production |
 | `npm run seed -- ./folder-lain` | Import semua file dari folder lain |
 | `npm run inspect -- file1.csv file2.xlsx` | Lihat hasil parsing file tanpa menyimpan ke DB |
+| `npm run sync -- --month=YYYY-MM` | Tarik data dari connector API (lihat Setup Connector) |
 | `npx prisma studio` | Lihat isi database |
 
 ### Data di `data-samples/`
@@ -57,6 +58,170 @@ data-samples/
 | **Report** (`/report`) | Ringkasan bulan siap cetak → tombol **Cetak / Simpan PDF** (print stylesheet). |
 
 Bulan dipilih lewat selector di kanan atas (disimpan di URL `?m=YYYY-MM`). Dark mode lewat ikon matahari/bulan di kanan atas (Terang / Gelap / Sistem). Sidebar bisa diciutkan (ikon panel di kiri atas atau `Ctrl/⌘ + B`).
+
+---
+
+## Setup Connector (tarik data otomatis via API)
+
+Connector menarik data GA4, Search Console, YouTube, dan Meta langsung dari API. Hasilnya disimpan ke **tabel yang sama** dengan import CSV, jadi dashboard dan rekomendasi tidak berubah. Sync untuk bulan + sumber yang sama menggantikan data lama (idempotent), termasuk data hasil import CSV. Import CSV tetap bisa dipakai kapan saja sebagai fallback.
+
+| Connector | Status | Mengisi |
+|---|---|---|
+| Google Analytics 4 | ✅ siap | GA4 Traffic acquisition, Pages and screens (termasuk views artikel News), Landing page, Overview, City |
+| Google Search Console | ✅ siap | GSC Queries (top 1000), Pages (top 1000), Dates, Countries, Devices + total resmi |
+| YouTube | ✅ siap | YouTube per video (long-form yang dipublish bulan itu) + harian; impressions & CTR via laporan Reach |
+| Meta (IG & FB) | ✅ siap | Instagram per post + insight akun selama bulan itu (views, interactions, reach, follows). Facebook dimatikan (`ACTIVE_SOCIAL_PLATFORMS`) |
+| Google Sheets | ✅ siap | Publishing Log News, Sosmed, YouTube (dicari otomatis per nama file + bulan) |
+
+### 1. File `.env.local`
+
+Salin bagian "Connector API" dari `.env.example` ke **`.env.local`**. File ini sudah di-`.gitignore`, jadi tidak ikut ter-commit. Restart `npm run dev` setiap kali mengubah `.env.local`.
+
+```bash
+openssl rand -base64 32   # → isi ENCRYPTION_KEY
+```
+
+### 2. Google Cloud: project, API, service account
+
+1. Buka https://console.cloud.google.com → buat project baru (mis. `mkk-dashboard`).
+2. **APIs & Services → Library**, aktifkan:
+   - **Google Analytics Data API**
+   - Google Search Console API *(untuk connector GSC)*
+   - YouTube Data API v3, YouTube Analytics API, dan **YouTube Reporting API** *(untuk connector YouTube)*
+3. *(Opsi A saja)* **IAM & Admin → Service Accounts → Create service account** (mis. `mkk-dashboard`). Langkah "Grant this service account access to project" dikosongkan.
+4. *(Opsi A saja)* Buka service account itu → **Keys → Add key → Create new key → JSON**. Simpan file-nya **di luar folder project** (mis. `~/secrets/mkk-dashboard-sa.json`), lalu isi path-nya di `GOOGLE_APPLICATION_CREDENTIALS`.
+5. *(Opsi A saja)* Catat email service account-nya (`…@….iam.gserviceaccount.com`); dipakai di langkah berikut.
+
+### 3. GA4
+
+Isi `GA4_PROPERTY_ID` dengan **Property ID** (angka, mis. `412345678`) dari GA4 → Admin → Property details. Measurement ID `G-XXXX` bukan Property ID. Kalau tidak bisa membuka Admin, minta ke admin GA4.
+
+Lalu pilih cara akses:
+
+**Opsi A — Service account** (cocok untuk sync otomatis; butuh **admin GA4**):
+1. Minta admin GA4 menambahkan email service account di **Admin → Property access management → + → Add users** dengan role **Viewer**.
+2. Isi `GOOGLE_APPLICATION_CREDENTIALS`.
+
+**Opsi B — Login akun Google kamu** (jika kamu bisa membuka laporan GA4 tapi bukan admin):
+1. Google Cloud → **APIs & Services → OAuth consent screen**: User type **External**, isi nama aplikasi (mis. "MKK Dashboard") dan email. Di bagian **Data access / Scopes** tambahkan `…/auth/analytics.readonly` (nanti juga `webmasters.readonly`, `yt-analytics.readonly`, `youtube.readonly`).
+2. **Audience / Publishing status → Publish app → In production.** Kalau tetap di mode *Testing*, refresh token kedaluwarsa tiap 7 hari. Aplikasi tidak perlu diverifikasi Google untuk dipakai sendiri; saat login akan muncul layar "Google hasn't verified this app" → **Advanced → Go to MKK Dashboard (unsafe)**.
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID** → tipe **Web application** → *Authorized redirect URIs*: `http://localhost:3000/api/auth/google/callback` → Create. Salin Client ID & Client secret ke `GOOGLE_OAUTH_CLIENT_ID` dan `GOOGLE_OAUTH_CLIENT_SECRET`.
+4. Isi `ENCRYPTION_KEY` (refresh token disimpan terenkripsi di database), restart `npm run dev`.
+5. Halaman **Connectors API** → kartu GA4 → **Hubungkan akun Google** → login dengan akun yang bisa membuka GA4 Main ke Kudus → centang izin.
+
+Jika `GOOGLE_APPLICATION_CREDENTIALS` diisi, service account didahulukan. Setelah itu klik **Test koneksi** di kartu GA4.
+
+Data yang ditarik per bulan: total active users & new users, sessions/engaged sessions/engagement rate per `sessionDefaultChannelGroup`, views per `pagePath` + judul halaman, landing page, new users per first-user channel, dan active users per kota. Path dinormalisasi persis seperti parser CSV, jadi views artikel News otomatis tercocokkan ke URL di content log.
+
+### 4. Search Console
+
+1. Aktifkan **Google Search Console API**: https://console.cloud.google.com/apis/library/searchconsole.googleapis.com
+2. Isi `GSC_SITE_URL` persis seperti nama properti di Search Console: properti *Domain* → `sc-domain:mainkekudus.com`; properti *URL prefix* → `https://mainkekudus.com/`. Nama polos (`mainkekudus.com`) juga diterima dan dicocokkan otomatis ke properti yang bisa diakses.
+3. Akses — pilih salah satu:
+   - **Login akun Google** (sama seperti GA4 opsi B): kartu Search Console → **Hubungkan akun Google**. Izinnya terpisah dari GA4, jadi perlu klik sekali lagi. Akun harus punya akses (minimal *Restricted*) ke properti di Search Console.
+   - **Service account**: pemilik properti menambahkan email service account di Search Console → Settings → **Users and permissions → Add user** (Restricted).
+4. **Test koneksi** di kartu Search Console.
+
+Catatan: data Search Console terlambat ±2–3 hari. Sync bulan berjalan otomatis berhenti di 3 hari lalu (ada peringatan); sync ulang bulan sebelumnya setelah tanggal 3 supaya datanya final. Query & halaman ditarik **top 1000** (urut klik, setara export XLSX Search Console; ubah `GSC_TOP_ROWS` di `lib/connectors/gsc/index.ts` jika perlu, maks. 25.000 per request). Total klik, impressions, CTR, dan posisi rata-rata diambil dari total resmi properti.
+
+### 5. YouTube
+
+YouTube selalu memakai **login akun Google pemilik channel** (OAuth client yang sama dengan opsi B GA4).
+
+1. Aktifkan tiga API: [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com), [YouTube Analytics API](https://console.cloud.google.com/apis/library/youtubeanalytics.googleapis.com), [YouTube Reporting API](https://console.cloud.google.com/apis/library/youtubereporting.googleapis.com).
+2. Halaman **Connectors API** → kartu YouTube → **Hubungkan akun Google** (atau buka `/api/auth/youtube`). Di layar pilih akun, pilih **akun / Brand Account channel Main ke Kudus**, lalu centang kedua izin YouTube.
+3. **Test koneksi**: menampilkan nama channel, dan sekaligus mendaftarkan job laporan *Reach*.
+
+Yang ditarik per bulan, sesuai definisi laporan YouTube (video yang dipublish di bulan itu, performa selama bulan itu):
+- **Data API**: daftar video dari playlist uploads channel yang dipublish di bulan itu (tanggal WIB). **YouTube Shorts tidak dihitung** karena hanya mirror Reels, sama dengan filter "Long-form Videos" di Studio.
+- **Analytics API**: views, watch time, average view duration, subscribers gained/lost, likes, comments, shares per video, plus views & watch time harian.
+- **Impressions & CTR thumbnail**: metrik ini **tidak ada di Analytics API**, hanya di **Reporting API** (laporan `channel_reach_basic_a1`). Karena itu:
+  - Saat job pertama dibuat, YouTube hanya menyediakan **30 hari ke belakang**, dan laporan pertama muncul ±2 hari kemudian.
+  - Setiap laporan di API hanya bertahan **60 hari**, jadi dashboard menyimpan laporan harian ke database (`YtReachDaily`) setiap sync. Jalankan sync minimal sebulan sekali (cron tanggal 3 sudah cukup).
+  - Bulan yang belum tercakup penuh tetap memakai impressions dari import CSV Studio sebelumnya, dan ada peringatan di riwayat sync.
+- Unique viewers tidak tersedia di API YouTube (sudah dihapus Google), jadi kolom itu hanya terisi dari import CSV.
+
+### 6. Meta (Instagram & Facebook)
+
+Connector Meta memakai **Graph API `v26.0`** (konstanta `GRAPH_VERSION` di `lib/connectors/meta/graph.ts`) dengan **token system user**, jadi tidak perlu login ulang dan token tidak kedaluwarsa.
+
+1. **Buat app**: https://developers.facebook.com/apps → **Create app** → use case *Other* → tipe **Business** → pilih Business portfolio yang memiliki Page Main ke Kudus. App boleh tetap mode *Development* (hanya dipakai aset bisnis sendiri).
+2. **System user**: https://business.facebook.com/settings → **Users → System users → Add** → nama mis. `mkk-dashboard`, role **Admin** (atau Employee).
+3. **Assign aset** ke system user itu (**Assign assets**):
+   - **Pages** → Page Main ke Kudus → akses penuh (*Manage Page* / Full control). Tanpa ini token tidak mendapat page access token.
+   - **Instagram accounts** → `main_ke_kudus` → akses penuh.
+   - **Apps** → app dari langkah 1 → *Manage app*.
+4. **Generate token**: di system user → **Generate new token** → pilih app → *Token expiration*: **Never** → centang izin:
+   `pages_show_list`, `pages_read_engagement`, `read_insights`, `instagram_basic`, `instagram_manage_insights`, serta `pages_read_user_content` dan `business_management` (dokumentasi Meta mensyaratkan keduanya untuk `/posts` dan untuk `/media` saat akses Page didapat lewat Business Manager).
+5. **ID**: Page ID ada di Page → *About → Page transparency*, atau Business Settings → Accounts → Pages. ID akun Instagram boleh dikosongkan — diambil otomatis dari `/{page-id}?fields=instagram_business_account`.
+6. Isi `.env.local`, lalu restart `npm run dev`:
+   ```
+   META_ACCESS_TOKEN=EAA…          # token system user
+   META_PAGE_ID=1234567890         # Page Facebook
+   META_IG_USER_ID=                # opsional (1784…)
+   META_APP_SECRET=                # opsional, wajib jika app mengaktifkan "Require App Secret"
+   ```
+7. **Test koneksi** di kartu Meta: menampilkan pemilik token, Page, akun IG (followers, jumlah post), sekaligus mencoba insight post terakhir dan mengecek izin yang kurang.
+
+Platform yang dihitung diatur di `ACTIVE_SOCIAL_PLATFORMS` (`lib/sources.ts`). Saat ini hanya `instagram` — post Facebook tidak ditarik dan tidak dihitung; tambahkan `"facebook"` untuk mengaktifkannya lagi.
+
+**Definisi angka di halaman Social (Instagram via API)** — KPI & tren memakai *insight akun selama bulan itu*, bukan jumlah metrik lifetime per post:
+
+| KPI | Sumber API | Catatan |
+|---|---|---|
+| Views, Interactions | `/{ig-user-id}/insights` `views`, `total_interactions` (total_value) | Termasuk Stories & post lama. Diminta per potongan ≤ 30 hari lalu dijumlah → pas sebulan penuh |
+| Reach | `reach` (akun unik) | Tidak bisa dijumlah; Meta membatasi maks. 30 hari per request → bulan 31 hari hanya 30 hari pertama (ada peringatan) |
+| Engagement rate | interactions ÷ reach akun | Lebih tinggi dari ER per post karena pembaginya akun unik |
+| Follows | `follows_and_unfollows` (breakdown `follow_type`, FOLLOWER) | Follow baru ke akun selama bulan itu; API tidak menyediakan follows per post untuk Reels |
+| Views / post, top post, per format, per kategori | `/{media-id}/insights` | Metrik **lifetime** post yang dipublish bulan itu (sejak publish) |
+
+Bulan lama hasil import CSV tetap memakai definisi lama (jumlah per post); MoM antar definisi berbeda tidak dihitung dan halaman memberi catatan.
+
+**Snapshot per post (persiapan views per post per bulan):** setiap sync Meta menyimpan metrik lifetime semua post Instagram 90 hari terakhir ke tabel `IgMediaSnapshot` (maks. 1x per hari, tidak terhapus saat sync ulang). Selisih dua snapshot = performa post di antara keduanya, jadi nantinya views/interactions *per post selama bulan itu* bisa dihitung. Snapshot hanya diambil saat sync, jadi batas bulannya = tanggal sync (cron: tanggal 3). Belum ditampilkan di dashboard.
+
+Yang ditarik per bulan (tanggal WIB, sama dengan import CSV):
+- **Instagram**: `/{ig-user-id}/media` (Reels, Carousel, Feeds; Stories tidak tersedia di endpoint ini) → `/{media-id}/insights`: `reach, views, likes, comments, shares, saved, total_interactions` (+ `follows` untuk non-Reels). Metrik lama `impressions/plays/video_views` tidak dipakai karena sudah deprecated. Insight akun (`reach, views, total_interactions, accounts_engaged`, total satu bulan) disimpan sebagai metrik `ig_account_*`. `follower_count` tidak lagi terdokumentasi untuk rentang harian, jadi dilewati.
+- **Facebook**: `/{page-id}/posts` → `/{post-id}/insights`: `post_media_view` (Views) dan `post_total_media_view_unique` (Reach). `post_impressions*` tidak berlaku lagi sejak v25, dan sejumlah metrik Page dicabut Meta 15 Juni 2026 — kalau Meta menolak sebuah metrik, metrik diminta satu per satu, yang ditolak dilewati dan muncul sebagai peringatan di riwayat sync (sync tidak gagal).
+- Rate limit / error sementara di-retry otomatis dengan backoff.
+
+Catatan:
+- **Post kolaborasi** milik akun lain (yang muncul di export CSV) tidak ikut di API — memang tidak dihitung di dashboard.
+- Metrik Meta bersifat *lifetime* dan bisa terlambat ±48 jam; sync ulang bulan lalu setelah awal bulan (cron tanggal 3).
+- Bulan tanpa post tidak menimpa data lama (termasuk hasil import CSV).
+- Reels Facebook mungkin tidak muncul di `/posts` (Meta memindahkannya ke edge `video_reels`); jika Facebook mulai aktif lagi, cek jumlah post di dashboard vs Meta Business Suite.
+
+### 7. Google Sheets (Publishing Log)
+
+Publishing Log dibaca langsung dari Google Drive — tidak perlu upload XLSX. **1 bulan = 1 file**, dicari otomatis berdasarkan nama + bulan (bahasa Inggris/Indonesia, mis. "September 2026" / "Oktober 2026"):
+
+| Log | Nama file yang dicari | Tab yang dibaca |
+|---|---|---|
+| News | `… News Content Logs - <Bulan> <Tahun>` | tab log (Planned Date, Judul Berita, Status, Published Date, Link Berita, …) |
+| Sosmed | `… Socmed Content Logs - <Bulan> <Tahun>` | tab log (Tanggal, Konten, Kategori, Channels, Type, Admin, Designer/Editor, Status) |
+| YouTube | `… Youtube Monthly Performance Report - <Bulan> <Tahun>` | sheet `03 Publishing Log` |
+
+File di-export ke XLSX lewat Drive API lalu diparse dengan parser yang sama seperti upload manual. Jika ada beberapa file untuk bulan yang sama, yang terakhir diubah dipakai (salinan "Copy of …" dikalahkan) dan ada peringatan. Tab Summary/Ref dilewati. Tanggal artikel News = **Published Date** (artikel review/draft memakai Planned Date).
+
+Setup:
+1. Aktifkan **Google Drive API**: https://console.cloud.google.com/apis/library/drive.googleapis.com
+2. OAuth consent screen → **Data access** → tambahkan scope `…/auth/drive.readonly` (lihat semua file Google Drive — hanya baca; dibutuhkan untuk mencari file by nama & export ke XLSX).
+3. Halaman **Connectors API** → kartu **Google Sheets** → **Hubungkan akun Google** → login dengan akun yang bisa membuka ketiga spreadsheet (mis. pemilik log News dan akun yang dibagikan log Sosmed) → centang izin Drive.
+4. **Test koneksi** menampilkan file log yang ditemukan untuk bulan ini & bulan lalu (✓/✗).
+
+### 8. Menjalankan sync
+
+- **Dari UI:** halaman *Connectors API* atau *Import Data* → **Sync bulan ini**, **Sync ulang** (pilih bulan), atau **Backfill 6 bulan**. Di Overview ada tombol **Sync [bulan yang sedang dilihat]**.
+- **Dari terminal / cron:**
+  ```bash
+  npm run sync                         # bulan lalu (bulan penuh terakhir), semua connector yang siap
+  npm run sync -- --month=2026-09      # bulan tertentu
+  npm run sync -- --backfill=6         # 6 bulan terakhir
+  npm run sync -- --connector=ga4      # connector tertentu
+  ```
+  Exit code 1 jika ada yang gagal. Contoh cron (macOS/Linux, tiap tanggal 3 jam 07:00):
+  `0 7 3 * * cd /path/ke/dashboard && npm run sync >> sync.log 2>&1`
+- **Otomatis saat server jalan:** isi `SYNC_CRON=1` lalu restart `npm run dev` / `npm start`. Server menyinkronkan **bulan lalu** setiap **tanggal 3 jam 07:00 WIB** (lewat `instrumentation.ts`, runtime Node.js saja). Kalau laptop mati saat jadwal, sync dijalankan begitu server menyala lagi; tiap jadwal hanya sekali (tercatat sebagai *cron* di Riwayat sync).
+- Semua sync tercatat di **Riwayat sync** (halaman Connectors API), termasuk pesan error dalam Bahasa Indonesia, mis. *"Service account belum ditambahkan ke properti GA4"*.
 
 ---
 
@@ -192,6 +357,14 @@ lib/parsers/                parser file → dataset
 lib/import/commit.ts        simpan dataset (replace per bulan+sumber)
 lib/data/summary.ts         query & ringkasan per channel, tren, MoM
 lib/recommendations.ts      engine rekomendasi
+lib/connectors/             connector API (GA4, …) → Dataset yang sama dengan parser CSV
+  index.ts                  registry + sync (SyncLog)
+  ga4/map.ts                mapping response runReport → dataset (dites dengan fixture JSON)
+  gsc/ youtube/             connector Search Console & YouTube (index.ts = fetch API, map.ts = mapping murni)
+  meta/                     Graph API: graph.ts (client, retry, paginasi), errors.ts, map.ts, index.ts
+  sheets/                   Publishing Log dari Google Drive: map.ts (cocokkan nama file + bulan), index.ts (export XLSX → parser)
+lib/crypto.ts               enkripsi AES-256-GCM token OAuth
+scripts/sync.ts             npm run sync
 lib/sources.ts              katalog sumber, kuota default, field input manual
 app/                        halaman & API route
 components/ui/              komponen shadcn/ui (hasil `npx shadcn add …`, jangan diedit kecuali perlu)
@@ -200,6 +373,7 @@ components/charts.tsx       grafik tren & breakdown (shadcn Chart + Recharts)
 components/AppSidebar.tsx   navigasi (shadcn Sidebar)
 components/import/          form import, input manual, kuota
 tests/parsers.test.ts       tes parser
+tests/connectors.test.ts    tes connector (fixture JSON di tests/fixtures/, tanpa hit API)
 ```
 
 ---
@@ -230,8 +404,10 @@ Schema sengaja hanya memakai tipe portable (String/Int/Float/DateTime, tanpa enu
 
 ## Keterbatasan yang diketahui (data Juli–September 2026)
 
-- News Content Log Juli dan Publishing Log sosmed Juli belum ada. Untuk bulan tanpa log, News tampil kosong dan kuota sosmed dihitung dari export Meta (tanpa Stories).
-- Belum ada data Facebook. Parser Facebook tetap tersedia: upload export Meta untuk Page Facebook kapan saja.
+- Untuk bulan tanpa Publishing Log, News tampil kosong dan kuota sosmed dihitung dari post Meta (tanpa Stories). Sejak connector Google Sheets, log Juli–September tersedia.
+- Facebook sengaja tidak dihitung (`ACTIVE_SOCIAL_PLATFORMS = ["instagram"]`); data FB lama di database diabaikan.
+- Impressions & CTR YouTube sebelum ±16 Sep 2026 dan unique viewers YouTube hanya ada dari export Studio lama (API tidak menyediakannya) — sync API mempertahankan nilai lama tersebut.
+- Views per post *selama bulan itu* belum ditampilkan; snapshot harian (`IgMediaSnapshot`) mulai dikumpulkan 19 Okt 2026.
 - TikTok belum dimasukkan. Baris TikTok di publishing log tetap tersimpan, tanpa metrik performa.
 - Batas "carousel maks 8 slide" belum dicek otomatis karena export Meta tidak memuat jumlah slide.
 - Tanpa autentikasi, hanya untuk localhost.

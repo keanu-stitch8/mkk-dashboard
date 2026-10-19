@@ -354,6 +354,27 @@ describe("YouTube: laporan = video yang dipublish di bulan laporan", () => {
     expect(aug.warnings.join(" ")).toMatch(/1 video publish Juli 2026/);
   });
 
+  it("hitung ulang: avg view duration = rata-rata per video tertimbang views (bukan watch time ÷ views)", () => {
+    const ds = get(
+      parseFiles(
+        [
+          table([
+            'a1,Video Juli,"Jul 28, 2026",100,800,1000,20,0:01:12,10000,5,8',
+            'b2,Video Agustus,"Aug 13, 2026",300,100,300,4,0:02:00,1000,4,2',
+            'c3,Video Agustus 2,"Aug 20, 2026",300,50,100,1,0:01:00,500,2,1',
+          ]),
+        ],
+        "youtube",
+      ).datasets,
+      "yt_table",
+    );
+    const aug = applyMonth(ds, "2026-08");
+    expect(aug.rows.map((r) => r.videoId)).toEqual(["b2", "c3"]);
+    // (120 × 300 + 60 × 100) / 400 = 105; watch time ÷ views = 5 jam × 3600 / 400 = 45
+    expect(metric(aug, "avgViewDurationSec")).toBeCloseTo(105);
+    expect(metric(aug, "watchHours")).toBe(5);
+  });
+
   it("file berisi video bulan lain saja tidak disimpan & tidak menghapus data lama", async () => {
     const ds = get(parseFiles([table(['a1,Video Juli,"Jul 28, 2026",100,800,1000,20,0:01:12,10000,5,8'])], "youtube").datasets, "yt_table");
     const aug = applyMonth(ds, "2026-08");
@@ -370,5 +391,26 @@ describe("YouTube: laporan = video yang dipublish di bulan laporan", () => {
     const aug = applyMonth(ds, "2026-08");
     expect(metric(aug, "views")).toBe(1300);
     expect(metric(aug, "uniqueViewers")).toBe(900);
+  });
+});
+
+describe("News Content Logs (Google Sheets, logs only)", () => {
+  // layout asli: 2 baris judul, baris kosong, lalu header; Planned Date + Published Date
+  const csv = [
+    "MAIN KE KUDUS,,,,,,,,,,",
+    "September 2026 - News Content Logs - All,,,,,,,,,,",
+    ",,,,,,,,,,",
+    "No,Planned Date,Judul Berita,Submitted Article Date,Reporter,Category,Type,Status,Published Date,Link Berita,Method",
+    '1,"Sep 1, 2026",Patiayam (liputan 16 agustus 2026),"Sep 1, 2026",OEB,Atraksi,Features,Review,,,Remote',
+    '2,"Sep 1, 2026",Berlian Sports Centre,"Sep 1, 2026","OEB, YSR",Arena,Features,Publish,"Sep 1, 2026",https://mainkekudus.com/venues/berlian-sport-centre,Remote',
+    '3,"Sep 29, 2026",Artikel Akhir Bulan,"Sep 29, 2026",FZ,Kegiatan,Hard News,Publish,"Sep 30, 2026",https://mainkekudus.com/news/akhir-bulan/,Remote',
+  ].join("\n");
+
+  it("header logs-only dikenali; tanggal = Published Date, review pakai Planned Date", () => {
+    const ds = get(parseFiles([text("MKK - News Content Logs - September 2026.csv", csv)], "news").datasets, "news_log");
+    expect(ds.rows).toHaveLength(3);
+    expect(ds.rows[0]).toMatchObject({ title: "Patiayam (liputan 16 agustus 2026)", status: "review", date: "2026-09-01", submittedDate: "2026-09-01", url: null, category: "Atraksi" });
+    expect(ds.rows[1]).toMatchObject({ status: "publish", path: "/venues/berlian-sport-centre", reporter: "OEB, YSR" });
+    expect(ds.rows[2]).toMatchObject({ date: "2026-09-30", path: "/news/akhir-bulan" });
   });
 });

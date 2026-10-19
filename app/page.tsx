@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { CircleCheck, CircleDashed, FileDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { SyncMonthButton } from "@/components/connectors/SyncControls";
+import { configuredConnectors } from "@/lib/connectors";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { Section, KpiCard, KpiGrid, Notice, QuotaMini } from "@/components/blocks";
@@ -15,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function OverviewPage({ searchParams }: PageProps<"/">) {
   const { month, months } = await resolveMonth((await searchParams).m);
-  const [{ cur, prev }, trend] = await Promise.all([getMonthAndPrev(month), getTrend(month)]);
+  const [{ cur, prev }, trend, configured] = await Promise.all([getMonthAndPrev(month), getTrend(month), configuredConnectors()]);
   const kpi = overviewKpis(cur);
   const cmp = overviewComparison(cur, prev);
   const recs = generateRecommendations({ cur, prev });
@@ -38,11 +40,14 @@ export default async function OverviewPage({ searchParams }: PageProps<"/">) {
         month={month}
         months={months}
         actions={
-          <Button asChild>
-            <Link href={`/report?m=${month}`}>
-              <FileDown /> Export PDF
-            </Link>
-          </Button>
+          <>
+            <SyncMonthButton month={month} disabled={!configured.length} />
+            <Button asChild>
+              <Link href={`/report?m=${month}`}>
+                <FileDown /> Export PDF
+              </Link>
+            </Button>
+          </>
         }
       />
 

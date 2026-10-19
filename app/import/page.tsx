@@ -10,18 +10,21 @@ import { prisma } from "@/lib/db";
 import { resolveMonth } from "@/lib/data/summary";
 import { getQuotas } from "@/lib/data/quota";
 import { CHANNEL_LABEL, DATASETS, QUOTA_DEFAULTS } from "@/lib/sources";
-import { monthLabel } from "@/lib/month";
+import { currentMonth, monthLabel } from "@/lib/month";
+import { SyncControls } from "@/components/connectors/SyncControls";
+import { configuredConnectors } from "@/lib/connectors";
 import type { DatasetKey } from "@/lib/parsers/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImportPage({ searchParams }: PageProps<"/import">) {
   const { month, months } = await resolveMonth((await searchParams).m);
-  const [imports, manualRows, quotas, defaults] = await Promise.all([
+  const [imports, manualRows, quotas, defaults, configured] = await Promise.all([
     prisma.import.findMany({ orderBy: [{ month: "desc" }, { source: "asc" }] }),
     prisma.manualMetric.findMany({ where: { month } }),
     getQuotas(month),
     prisma.quota.findMany({ where: { month: "default" } }),
+    configuredConnectors(),
   ]);
 
   const manual: Record<string, Record<string, number>> = {};
@@ -45,6 +48,18 @@ export default async function ImportPage({ searchParams }: PageProps<"/import">)
         month={month}
         months={months}
       />
+
+      <Section
+        title="Sync dari API"
+        subtitle="Tarik data langsung dari GA4 / Search Console / YouTube / Meta tanpa upload file"
+        action={
+          <a href="/settings/connectors" className="text-xs font-medium text-primary hover:underline">
+            Pengaturan connector →
+          </a>
+        }
+      >
+        <SyncControls currentMonth={currentMonth()} defaultMonth={month} configured={configured} />
+      </Section>
 
       <Section title="Upload file" subtitle="Pilih bulan dan jenis sumber, upload, cek preview, lalu simpan.">
         <ImportForm defaultMonth={month} />

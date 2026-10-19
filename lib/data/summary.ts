@@ -2,7 +2,7 @@
 import { prisma } from "../db";
 import { daysInMonth, lastMonths, prevMonth } from "../month";
 import { getQuotas, type QuotaValue } from "./quota";
-import { FORMAT_LABEL, OWN_SOCIAL_ACCOUNTS } from "../sources";
+import { ACTIVE_SOCIAL_PLATFORMS, FORMAT_LABEL, OWN_SOCIAL_ACCOUNTS } from "../sources";
 import { fmtNum, fmtPct } from "../format";
 import type { Channel } from "../parsers/types";
 
@@ -86,9 +86,10 @@ export async function getWebsiteSummary(month: string) {
   let newUsers = metric("newUsers") ?? metric("newUsers_daily") ?? metric("newUsers_est");
   let pageviews: number | null = pages.length ? sum(pages.map((p) => p.views)) : null;
 
-  let gscClicks: number | null = gscDaily.length ? sum(gscDaily.map((d) => d.clicks)) : null;
-  let gscImpressions: number | null = gscDaily.length ? sum(gscDaily.map((d) => d.impressions)) : null;
-  let gscPosition: number | null = gscDaily.length ? safeDiv(sum(gscDaily.map((d) => d.position * d.impressions)), gscImpressions) : null;
+  // total resmi dari API GSC (jika ada) lebih akurat; tanpa itu (import CSV) dihitung dari data harian
+  let gscClicks: number | null = metric("gsc_clicks") ?? (gscDaily.length ? sum(gscDaily.map((d) => d.clicks)) : null);
+  let gscImpressions: number | null = metric("gsc_impressions") ?? (gscDaily.length ? sum(gscDaily.map((d) => d.impressions)) : null);
+  let gscPosition: number | null = metric("gsc_position") ?? (gscDaily.length ? safeDiv(sum(gscDaily.map((d) => d.position * d.impressions)), gscImpressions) : null);
 
   // override manual
   if (manual.users != null) [users, usersEstimated] = [manual.users, false];
@@ -376,13 +377,19 @@ function ownAccounts(posts: { platform: string; account: string | null }[]): Set
 }
 
 export async function getSocialSummary(month: string) {
-  const [allPosts, logs, quotas, manual, imports] = await Promise.all([
-    prisma.socialPost.findMany({ where: { month }, orderBy: { publishedAt: "asc" } }),
+  const [allPosts, logs, quotas, manual, imports, accountMetrics] = await Promise.all([
+    // hanya platform aktif (lib/sources.ts) yang dihitung ke performa
+    prisma.socialPost.findMany({ where: { month, platform: { in: ACTIVE_SOCIAL_PLATFORMS } }, orderBy: { publishedAt: "asc" } }),
     prisma.socialLog.findMany({ where: { month }, orderBy: { date: "asc" } }),
     getQuotas(month),
     manualFor(month, "social"),
     prisma.import.findMany({ where: { month, OR: [{ source: { startsWith: "meta" } }, { source: "social_log" }] } }),
+    // insight akun IG selama bulan itu (connector Meta); kosong untuk bulan hasil import CSV
+    ACTIVE_SOCIAL_PLATFORMS.includes("instagram")
+      ? prisma.metric.findMany({ where: { month, channel: "social", key: { startsWith: "ig_account_" }, import: { source: "meta_instagram" } } })
+      : [],
   ]);
+  const account = (k: string) => accountMetrics.find((m) => m.key === `ig_account_${k}`)?.value ?? null;
 
   // Hanya post milik akun MKK yang dihitung; kolaborasi/repost dari akun lain dipisah.
   const own = ownAccounts(allPosts);
@@ -395,10 +402,18 @@ export async function getSocialSummary(month: string) {
     return { ...p, category: log?.category ?? null, inLog: !!log, er: safeDiv(p.interactions, p.reach) };
   });
 
-  const reach = manual.reach ?? (posts.length ? sum(posts.map((p) => p.reach)) : null);
-  const views = manual.views ?? (posts.length ? sum(posts.map((p) => p.views)) : null);
-  const interactions = manual.interactions ?? (posts.length ? sum(posts.map((p) => p.interactions)) : null);
-  const follows = manual.follows ?? (posts.some((p) => p.follows != null) ? sum(posts.map((p) => p.follows)) : null);
+  // Views, reach & interactions: insight akun selama bulan itu (API) jika ada — termasuk post lama & Stories.
+  // Bulan hasil import CSV: jumlah metrik lifetime per post yang dipublish bulan itu.
+  const metricsSource: "account" | "posts" = account("views") != null ? "account" : "posts";
+  const postViews = posts.length ? sum(posts.map((p) => p.views)) : null;
+  const reach = manual.reach ?? (metricsSource === "account" ? account("reach") : posts.length ? sum(posts.map((p) => p.reach)) : null);
+  const views = manual.views ?? (metricsSource === "account" ? account("views") : postViews);
+  const interactions = manual.interactions ?? (metricsSource === "account" ? account("total_interactions") : posts.length ? sum(posts.map((p) => p.interactions)) : null);
+  // Follows: follow baru ke akun IG dari insight akun (API). Fallback bulan lama (import CSV): jumlah follows per post.
+  const followsSource: "manual" | "account" | "posts" | null =
+    manual.follows != null ? "manual" : account("follows") != null ? "account" : posts.some((p) => p.follows != null) ? "posts" : null;
+  const follows =
+    followsSource === "manual" ? manual.follows : followsSource === "account" ? account("follows") : followsSource === "posts" ? sum(posts.map((p) => p.follows)) : null;
   const publishedLogs = logs.filter((l) => l.status === "publish");
   const countSource: "log" | "meta" = logs.length ? "log" : "meta";
   // Satu baris publishing log = satu konten (walau diposting ke beberapa channel)
@@ -457,7 +472,13 @@ export async function getSocialSummary(month: string) {
     reach,
     views,
     interactions,
+    /** asal views/reach/interactions: insight akun selama bulan itu (API) atau jumlah lifetime per post (CSV lama) */
+    metricsSource,
+    /** jumlah views lifetime post yang dipublish bulan ini (untuk rata-rata per post) */
+    postViews,
     follows,
+    /** asal angka follows: insight akun (API), jumlah per post (export CSV lama), atau input manual */
+    followsSource,
     engagementRate: safeDiv(interactions, reach),
     quotaProgress,
     publishedByFormat,
@@ -585,16 +606,23 @@ export function socialComparable(cur: SocialSummary, prev: SocialSummary | null)
   if (!prev?.hasData || !cur.hasData) return null;
   const common = cur.platforms.filter((p) => prev.platforms.includes(p));
   if (!common.length) return null;
+  // insight akun (selama bulan) vs jumlah lifetime per post: definisi beda → tidak dibandingkan
+  const sameSource = cur.metricsSource === prev.metricsSource;
   const pick = (s: SocialSummary) => {
     const rows = s.byPlatform.filter((b) => common.includes(b.platform));
     const posts = s.posts.filter((p) => common.includes(p.platform));
+    const account = s.metricsSource === "account";
+    const reach = !sameSource ? null : account ? s.reach : sum(rows.map((r) => r.reach));
+    const interactions = !sameSource ? null : account ? s.interactions : sum(rows.map((r) => r.interactions));
     return {
       posts: posts.length,
-      reach: sum(rows.map((r) => r.reach)),
-      views: sum(rows.map((r) => r.views)),
-      interactions: sum(rows.map((r) => r.interactions)),
-      follows: posts.some((p) => p.follows != null) ? sum(posts.map((p) => p.follows)) : null,
-      engagementRate: safeDiv(sum(rows.map((r) => r.interactions)), sum(rows.map((r) => r.reach))),
+      reach,
+      views: !sameSource ? null : account ? s.views : sum(rows.map((r) => r.views)),
+      postViews: sum(posts.map((p) => p.views)),
+      interactions,
+      // follows per bulan hanya sebanding jika definisinya sama (insight akun vs jumlah per post)
+      follows: cur.followsSource === prev.followsSource ? s.follows : null,
+      engagementRate: reach == null || interactions == null ? null : safeDiv(interactions, reach),
     };
   };
   const partial = common.length < cur.platforms.length || common.length < prev.platforms.length;
@@ -634,10 +662,10 @@ export function overviewComparison(cur: MonthBundle, prev: MonthBundle) {
     totalReach: composite([
       [cur.website.gscImpressions, pair(cur.website.gscImpressions, prev.website.gscImpressions)],
       [ytImpr, pair(ytImpr, prev.youtube.hasData ? prev.youtube.impressions : null)],
-      [cur.social.reach, soc ? ([soc.cur.reach, soc.prev.reach] as const) : null],
+      [cur.social.reach, soc ? pair(soc.cur.reach, soc.prev.reach) : null],
     ]),
     totalEngagement: composite([
-      [cur.social.interactions, soc ? ([soc.cur.interactions, soc.prev.interactions] as const) : null],
+      [cur.social.interactions, soc ? pair(soc.cur.interactions, soc.prev.interactions) : null],
       [cur.website.engagedSessions, pair(cur.website.engagedSessions, prev.website.engagedSessions)],
     ]),
     websiteUsers: pair(cur.website.users, prev.website.users),

@@ -9,13 +9,17 @@
     "lint": "eslint",
     "test": "vitest run",
     "seed": "tsx prisma/seed.ts",
-    "inspect": "tsx scripts/inspect.ts"
+    "inspect": "tsx scripts/inspect.ts",
+    "sync": "tsx scripts/sync.ts"
   },
   "dependencies": {
+    "@google-analytics/data": "7.2.1",
     "@prisma/client": "6.19.3",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "fflate": "^0.8.3",
+    "google-auth-library": "11.3.0",
+    "googleapis": "181.0.0",
     "lucide-react": "^1.57.0",
     "next": "16.4.1",
     "next-themes": "^0.4.6",
@@ -48,7 +52,8 @@
     "prisma@6.19.3": true,
     "esbuild@0.28.2": true,
     "unrs-resolver@1.12.2": true,
-    "fsevents@2.3.3": true
+    "fsevents@2.3.3": true,
+    "protobufjs": false
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

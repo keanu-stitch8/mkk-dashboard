@@ -1,0 +1,26 @@
+{
+ "kind": "youtubeAnalytics#resultTable",
+ "columnHeaders": [
+  {
+   "name": "day"
+  },
+  {
+   "name": "views"
+  },
+  {
+   "name": "estimatedMinutesWatched"
+  }
+ ],
+ "rows": [
+  [
+   "2026-09-10",
+   40,
+   17.094
+  ],
+  [
+   "2026-09-09",
+   61,
+   50.994
+  ]
+ ]
+}

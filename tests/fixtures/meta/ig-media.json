@@ -1,0 +1,10 @@
+{
+  "data": [
+    { "id": "18000000000000001", "caption": "Jajanan khas Kudus yang wajib dicoba", "media_type": "VIDEO", "media_product_type": "REELS", "permalink": "https://www.instagram.com/reel/DAbc001/", "timestamp": "2026-09-30T20:00:00+0000", "username": "main_ke_kudus", "like_count": 40, "comments_count": 3 },
+    { "id": "18000000000000002", "caption": "5 spot sunrise di Muria", "media_type": "CAROUSEL_ALBUM", "media_product_type": "FEED", "permalink": "https://www.instagram.com/p/DAbc002/", "timestamp": "2026-09-20T05:27:00+0000", "username": "main_ke_kudus", "like_count": 210, "comments_count": 12 },
+    { "id": "18000000000000003", "caption": "Menara Kudus", "media_type": "IMAGE", "media_product_type": "FEED", "permalink": "https://www.instagram.com/p/DAbc003/", "timestamp": "2026-09-10T03:00:00+0000", "username": "main_ke_kudus", "like_count": 88, "comments_count": 4 },
+    { "id": "18000000000000004", "caption": "Festival Dandangan", "media_type": "VIDEO", "media_product_type": "REELS", "permalink": "https://www.instagram.com/reel/DAbc004/", "timestamp": "2026-08-31T18:30:00+0000", "username": "main_ke_kudus", "like_count": 500, "comments_count": 30 },
+    { "id": "18000000000000005", "caption": "Agustusan", "media_type": "IMAGE", "media_product_type": "FEED", "permalink": "https://www.instagram.com/p/DAbc005/", "timestamp": "2026-08-31T10:00:00+0000", "username": "main_ke_kudus", "like_count": 70, "comments_count": 1 }
+  ],
+  "paging": { "cursors": { "before": "QVFI", "after": "QVFJ" } }
+}

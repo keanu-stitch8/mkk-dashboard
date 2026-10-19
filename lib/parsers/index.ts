@@ -23,7 +23,8 @@ const DETECTORS: Detector[] = [detectMeta, detectGsc, detectYoutube, detectGa4, 
 function detectTable(table: RawTable): Dataset[] | SkipNotice | null {
   for (const d of DETECTORS) {
     const res = d(table);
-    if (res) return res;
+    // [] = detector tidak mengenali tabel ini → coba detector berikutnya (bukan "header tidak dikenali")
+    if (res && (!Array.isArray(res) || res.length)) return res;
   }
   return null;
 }

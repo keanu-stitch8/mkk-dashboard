@@ -1,0 +1,23 @@
+{
+ "rows": [
+  {
+   "keys": [
+    "main ke kudus"
+   ],
+   "clicks": 64,
+   "impressions": 75,
+   "ctr": 0.8533,
+   "position": 1.2
+  },
+  {
+   "keys": [
+    "galaria sports arena kabupaten kudus"
+   ],
+   "clicks": 0,
+   "impressions": 25,
+   "ctr": 0,
+   "position": 10.92
+  }
+ ],
+ "responseAggregationType": "byProperty"
+}

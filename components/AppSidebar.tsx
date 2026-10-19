@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ChartNoAxesCombined, Globe, LayoutDashboard, Newspaper, MessagesSquare, Upload, FileText } from "lucide-react";
+import { ChartNoAxesCombined, Globe, LayoutDashboard, Newspaper, MessagesSquare, Upload, FileText, Cable } from "lucide-react";
 import { SiYoutube } from "./icons";
 import {
   Sidebar,
@@ -30,6 +30,7 @@ const CHANNELS = [
 const TOOLS = [
   { href: "/import", label: "Import Data", icon: Upload },
   { href: "/report", label: "Report / PDF", icon: FileText },
+  { href: "/settings/connectors", label: "Connectors API", icon: Cable },
 ];
 
 export function AppSidebar() {
