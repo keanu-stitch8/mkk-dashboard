@@ -72,7 +72,7 @@ export async function completeOAuth(connector: GoogleOAuthConnector, code: strin
   const granted = (tokens.scope ?? "").split(/\s+/);
   const missing = GOOGLE_SCOPES[connector].filter((s) => !granted.includes(s));
   if (missing.length) {
-    throw new ConnectorError("Izin yang dibutuhkan tidak dicentang di halaman consent Google. Hubungkan ulang dan centang semua izin (akses baca).");
+    throw new ConnectorError("Izin yang dibutuhkan tidak dicentang di halaman consent Google. Hubungkan ulang dan centang semua izin yang diminta.");
   }
   let email: string | undefined;
   if (tokens.id_token) {
