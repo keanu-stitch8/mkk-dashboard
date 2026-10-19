@@ -21,6 +21,14 @@ sudah dibuat — dirapikan sekali agar layak laporan corporate — dan setiap bu
 | KPI | Kartu KPI gaya dashboard dibuat sebagai blok sel di sheet Executive Summary |
 | Lingkup tahap 1 | Mesin + laporan **Website**. News, YouTube, Social menyusul (masing-masing 1 tahap) |
 
+## Aturan keras: file user tidak pernah diubah
+
+- Laporan & file buatan user (mis. laporan September) **hanya dibaca dan disalin**, tidak pernah diedit,
+  di-rename, dipindah, atau dihapus.
+- Master template = **file baru** hasil salinan; semua perapian & penanda dikerjakan di salinan itu.
+- Laporan hasil generate = file baru. Rename "(lama …)" hanya berlaku untuk laporan yang dibuat dashboard.
+- Dijamin juga oleh izin: scope `drive.file` hanya bisa menulis ke file yang dibuat oleh app ini.
+
 ## Arsitektur
 
 Mesin dipakai bersama; isi tiap laporan khusus per channel.
