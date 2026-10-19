@@ -152,7 +152,8 @@ export async function applyRowStyles(c: ReportClients, id: string, spec: RowStyl
           requests.push({ repeatCell: { range: range(row, row + n, c0, c1), cell: { userEnteredFormat: fmt }, fields: `userEnteredFormat(${fields.join(",")})` } });
           if (st.box) {
             const b = { style: "SOLID", color: rgb(st.box) };
-            requests.push({ updateBorders: { range: range(row, row + n, c0, c1), top: b, bottom: b, left: b, right: b, innerVertical: b } });
+            // tanpa garis atas: tepi atas = tepi bawah baris sebelumnya (tercetak sebagai garis di akhir halaman sebelumnya)
+            requests.push({ updateBorders: { range: range(row, row + n, c0, c1), top: { style: "NONE" }, bottom: b, left: b, right: b, innerVertical: b } });
           }
           if (st.bottom) requests.push({ updateBorders: { range: range(row, row + n, c0, c1), bottom: { style: st.bottom.style, color: rgb(st.bottom.color) } } });
         }

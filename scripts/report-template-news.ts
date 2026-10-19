@@ -39,6 +39,9 @@ const TEXT: Record<string, Record<string, string>> = {
     A1: "MAIN KE KUDUS | NEWS MONTHLY PERFORMANCE REPORT - {{month_label}}",
     A3: "Reporting period: {{period}} · Sources: News Publishing Log and Google Analytics 4",
     A19: "KEY FINDINGS",
+    // tabel tipe & kategori di halaman sendiri setelah chart (baris 32 px tidak muat di bawah chart)
+    A36: "CONTENT TYPE AND CATEGORY",
+    L36: "{{pagebreak}}",
     A58: "Views come from Google Analytics for {{period}} and are matched to each article in the Publishing Log by its exact URL. {{match_note}}",
   },
   [AP]: {
@@ -77,6 +80,7 @@ const STYLE: RowStyleSpec = {
     ["section", 19],
     ["text", 20],
     ["section", 23],
+    ["section", 36],
     ["header", 37],
     ["row", [38, 54]],
     ["total", 41, [1, 5]],
