@@ -12,7 +12,7 @@ import { monthRange } from "../common";
 import { upsertIgStories } from "../../import/stories";
 import { GraphError, META_PERMISSIONS, metaErrorMessage } from "./errors";
 import { GRAPH_VERSION, graphGet, graphInsights, graphPaginate, mapLimit, type Paged } from "./graph";
-import { followBreakdown, graphTime, igMetricsFor, mapFacebook, mapInstagram, snapshotRows, wibDateTime, type FbPost, type IgMedia, type InsightsResponse } from "./map";
+import { followBreakdown, typeBreakdown, graphTime, igMetricsFor, mapFacebook, mapInstagram, snapshotRows, wibDateTime, type FbPost, type IgMedia, type InsightsResponse } from "./map";
 
 const IG_MEDIA_FIELDS = "id,caption,media_type,media_product_type,permalink,timestamp,username,like_count,comments_count";
 const FB_POST_FIELDS =
@@ -130,6 +130,61 @@ async function snapshotRecentMedia(tok: string, igUserId: string, known: Map<str
   }
 }
 
+/**
+ * Insight akun selama bulan itu per jenis konten (breakdown media_product_type) → tabel IgAccountByType.
+ * Views & interactions dijumlah per potongan ≤30 hari; reach unik → 30 hari pertama saja (sama dengan KPI reach).
+ * Termasuk post lama yang masih ditonton bulan itu. Bulan terkunci hanya diisi jika belum ada datanya.
+ */
+async function saveIgTypes(tok: string, igUserId: string, month: string): Promise<number> {
+  const { isMonthLocked } = await import("../lock");
+  if ((await isMonthLocked(month)) && (await prisma.igAccountByType.count({ where: { month } }))) return 0;
+  const w = monthWindow(month);
+  const params = { period: "day", metric_type: "total_value", breakdown: "media_product_type" };
+  const acc = new Map<string, { metric: string; type: string; value: number }>();
+  const add = (rows: { metric: string; type: string; value: number }[]) => {
+    for (const r of rows) {
+      const k = `${r.metric}|${r.type}`;
+      acc.set(k, { ...r, value: (acc.get(k)?.value ?? 0) + r.value });
+    }
+  };
+  for (const [since, until] of rangeChunks(w)) add(typeBreakdown(await graphGet<InsightsResponse>(`/${igUserId}/insights`, tok, { ...params, metric: IG_ACCOUNT_ADDITIVE.join(","), since, until })));
+  add(typeBreakdown(await graphGet<InsightsResponse>(`/${igUserId}/insights`, tok, { ...params, metric: "reach", since: w.since, until: Math.min(w.until, w.since + MAX_RANGE_SEC) })));
+  const rows = [...acc.values()].filter((r) => r.metric);
+  for (const r of rows) await prisma.igAccountByType.upsert({ where: { month_metric_type: { month, metric: r.metric, type: r.type } }, create: { month, ...r }, update: { value: r.value } });
+  return rows.length;
+}
+
+/**
+ * Untuk cron: snapshot harian metrik lifetime post IG (maks. 1x per hari WIB). Snapshot pertama setelah
+ * tanggal 1 menjadi batas "views bulan ini" per post. Null jika sudah ada snapshot hari ini / Meta belum siap.
+ */
+export async function snapshotIgDaily(): Promise<string[] | null> {
+  const tok = token();
+  const today = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+  if (!tok || (await prisma.igMediaSnapshot.findFirst({ where: { date: today }, select: { id: true } }))) return null;
+  try {
+    const ids = await resolveIds(tok);
+    if (!ids.igUserId) return null;
+    const warnings: string[] = [];
+    await snapshotRecentMedia(tok, ids.igUserId, new Map(), warnings);
+    return warnings;
+  } catch (e) {
+    throw translate(e);
+  }
+}
+
+/** Untuk backfill: isi insight per jenis konten satu bulan (tanpa menyentuh data lain). */
+export async function syncIgTypes(month: string): Promise<number | null> {
+  const tok = token();
+  if (!tok) return null;
+  try {
+    const ids = await resolveIds(tok);
+    return ids.igUserId ? await saveIgTypes(tok, ids.igUserId, month) : null;
+  } catch (e) {
+    throw translate(e);
+  }
+}
+
 /** Metrik insight Story (link clicks tidak tersedia di API — hanya di export CSV). */
 const STORY_METRICS = ["reach", "views"];
 
@@ -194,6 +249,12 @@ async function fetchInstagram(tok: string, igUserId: string, month: string, w: R
   if (unavailable) warnings.push(`Instagram: insight ${unavailable} post tidak tersedia (dipublish sebelum akun menjadi akun bisnis).`);
 
   const account = await igAccountInsights(tok, igUserId, w, warnings);
+  try {
+    await saveIgTypes(tok, igUserId, month);
+  } catch (e) {
+    if (e instanceof GraphError && e.code === 190) throw e;
+    warnings.push(`Instagram: insight per jenis konten tidak bisa diambil (${metaErrorMessage(e)}). Data lain tetap tersimpan.`);
+  }
   return mapInstagram(media, insights, month, source, account);
 }
 

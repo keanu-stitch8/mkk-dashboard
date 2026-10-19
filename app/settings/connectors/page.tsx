@@ -2,6 +2,7 @@ import { CircleCheck, CircleDashed, CircleX, Clock } from "lucide-react";
 import { Section } from "@/components/blocks";
 import { SyncControls } from "@/components/connectors/SyncControls";
 import { TestConnectionButton } from "@/components/connectors/TestConnectionButton";
+import { MonthLockButton } from "@/components/connectors/MonthLockButton";
 import { GoogleConnectButton } from "@/components/connectors/GoogleConnectButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,7 @@ import { prisma } from "@/lib/db";
 import { REGISTRY, lastFullMonth } from "@/lib/connectors";
 import { CONNECTORS, connectorLabel } from "@/lib/connectors/catalog";
 import { OAUTH_ONLY } from "@/lib/connectors/google-oauth";
-import { currentMonth, monthLabel } from "@/lib/month";
+import { currentMonth, lastMonths, monthLabel } from "@/lib/month";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,12 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
   const sp = await searchParams;
   const connected = typeof sp.connected === "string" ? sp.connected : null;
   const oauthError = typeof sp.error === "string" ? sp.error : null;
-  const [logs, lastPerConnector] = await Promise.all([
+  const [logs, lastPerConnector, locks] = await Promise.all([
     prisma.syncLog.findMany({ orderBy: { startedAt: "desc" }, take: 50 }),
     Promise.all(CONNECTORS.map((c) => prisma.syncLog.findFirst({ where: { connector: c.id, status: { not: "running" } }, orderBy: { startedAt: "desc" } }))),
+    prisma.monthLock.findMany(),
   ]);
+  const lockMonths = [...new Set([...lastMonths(currentMonth(), 6), ...locks.map((l) => l.month)])].sort().reverse();
   const statuses = await Promise.all(CONNECTORS.map((c) => REGISTRY[c.id]?.status() ?? Promise.resolve(null)));
   const configured = CONNECTORS.filter((_, i) => statuses[i]?.configured).map((c) => c.id);
 
@@ -130,6 +133,30 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
 
       <Section title="Sync data" subtitle="Ambil data dari semua connector yang sudah dikonfigurasi">
         <SyncControls currentMonth={currentMonth()} defaultMonth={lastFullMonth()} configured={configured} />
+      </Section>
+
+      <Section
+        title="Kunci bulan"
+        subtitle="Bulan terkunci tidak di-sync ulang oleh GA4, GSC, YouTube & Meta, supaya angka laporan tidak berubah (metrik lifetime per post terus bertambah). Publishing Log tetap bisa di-sync. Cron mengunci bulan lalu otomatis setelah sync tanggal 3."
+      >
+        <Table>
+          <TableBody>
+            {lockMonths.map((m) => {
+              const lock = locks.find((l) => l.month === m);
+              return (
+                <TableRow key={m}>
+                  <TableCell className="whitespace-nowrap">{monthLabel(m)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {lock ? `🔒 Dikunci ${fmtTime(lock.lockedAt)}${lock.note ? ` · ${lock.note}` : ""}` : m >= currentMonth() ? "Bulan berjalan" : "Belum dikunci"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <MonthLockButton month={m} locked={!!lock} disabled={!lock && m >= currentMonth()} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </Section>
 
       <Section title="Riwayat sync" subtitle="50 sync terakhir">

@@ -3,6 +3,7 @@
 //   npm run sync -- --month=2026-09       → bulan tertentu
 //   npm run sync -- --backfill=6          → 6 bulan terakhir (termasuk bulan ini)
 //   npm run sync -- --connector=ga4,gsc   → connector tertentu
+//   npm run sync -- --month=2026-09 --force → tetap tarik ulang walau bulan dikunci
 // Exit code 1 jika ada sync yang gagal (berguna untuk cron / Task Scheduler).
 import { loadEnvConfig } from "@next/env";
 
@@ -33,13 +34,17 @@ async function main() {
 
   const months = backfill > 0 ? backfillMonths(Math.min(backfill, 24)) : [month ?? lastFullMonth()];
   console.log(`Sync ${ids.join(", ")} untuk ${months.map((m) => monthLabel(m)).join(", ")} …`);
-  const results = await syncMany(ids, months, process.env.SYNC_TRIGGER === "cron" ? "cron" : "script");
+  const results = await syncMany(ids, months, process.env.SYNC_TRIGGER === "cron" ? "cron" : "script", process.argv.includes("--force"));
   for (const r of results) {
+    if (r.locked) {
+      console.log(`🔒 ${r.connector} · ${monthLabel(r.month)} — bulan dikunci, dilewati (pakai --force untuk menarik ulang)`);
+      continue;
+    }
     console.log(`${r.ok ? "✓" : "✗"} ${r.connector} · ${monthLabel(r.month)}${r.ok ? ` — ${r.rows.toLocaleString("id-ID")} baris` : ` — ${r.error}`}`);
     for (const d of r.detail) console.log(`    ${d}`);
   }
   await prisma.$disconnect();
-  if (results.some((r) => !r.ok)) process.exit(1);
+  if (results.some((r) => !r.ok && !r.locked)) process.exit(1);
 }
 
 main().catch((e) => {

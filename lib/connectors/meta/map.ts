@@ -35,6 +35,15 @@ export function followBreakdown(res: InsightsResponse | undefined): { follows: n
   const of = (type: string) => num(results.find((r) => r.dimension_values?.[0] === type)?.value);
   return { follows: of("FOLLOWER"), unfollows: of("NON_FOLLOWER") };
 }
+/** Insight akun dengan breakdown media_product_type → [{ metric, type, value }] (REEL, CAROUSEL_CONTAINER, POST, STORY, …). */
+export function typeBreakdown(res: InsightsResponse | undefined): { metric: string; type: string; value: number }[] {
+  return (res?.data ?? []).flatMap((m) =>
+    (m.total_value?.breakdowns?.find((b) => b.dimension_keys?.includes("media_product_type"))?.results ?? [])
+      .filter((r) => r.dimension_values?.[0])
+      .map((r) => ({ metric: m.name ?? "", type: r.dimension_values![0], value: num(r.value) })),
+  );
+}
+
 export function insightValues(res: InsightsResponse | undefined): Record<string, number> {
   const out: Record<string, number> = {};
   const fromLifetime = new Set<string>();

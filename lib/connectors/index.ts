@@ -5,6 +5,7 @@ import { DATASETS } from "../sources";
 import { lastMonths, prevMonth } from "../month";
 import { CONNECTORS, type ConnectorId } from "./catalog";
 import { ConnectorError, type Connector } from "./types";
+import { isLockable, isMonthLocked, lockedError } from "./lock";
 import { ga4 } from "./ga4";
 import { gsc } from "./gsc";
 import { youtube } from "./youtube";
@@ -26,10 +27,14 @@ export interface SyncResult {
   rows: number;
   detail: string[];
   error?: string;
+  /** dilewati karena bulan dikunci */
+  locked?: boolean;
 }
 
 /** Tarik data satu bulan dari API lalu simpan (replace per bulan + sumber, sama seperti import CSV). */
-export async function syncConnector(id: ConnectorId, month: string, trigger: "manual" | "script" | "cron" = "manual"): Promise<SyncResult> {
+export async function syncConnector(id: ConnectorId, month: string, trigger: "manual" | "script" | "cron" = "manual", force = false): Promise<SyncResult> {
+  // bulan terkunci: connector metrik dilewati (tanpa log) kecuali dipaksa; Publishing Log tetap jalan
+  if (isLockable(id) && !force && (await isMonthLocked(month))) return { connector: id, month, ok: false, rows: 0, detail: [], error: lockedError(month), locked: true };
   const log = await prisma.syncLog.create({ data: { connector: id, month, status: "running", trigger } });
   try {
     const connector = getConnector(id);
@@ -68,9 +73,9 @@ export async function configuredConnectors(): Promise<ConnectorId[]> {
 }
 
 /** Sync beberapa connector × beberapa bulan secara berurutan (aman untuk rate limit). */
-export async function syncMany(ids: ConnectorId[], months: string[], trigger: "manual" | "script" | "cron" = "manual"): Promise<SyncResult[]> {
+export async function syncMany(ids: ConnectorId[], months: string[], trigger: "manual" | "script" | "cron" = "manual", force = false): Promise<SyncResult[]> {
   const results: SyncResult[] = [];
-  for (const month of months) for (const id of ids) results.push(await syncConnector(id, month, trigger));
+  for (const month of months) for (const id of ids) results.push(await syncConnector(id, month, trigger, force));
   return results;
 }
 

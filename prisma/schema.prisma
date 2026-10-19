@@ -408,3 +408,23 @@ model IgStory {
 
   @@index([month])
 }
+
+/// Bulan yang sudah final: connector metrik (GA4, GSC, YouTube, Meta) tidak boleh menarik ulang bulan ini
+/// supaya angka laporan tidak berubah (metrik lifetime per post terus bertambah). Publishing Log tetap bisa di-sync.
+model MonthLock {
+  month    String   @id
+  lockedAt DateTime @default(now())
+  note     String?
+}
+
+/// Insight akun IG selama bulan itu, dipecah per jenis konten (breakdown media_product_type) — angka per periode,
+/// tidak berubah saat sync ulang. type: REEL | CAROUSEL_CONTAINER | POST | STORY | …
+model IgAccountByType {
+  month     String
+  metric    String // views | reach | total_interactions
+  type      String
+  value     Float
+  updatedAt DateTime @updatedAt
+
+  @@id([month, metric, type])
+}

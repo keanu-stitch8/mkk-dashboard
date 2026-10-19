@@ -1,4 +1,5 @@
-// POST /api/connectors/sync — { connectors?: ConnectorId[], month?: "YYYY-MM", backfill?: number }
+// POST /api/connectors/sync — { connectors?: ConnectorId[], month?: "YYYY-MM", backfill?: number, force?: boolean }
+// Bulan terkunci (MonthLock) dilewati untuk connector metrik kecuali force.
 // Tanpa `connectors` → semua connector yang sudah dikonfigurasi. Tanpa `month` → bulan berjalan.
 import { backfillMonths, configuredConnectors, syncMany } from "@/lib/connectors";
 import { CONNECTORS, type ConnectorId } from "@/lib/connectors/catalog";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { connectors?: string[]; month?: string; backfill?: number };
+  const body = (await req.json().catch(() => ({}))) as { connectors?: string[]; month?: string; backfill?: number; force?: boolean };
   const known = new Set(CONNECTORS.map((c) => c.id));
   const configured = await configuredConnectors();
   const ids = (body.connectors?.length ? body.connectors.filter((c): c is ConnectorId => known.has(c as ConnectorId)) : configured).filter((c) => configured.includes(c));
@@ -18,6 +19,6 @@ export async function POST(req: Request) {
   if (body.month && !isMonth(body.month)) return Response.json({ error: "Format bulan harus YYYY-MM." }, { status: 400 });
   const backfill = Math.min(Math.max(Number(body.backfill) || 0, 0), 24);
   const months = backfill ? backfillMonths(backfill) : [body.month ?? currentMonth()];
-  const results = await syncMany(ids, months, "manual");
+  const results = await syncMany(ids, months, "manual", body.force === true);
   return Response.json({ results });
 }

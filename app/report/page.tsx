@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { contentQuota, getMonthAndPrev, overviewComparison, overviewKpis, resolveMonth, socialComparable } from "@/lib/data/summary";
 import { generateRecommendations } from "@/lib/recommendations";
-import { DASH, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
+import { DASH, fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { monthLabel, prevMonth } from "@/lib/month";
 import { FORMAT_LABEL, PLATFORM_LABEL } from "@/lib/sources";
 
@@ -201,9 +201,16 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
             ["Engagement rate", s.engagementRate, sc?.prev.engagementRate, (v) => fmtPct(v, 2), { rate: true }],
           ]}
         />
+        {s.byType && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            <b className="font-medium text-foreground">Views selama {monthLabel(month)} per jenis konten:</b>{" "}
+            {s.byType.rows.map((r) => `${r.label} ${fmtNum(r.views)} (${fmtPct(r.share)})`).join(" · ")}
+            <span className="block text-xs">Insight akun per periode — termasuk post lama yang masih ditonton; tidak berubah saat sync ulang.</span>
+          </p>
+        )}
         {s.byFormat.length > 0 && (
           <p className="mt-3 text-sm text-muted-foreground">
-            <b className="font-medium text-foreground">Per format (reach/post):</b>{" "}
+            <b className="font-medium text-foreground">Per format (reach/post, lifetime{s.postsAsOf ? ` per ${fmtDate(new Date(s.postsAsOf.getTime() + 7 * 3600_000).toISOString().slice(0, 10))}` : ""}):</b>{" "}
             {s.byFormat.map((f) => `${PLATFORM_LABEL[f.platform] ?? f.platform} ${FORMAT_LABEL[f.format] ?? f.format} ${fmtNum(f.avgReach)}`).join(" · ")}
           </p>
         )}

@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
-import { Section, CompareTable, DataTable, EmptyState, KpiCard, KpiGrid, Notice, QuotaHero } from "@/components/blocks";
+import { Section, CompareTable, DataTable, DeltaBadge, EmptyState, KpiCard, KpiGrid, Notice, QuotaHero } from "@/components/blocks";
 import { BreakdownBars, TrendChart, type SeriesDef } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
 import { SocialRecon } from "@/components/SocialRecon";
@@ -13,6 +13,8 @@ export const dynamic = "force-dynamic";
 
 const fmtLabel = (platform: string, format: string) => `${PLATFORM_LABEL[platform] ?? platform} · ${FORMAT_LABEL[format] ?? format}`;
 const perPost = (v: number | null | undefined, n: number | null | undefined) => (v == null || !n ? null : v / n);
+/** Tanggal (WIB) dari timestamp sync — acuan metrik lifetime. */
+const wibDate = (d: Date) => new Date(d.getTime() + 7 * 3600_000).toISOString().slice(0, 10);
 const ACCOUNT_NOTE = "Insight akun Instagram selama bulan ini (API) — termasuk Stories & post lama, bukan hanya post yang dipublish bulan ini.";
 const POSTS_NOTE = "Jumlah metrik lifetime post yang dipublish bulan ini (export CSV lama).";
 
@@ -33,6 +35,8 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
   const prevQuota = prev.social.hasData ? contentQuota(prev, "social") : null;
   const recs = generateRecommendations({ cur, prev }).filter((r) => r.channel === "social");
   const labels = trend.map((t) => ({ ...t, label: monthLabel(t.month, true) }));
+  const asOf = s.postsAsOf ? ` per ${fmtDate(wibDate(s.postsAsOf))}` : "";
+  const prevType = (type: string) => prev.social.byType?.rows.find((r) => r.type === type)?.views ?? null;
 
   // Satu garis "Views" jika hanya satu platform di rentang tren; per platform jika campur (supaya bulan IG vs FB tidak terbaca naik/turun)
   const mixed = trend.some((t) => t.viewsFacebook != null) && trend.some((t) => t.viewsInstagram != null);
@@ -96,7 +100,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
           value={fmtNum(perPost(s.postViews, s.posts.length))}
           cur={perPost(c?.postViews, c?.posts)}
           prev={perPost(p?.postViews, p?.posts)}
-          hint="Rata-rata views lifetime per post yang dipublish bulan ini (sejak publish)."
+          hint={`Rata-rata views lifetime per post yang dipublish bulan ini (sejak publish${asOf}).`}
         />
         <KpiCard
           label="Reach"
@@ -135,6 +139,38 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
         <KpiCard label="Hari aktif publish" value={`${fmtNum(s.activeDays)} hari`} cur={s.activeDays} prev={prev.social.hasData ? prev.social.activeDays : null} note={`Jeda terpanjang ${fmtNum(s.emptyStreak.length)} hari`} />
       </KpiGrid>
 
+      {s.byType && (
+        <Section
+          title="Per jenis konten · selama bulan ini"
+          subtitle={`Insight akun Instagram ${monthLabel(month)} (per periode — tidak berubah saat sync ulang) · termasuk post lama yang masih ditonton bulan ini`}
+        >
+          <DataTable
+            rows={s.byType.rows}
+            columns={[
+              { header: "Jenis", cell: (r) => r.label },
+              { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
+              { header: "Porsi views", align: "right", cell: (r) => fmtPct(r.share) },
+              { header: "Reach", align: "right", cell: (r) => fmtNum(r.reach) },
+              {
+                header: "Views MoM",
+                align: "right",
+                cell: (r) => {
+                  // basis bulan lalu terlalu kecil → persen tidak bermakna (mis. 30 → 20.135 views)
+                  const p = prevType(r.type);
+                  const tiny = p != null && p < 1000;
+                  return <DeltaBadge cur={r.views} prev={tiny ? null : p} emptyText={tiny ? `Bulan lalu ${fmtNum(p)} views` : undefined} />;
+                },
+              },
+            ]}
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Interactions: Reels {fmtNum(s.byType.interactions.reels)} · Feeds (carousel + foto) {fmtNum(s.byType.interactions.feeds)} · Story {fmtNum(s.byType.interactions.story)} — Meta
+            menggabungkan carousel & foto untuk interactions. Reach per jenis = akun unik per jenis (tidak bisa dijumlah); bulan 31 hari hanya 30 hari pertama.
+            &ldquo;Foto / lainnya&rdquo; = jenis POST dari Meta.
+          </p>
+        </Section>
+      )}
+
       {/* 3. Performa & aktivitas */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Views" subtitle={`6 bulan terakhir${mixed ? " · per platform" : ""}`}>
@@ -147,7 +183,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
 
       {/* 4. Breakdown + top konten */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Section title="Per format" subtitle={`Post dari Meta API (tanpa Stories) · format dari ${s.hasLog ? "Publishing Log" : "Meta"} · views lifetime per post`}>
+        <Section title="Per format" subtitle={`Post dari Meta API (tanpa Stories) · format dari ${s.hasLog ? "Publishing Log" : "Meta"} · views lifetime per post${asOf}`}>
           <BreakdownBars data={s.byFormat.map((f) => ({ label: fmtLabel(f.platform, f.format), value: f.avgViews }))} name="Views/post" />
           <DataTable
             rows={s.byFormat}
@@ -159,7 +195,11 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
             ]}
           />
         </Section>
-        <Section title="Top post" subtitle="Berdasarkan views lifetime (sejak publish)" className="lg:col-span-2">
+        <Section
+          title="Top post"
+          subtitle={`Berdasarkan views lifetime (sejak publish${asOf})${s.monthViewsAsOf ? ` · "Views bulan ini" = s/d snapshot ${fmtDate(s.monthViewsAsOf)}` : " · views bulan ini tersedia setelah snapshot awal bulan depan"}`}
+          className="lg:col-span-2"
+        >
           <DataTable
             rows={[...s.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)}
             columns={[
@@ -177,7 +217,8 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
               },
               { header: "Tanggal", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.date)}</span> },
               { header: "Format", cell: (r) => <span className="whitespace-nowrap">{fmtLabel(r.platform, r.format)}</span> },
-              { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
+              ...(s.monthViewsAsOf ? [{ header: "Views bulan ini", align: "right" as const, cell: (r: (typeof s.posts)[number]) => fmtNum(r.monthViews) }] : []),
+              { header: s.monthViewsAsOf ? "Views lifetime" : "Views", align: "right", cell: (r) => fmtNum(r.views) },
               { header: "Reach", align: "right", cell: (r) => fmtNum(r.reach) },
               { header: "Interaksi", align: "right", cell: (r) => fmtNum(r.interactions) },
               { header: "ER", align: "right", cell: (r) => fmtPct(r.er, 2) },

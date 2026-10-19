@@ -177,7 +177,12 @@ Platform yang dihitung diatur di `ACTIVE_SOCIAL_PLATFORMS` (`lib/sources.ts`). S
 
 Bulan lama hasil import CSV tetap memakai definisi lama (jumlah per post); MoM antar definisi berbeda tidak dihitung dan halaman memberi catatan.
 
-**Snapshot per post (persiapan views per post per bulan):** setiap sync Meta menyimpan metrik lifetime semua post Instagram 90 hari terakhir ke tabel `IgMediaSnapshot` (maks. 1x per hari, tidak terhapus saat sync ulang). Selisih dua snapshot = performa post di antara keduanya, jadi nantinya views/interactions *per post selama bulan itu* bisa dihitung. Snapshot hanya diambil saat sync, jadi batas bulannya = tanggal sync (cron: tanggal 3). Belum ditampilkan di dashboard.
+**Views per post: bulan ini vs lifetime.** API Instagram hanya memberi metrik lifetime per post, jadi angka per post terus bertambah setiap sync. Dashboard menampilkan:
+- **Views lifetime** dengan tanggal acuannya ("per 19 Okt 2026" = waktu sync post IG bulan itu).
+- **Views bulan ini** = views s/d snapshot pertama setelah bulan selesai (`IgMediaSnapshot`, maks. 7 hari setelah tanggal 1). Snapshot diambil tiap sync Meta dan **sekali sehari** lewat cron (`SYNC_CRON=1`); snapshot pertama 19 Okt 2026, jadi kolom ini mulai ada untuk Oktober (setelah snapshot 1 Nov).
+- **Per jenis konten · selama bulan ini** (tabel `IgAccountByType`): insight akun dengan breakdown `media_product_type` — views & reach Reels / Carousel / Foto / Story selama bulan itu (termasuk post lama yang masih ditonton). Angka per periode, tidak berubah saat sync ulang.
+
+**Kunci bulan (Pengaturan → Connectors → Kunci bulan):** bulan terkunci tidak ditarik ulang oleh GA4, GSC, YouTube & Meta (Publishing Log tetap bisa di-sync), supaya angka laporan tidak berubah. Cron mengunci bulan lalu otomatis setelah sync tanggal 3 berhasil. Menarik ulang bulan terkunci: buka kunci di UI, atau `npm run sync -- --month=YYYY-MM --force`. Jul–Sep 2026 dikunci 19 Okt 2026.
 
 **Story Instagram (hanya info, bukan KPI):** API Meta hanya memberi Story yang masih aktif (≤24 jam), jadi Story disimpan ke tabel `IgStory` setiap sync Meta dan **tiap 6 jam** saat `SYNC_CRON=1` (server harus menyala — Story yang kedaluwarsa saat server mati tidak bisa diambil lagi). Untuk bulan lalu / celah, import CSV Story dari Business Suite (Insight → Konten → filter Story → Ekspor) lewat halaman Import; terdeteksi otomatis sebagai *Meta · Instagram Stories*, upsert per ID (aman diulang, tidak menimpa post IG). Jam export Meta = Pacific Time → export 1 hari lebih lebar agar Story tepi bulan (WIB) ikut. Widget "Cek Publishing Log vs Instagram" menampilkan Story di log vs Story yang tayang di IG; angka IG termasuk repost & tiap frame, jadi kuota/KPI Story tetap dari Publishing Log. File CSV Story Jul–Sep ada di `data-samples/2026-0X/IG Stories *.csv`.
 
@@ -409,7 +414,7 @@ Schema sengaja hanya memakai tipe portable (String/Int/Float/DateTime, tanpa enu
 - Untuk bulan tanpa Publishing Log, News tampil kosong dan kuota sosmed dihitung dari post Meta (tanpa Stories). Sejak connector Google Sheets, log Juli–September tersedia.
 - Facebook sengaja tidak dihitung (`ACTIVE_SOCIAL_PLATFORMS = ["instagram"]`); data FB lama di database diabaikan.
 - Impressions & CTR YouTube sebelum ±16 Sep 2026 dan unique viewers YouTube hanya ada dari export Studio lama (API tidak menyediakannya) — sync API mempertahankan nilai lama tersebut.
-- Views per post *selama bulan itu* belum ditampilkan; snapshot harian (`IgMediaSnapshot`) mulai dikumpulkan 19 Okt 2026.
+- "Views bulan ini" per post baru tersedia mulai Oktober 2026 (butuh snapshot setelah bulan selesai); Jul–Sep hanya lifetime.
 - TikTok belum dimasukkan. Baris TikTok di publishing log tetap tersimpan, tanpa metrik performa.
 - Batas "carousel maks 8 slide" belum dicek otomatis karena export Meta tidak memuat jumlah slide.
 - Tanpa autentikasi, hanya untuk localhost.

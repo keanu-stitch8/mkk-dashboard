@@ -1,6 +1,6 @@
 // Ringkasan metrik per channel per bulan, dihitung dari tabel detail + total import + input manual.
 import { prisma } from "../db";
-import { daysInMonth, lastMonths, prevMonth } from "../month";
+import { addMonths, daysInMonth, lastMonths, prevMonth } from "../month";
 import { getQuotas, type QuotaValue } from "./quota";
 import { ACTIVE_SOCIAL_PLATFORMS, FORMAT_LABEL, OWN_SOCIAL_ACCOUNTS } from "../sources";
 import { fmtNum, fmtPct } from "../format";
@@ -466,6 +466,47 @@ export function reconcileSocial<P extends PostRow, L extends LogRow>(posts: P[],
 export type SocialRecon = ReturnType<typeof reconcileSocial>;
 
 /**
+ * Snapshot IgMediaSnapshot pertama setelah bulan selesai (maks. 7 hari) → views per media s/d akhir bulan.
+ * Untuk post yang dipublish bulan itu, nilai ini = views selama bulan itu dan tidak berubah saat sync ulang.
+ */
+async function monthEndSnapshot(month: string) {
+  const start = `${addMonths(month, 1)}-01`;
+  const limit = new Date(Date.parse(`${start}T00:00:00Z`) + 7 * 86400_000).toISOString().slice(0, 10);
+  const first = await prisma.igMediaSnapshot.findFirst({ where: { date: { gte: start, lte: limit } }, orderBy: { date: "asc" }, select: { date: true } });
+  if (!first) return null;
+  const rows = await prisma.igMediaSnapshot.findMany({ where: { date: first.date }, select: { mediaId: true, views: true } });
+  return { date: first.date, views: new Map(rows.map((r) => [r.mediaId, r.views])) };
+}
+
+/** Urutan & label jenis konten dari breakdown media_product_type insight akun IG. */
+export const IG_TYPES: { type: string; label: string }[] = [
+  { type: "REEL", label: "Reels" },
+  { type: "CAROUSEL_CONTAINER", label: "Carousel" },
+  { type: "POST", label: "Foto / lainnya" },
+  { type: "STORY", label: "Story" },
+];
+
+/**
+ * Views & reach selama bulan itu per jenis konten + interactions (Meta menggabungkan carousel & foto ke "POST"
+ * untuk interactions). Termasuk post lama yang masih ditonton bulan itu. Null jika belum ada datanya.
+ */
+async function igByType(month: string) {
+  const rows = await prisma.igAccountByType.findMany({ where: { month } });
+  if (!rows.length) return null;
+  const val = (metric: string, type: string) => rows.find((r) => r.metric === metric && r.type === type)?.value ?? null;
+  const known = new Set(IG_TYPES.map((t) => t.type));
+  const types = [...IG_TYPES, ...[...new Set(rows.map((r) => r.type))].filter((t) => !known.has(t)).map((t) => ({ type: t, label: t }))];
+  const totalViews = sum(rows.filter((r) => r.metric === "views").map((r) => r.value));
+  return {
+    rows: types
+      .map((t) => ({ ...t, views: val("views", t.type), reach: val("reach", t.type), share: safeDiv(val("views", t.type), totalViews) }))
+      .filter((t) => t.views != null || t.reach != null),
+    totalViews,
+    interactions: { reels: val("total_interactions", "REEL"), feeds: val("total_interactions", "POST"), story: val("total_interactions", "STORY") },
+  };
+}
+
+/**
  * Story IG yang tayang bulan itu (tabel IgStory: CSV Business Suite / API selagi aktif). Hanya info — termasuk
  * repost & tiap frame, jadi tidak dibandingkan sebagai selisih. `since`: Story sebelum tanggal ini belum tercatat
  * (API baru mulai mengumpulkan dan tidak ada CSV yang menutup celahnya).
@@ -517,12 +558,15 @@ export async function getSocialSummary(month: string) {
   const collabPosts = allPosts.filter((p) => !posts.includes(p)).map((p) => ({ ...p, er: safeDiv(p.interactions, p.reach) }));
 
   const matched = matchLogsToPosts(posts, logs);
+  const monthSnap = await monthEndSnapshot(month);
   const enriched = posts.map((p) => {
     const log = matched.get(p.id);
+    // views s/d akhir bulan (snapshot pertama setelah bulan selesai; post dipublish bulan ini → mulai dari 0)
+    const monthViews = monthSnap ? (monthSnap.views.get(p.postId) ?? null) : null;
     // Format bisnis dari publishing log (Reels berbayar ≠ Video upload, walau di IG sama-sama "reels");
     // post yang tidak di log: istilah Meta, carousel/foto disamakan dengan "feeds" milik log.
     const format = log?.format ?? (logs.length && ["carousel", "photo"].includes(p.format) ? "feeds" : p.format);
-    return { ...p, format, metaFormat: p.format, category: log?.category ?? null, inLog: !!log, er: safeDiv(p.interactions, p.reach) };
+    return { ...p, format, metaFormat: p.format, monthViews, category: log?.category ?? null, inLog: !!log, er: safeDiv(p.interactions, p.reach) };
   });
 
   // Views, reach & interactions: insight akun selama bulan itu (API) jika ada — termasuk post lama & Stories.
@@ -611,6 +655,12 @@ export async function getSocialSummary(month: string) {
     recon: logs.length && posts.length ? reconcileSocial(posts, logs, matched) : null,
     /** Story IG yang tayang (termasuk repost) vs Story di log — hanya info, bukan KPI */
     stories: await storiesInfo(month, publishedLogs.filter((l) => l.format === "story").length),
+    /** tanggal acuan metrik lifetime per post (waktu sync/import post IG bulan itu) */
+    postsAsOf: imports.find((i) => i.source === "meta_instagram")?.createdAt ?? null,
+    /** tanggal snapshot yang dipakai untuk "views bulan ini" per post (null = belum ada snapshot setelah bulan selesai) */
+    monthViewsAsOf: monthSnap?.date ?? null,
+    /** insight akun selama bulan itu per jenis konten (per periode, stabil saat sync ulang) */
+    byType: await igByType(month),
     /** post kolaborasi/repost milik akun lain — tidak dihitung ke performa maupun kuota */
     collabPosts,
     activeDays: activeDates.size,
