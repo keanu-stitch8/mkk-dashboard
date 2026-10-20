@@ -9,13 +9,14 @@ import { generateRecommendations } from "@/lib/recommendations";
 import { fmtDate, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { monthLabel, prevMonth } from "@/lib/month";
 import { FORMAT_LABEL, PLATFORM_LABEL } from "@/lib/sources";
+import { WIB, dateIn } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
 const fmtLabel = (platform: string, format: string) => `${PLATFORM_LABEL[platform] ?? platform} · ${FORMAT_LABEL[format] ?? format}`;
 const perPost = (v: number | null | undefined, n: number | null | undefined) => (v == null || !n ? null : v / n);
 /** Tanggal (WIB) dari timestamp sync — acuan metrik lifetime. */
-const wibDate = (d: Date) => new Date(d.getTime() + 7 * 3600_000).toISOString().slice(0, 10);
+const wibDate = (d: Date) => dateIn(d, WIB);
 const POSTS_NOTE = "Jumlah metrik lifetime post yang dipublish bulan ini (export CSV lama).";
 
 const FOLLOWS_HINT: Record<"manual" | "account" | "posts", string> = {

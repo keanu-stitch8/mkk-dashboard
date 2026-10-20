@@ -11,6 +11,7 @@ import { daysInMonth } from "../../month";
 import type { Connector, ConnectorStatus, TestResult } from "../types";
 import { ConnectorError } from "../types";
 import { monthRange, withRetry } from "../common";
+import { PACIFIC, addDays, dateIn } from "../../tz";
 import { googleErrorMessage, isRetryableGoogleError } from "../google-errors";
 import { GOOGLE_SCOPES, oauthAccount, oauthClientConfigured } from "../google-oauth";
 import { resolveGoogleAuth, type AuthInfo } from "../google-auth";
@@ -122,9 +123,9 @@ async function ingestReachReports(c: Clients, jobId: string): Promise<number> {
   for (const rep of pending) {
     const res = await retry(() => c.auth.request<string>({ url: rep.downloadUrl!, responseType: "text" }));
     const rows = parseReachCsv(typeof res.data === "string" ? res.data : String(res.data));
-    // tanggal dari isi CSV; startTime = tengah malam waktu Pacific (PST/PDT), jadi dikonversi per zona, bukan −8 jam
+    // tanggal dari isi CSV; laporan kosong → startTime (00:00 Pacific, PDT/PST) dikonversi lewat zona IANA
     const dates = [...new Set(rows.map((r) => r.date))];
-    const date = dates[0] ?? (rep.startTime ? new Date(rep.startTime).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }) : "");
+    const date = dates[0] ?? (rep.startTime ? dateIn(rep.startTime, PACIFIC) : "");
     await prisma.$transaction(async (tx) => {
       // laporan ulang untuk hari yang sama menggantikan data hari itu
       if (dates.length || date) await tx.ytReachDaily.deleteMany({ where: { date: { in: dates.length ? dates : [date] } } });
@@ -155,8 +156,9 @@ export const youtube: Connector = {
       const c = await clients();
       info = c.info;
       const ch = await myChannel(c);
-      const end = new Date(Date.now() + 7 * 3600_000 - 2 * 86400_000).toISOString().slice(0, 10);
-      const start = new Date(Date.parse(end) - 6 * 86400_000).toISOString().slice(0, 10);
+      // hari YouTube Analytics = Pacific Time; 2 hari terakhir belum lengkap
+      const end = addDays(dateIn(new Date(), PACIFIC), -2);
+      const start = addDays(end, -6);
       const { data } = await retry(() => c.analytics.reports.query({ ids: "channel==MINE", startDate: start, endDate: end, metrics: "views,estimatedMinutesWatched" }));
       const views = Number(data.rows?.[0]?.[0] ?? 0);
       let reach = "";
@@ -177,7 +179,8 @@ export const youtube: Connector = {
   async fetchMonth(month: string) {
     const c = await clients();
     try {
-      const { start, end, partial } = monthRange(month);
+      // hari YouTube Analytics & Reporting API = Pacific Time (dokumentasi dimensi day; terverifikasi pada laporan Reach)
+      const { start, end, partial } = monthRange(month, new Date(), PACIFIC);
       const ch = await myChannel(c);
       const all = await monthUploads(c, ch.uploads, month);
       const shorts = new Set<string>();
@@ -257,7 +260,7 @@ export const youtube: Connector = {
       }
 
       const datasets = mapYoutubeMonth({ videos, perVideo, daily, reach, totals, uniqueViewers }, month, `API YouTube · ${ch.title} · ${start} s/d ${end}`);
-      if (partial) warnings.push(`Bulan berjalan — data sampai ${end}.`);
+      if (partial) warnings.push(`Bulan berjalan — data sampai ${end} (Pacific Time).`);
       for (const d of datasets) d.warnings.push(...warnings);
       return datasets;
     } catch (e) {

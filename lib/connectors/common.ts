@@ -3,16 +3,20 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Dataset, DatasetKey } from "../parsers/types";
 import { ConnectorError } from "./types";
+import { WIB, dateIn } from "../tz";
 
-/** Rentang tanggal satu bulan; bulan berjalan dipotong sampai hari ini (WIB), bulan depan ditolak. */
-export function monthRange(month: string, today = new Date()): { start: string; end: string; partial: boolean } {
+/**
+ * Rentang tanggal satu bulan; bulan berjalan dipotong sampai hari ini, bulan depan ditolak.
+ * `tz` = zona hari laporan API (default WIB; YouTube & GSC = Pacific, GA4 = zona properti).
+ */
+export function monthRange(month: string, today = new Date(), tz = WIB): { start: string; end: string; partial: boolean } {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new ConnectorError(`Format bulan tidak valid: "${month}" (pakai YYYY-MM).`);
   const [y, m] = month.split("-").map(Number);
   const start = `${month}-01`;
   const last = `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, "0")}`;
-  const todayWib = new Date(today.getTime() + 7 * 3600_000).toISOString().slice(0, 10);
-  if (start > todayWib) throw new ConnectorError(`${month} belum dimulai — tidak ada data untuk ditarik.`);
-  return last > todayWib ? { start, end: todayWib, partial: true } : { start, end: last, partial: false };
+  const todayLocal = dateIn(today, tz);
+  if (start > todayLocal) throw new ConnectorError(`${month} belum dimulai — tidak ada data untuk ditarik.`);
+  return last > todayLocal ? { start, end: todayLocal, partial: true } : { start, end: last, partial: false };
 }
 
 /** Dataset dari API dengan bentuk yang sama seperti hasil parser CSV. */

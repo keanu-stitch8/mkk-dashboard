@@ -17,6 +17,7 @@ import { ReportGenerator, type ReportRow } from "@/components/report/ReportGener
 import { prisma } from "@/lib/db";
 import { REPORT_CHANNELS } from "@/lib/reports/channels";
 import { templateId } from "@/lib/reports/engine/generate";
+import { WIB, dateIn } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -233,7 +234,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
         )}
         {s.byFormat.length > 0 && (
           <p className="mt-3 text-sm text-muted-foreground">
-            <b className="font-medium text-foreground">Per format (reach/post, lifetime{s.postsAsOf ? ` per ${fmtDate(new Date(s.postsAsOf.getTime() + 7 * 3600_000).toISOString().slice(0, 10))}` : ""}):</b>{" "}
+            <b className="font-medium text-foreground">Per format (reach/post, lifetime{s.postsAsOf ? ` per ${fmtDate(dateIn(s.postsAsOf, WIB))}` : ""}):</b>{" "}
             {s.byFormat.map((f) => `${PLATFORM_LABEL[f.platform] ?? f.platform} ${FORMAT_LABEL[f.format] ?? f.format} ${fmtNum(f.avgReach)}`).join(" · ")}
           </p>
         )}

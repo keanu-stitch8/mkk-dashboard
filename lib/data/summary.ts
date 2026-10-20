@@ -4,6 +4,7 @@ import { addMonths, daysInMonth, lastMonths, prevMonth } from "../month";
 import { getQuotas, type QuotaValue } from "./quota";
 import { ACTIVE_SOCIAL_PLATFORMS, FORMAT_LABEL, OWN_SOCIAL_ACCOUNTS } from "../sources";
 import { fmtNum, fmtPct } from "../format";
+import { WIB, addDays, dateIn } from "../tz";
 import type { Channel } from "../parsers/types";
 
 const sum = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
@@ -194,9 +195,8 @@ export async function getNewsSummary(month: string) {
   // tanpa artikel published (mis. log belum di-import) views = belum ada data, bukan 0
   const hasViews = !!viewsSource && publishedList.length > 0;
   const totalViews = manual.totalViews ?? (hasViews ? sum(publishedList.map((a) => a.views)) : null);
-  // GA4 butuh ±48 jam memproses data: artikel yang tayang ≤1 hari sebelum tanggal sync (WIB) wajar belum ada di GA4
-  const ga4PendingFrom =
-    viewsSource === "ga4" && ga4Sync ? new Date(ga4Sync.createdAt.getTime() + 7 * 3600_000 - 86400_000).toISOString().slice(0, 10) : null;
+  // GA4 butuh ±48 jam memproses data: artikel yang tayang ≤1 hari sebelum tanggal sync (WIB = zona properti GA4) wajar belum ada di GA4
+  const ga4PendingFrom = viewsSource === "ga4" && ga4Sync ? addDays(dateIn(ga4Sync.createdAt, WIB), -1) : null;
   const awaitingGa4 = (a: { matched: boolean; date: string | null }) => !a.matched && !!ga4PendingFrom && !!a.date && a.date >= ga4PendingFrom;
   const pendingViews = publishedList.filter(awaitingGa4);
   const unmatched = viewsSource ? publishedList.filter((a) => !a.matched && !awaitingGa4(a)) : [];

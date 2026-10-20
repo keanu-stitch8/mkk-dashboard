@@ -13,6 +13,7 @@ import { upsertIgStories } from "../../import/stories";
 import { GraphError, META_PERMISSIONS, metaErrorMessage } from "./errors";
 import { GRAPH_VERSION, graphGet, graphInsights, graphPaginate, mapLimit, type Paged } from "./graph";
 import { followBreakdown, typeBreakdown, graphTime, igMetricsFor, mapFacebook, mapInstagram, snapshotRows, wibDateTime, type FbPost, type IgMedia, type InsightsResponse } from "./map";
+import { WIB, addDays, dateIn, zonedInstant } from "../../tz";
 
 const IG_MEDIA_FIELDS = "id,caption,media_type,media_product_type,permalink,timestamp,username,like_count,comments_count";
 const FB_POST_FIELDS =
@@ -81,8 +82,8 @@ async function resolveIds(tok: string): Promise<Ids> {
 /** Batas bulan dalam detik UNIX: 00:00 WIB tanggal 1 s/d 00:00 WIB setelah hari terakhir (dipotong ke hari ini jika bulan berjalan). */
 export function monthWindow(month: string) {
   const { start, end, partial } = monthRange(month);
-  const since = Date.parse(`${start}T00:00:00+07:00`) / 1000;
-  const until = Date.parse(`${end}T00:00:00+07:00`) / 1000 + 86400;
+  const since = zonedInstant(start, "00:00", WIB) / 1000;
+  const until = zonedInstant(addDays(end, 1), "00:00", WIB) / 1000;
   return { start, end, partial, since, until };
 }
 
@@ -113,7 +114,7 @@ async function mediaInsights(tok: string, media: IgMedia[]): Promise<{ insights:
  */
 async function snapshotRecentMedia(tok: string, igUserId: string, known: Map<string, Record<string, number>>, warnings: string[]): Promise<void> {
   const now = Date.now();
-  const today = new Date(now + 7 * 3600_000).toISOString().slice(0, 10);
+  const today = dateIn(now, WIB);
   try {
     if (await prisma.igMediaSnapshot.findFirst({ where: { date: today }, select: { id: true } })) return;
     const cutoff = now - SNAPSHOT_DAYS * 86400_000;
@@ -160,7 +161,7 @@ async function saveIgTypes(tok: string, igUserId: string, month: string): Promis
  */
 export async function snapshotIgDaily(): Promise<string[] | null> {
   const tok = token();
-  const today = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+  const today = dateIn(Date.now(), WIB);
   if (!tok || (await prisma.igMediaSnapshot.findFirst({ where: { date: today }, select: { id: true } }))) return null;
   try {
     const ids = await resolveIds(tok);

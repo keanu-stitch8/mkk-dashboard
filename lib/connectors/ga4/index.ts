@@ -10,6 +10,7 @@ import { googleErrorMessage, isRetryableGoogleError } from "../google-errors";
 import { authorizedClient, oauthAccount, oauthClientConfigured } from "../google-oauth";
 import { mapGa4Month, type Ga4MonthReports, type Ga4Report } from "./map";
 import { prisma } from "../../db";
+import { WIB } from "../../tz";
 
 type RunReportRequest = protos.google.analytics.data.v1beta.IRunReportRequest;
 type AuthInfo = { mode: "service_account" | "oauth"; account?: string };
@@ -53,6 +54,17 @@ async function runReport(c: BetaAnalyticsDataClient, req: RunReportRequest): Pro
   return { dimensionHeaders: head.dimensionHeaders, metricHeaders: head.metricHeaders, rows: all };
 }
 
+/** Zona waktu properti GA4 (metadata.timeZone respons API) — rentang tanggal GA4 dievaluasi di zona ini. */
+async function propertyTimeZone(c: BetaAnalyticsDataClient): Promise<string> {
+  const [res] = await withRetry(
+    () => c.runReport({ property: `properties/${propertyId()}`, dateRanges: [{ startDate: "today", endDate: "today" }], metrics: [{ name: "activeUsers" }], limit: 1 }),
+    isRetryableGoogleError,
+  );
+  const tz = res.metadata?.timeZone;
+  if (!tz) throw new ConnectorError("Respons GA4 tidak memuat zona waktu properti (metadata.timeZone).");
+  return tz;
+}
+
 function translate(e: unknown, auth?: AuthInfo): ConnectorError {
   if (e instanceof ConnectorError) return e;
   return new ConnectorError(
@@ -65,11 +77,11 @@ function translate(e: unknown, auth?: AuthInfo): ConnectorError {
  * Active users per kota + negara selama bulan itu → tabel Ga4City (laporan: peringkat kota Indonesia saja).
  * Data per periode (stabil); bulan terkunci hanya diisi jika belum ada — data lain tidak disentuh.
  */
-export async function saveGa4Cities(month: string, client?: BetaAnalyticsDataClient): Promise<number> {
+export async function saveGa4Cities(month: string, client?: BetaAnalyticsDataClient, timeZone?: string): Promise<number> {
   const { isMonthLocked } = await import("../lock");
   if ((await isMonthLocked(month)) && (await prisma.ga4City.count({ where: { month } }))) return 0;
-  const { start, end } = monthRange(month);
   const c = client ?? (await resolveClient()).client;
+  const { start, end } = monthRange(month, new Date(), timeZone ?? (await propertyTimeZone(c)));
   const res = await runReport(c, {
     property: `properties/${propertyId()}`,
     dateRanges: [{ startDate: start, endDate: end }],
@@ -141,8 +153,11 @@ export const ga4: Connector = {
 
   async fetchMonth(month: string) {
     const property = `properties/${propertyId()}`;
-    const { start, end, partial } = monthRange(month);
     const { client: c, auth } = await resolveClient();
+    const tz = await propertyTimeZone(c).catch((e) => {
+      throw translate(e, auth);
+    });
+    const { start, end, partial } = monthRange(month, new Date(), tz);
     const base = { property, dateRanges: [{ startDate: start, endDate: end }] };
     const m = (...names: string[]) => names.map((name) => ({ name }));
     const d = (...names: string[]) => names.map((name) => ({ name }));
@@ -164,10 +179,11 @@ export const ga4: Connector = {
         runReport(c, { ...base, dimensions: d("city"), metrics: m("activeUsers", "newUsers"), orderBys: byDesc("activeUsers") }),
       ]);
       const reports: Ga4MonthReports = { totals, channels, pages, pageTitles, landing, firstChannel, city };
-      await saveGa4Cities(month, c);
+      await saveGa4Cities(month, c, tz);
       const via = auth.mode === "oauth" ? `akun ${auth.account ?? "Google"}` : "service account";
       const datasets = mapGa4Month(reports, month, `API GA4 · properti ${propertyId()} · ${via} · ${start} s/d ${end}`);
       if (partial) for (const ds of datasets) ds.warnings.push(`Bulan berjalan — data sampai ${end}.`);
+      if (tz !== WIB) for (const ds of datasets) ds.warnings.push(`Zona waktu properti GA4 = ${tz} (bukan WIB): batas bulan & hari mengikuti zona properti.`);
       return datasets;
     } catch (e) {
       throw translate(e, auth);

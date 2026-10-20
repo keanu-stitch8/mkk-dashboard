@@ -2,24 +2,25 @@
 // Tanpa dependensi: timer mengecek tiap 10 menit apakah slot terakhir sudah dijalankan (SyncLog trigger "cron").
 // Jika server mati saat jadwal, sync dikejar begitu server menyala lagi; tiap slot hanya dijalankan sekali.
 import { prevMonth } from "../month";
+import { WIB, dateIn, zonedInstant } from "../tz";
 
 const SYNC_DAY = 3;
 const SYNC_HOUR_WIB = 7;
 const CHECK_EVERY_MS = 10 * 60_000;
-const WIB_MS = 7 * 3600_000;
 
 /** Slot jadwal terakhir yang ≤ now, dan bulan yang di-sync di slot itu (bulan sebelum slot). */
 export function cronSlot(now = new Date()): { slot: Date; month: string } {
-  const wib = new Date(now.getTime() + WIB_MS);
-  let y = wib.getUTCFullYear();
-  let m = wib.getUTCMonth();
-  const at = (yy: number, mm: number) => new Date(Date.UTC(yy, mm, SYNC_DAY, SYNC_HOUR_WIB) - WIB_MS);
+  const [wy, wm] = dateIn(now, WIB).split("-").map(Number);
+  let y = wy;
+  let m = wm - 1;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const at = (yy: number, mm: number) => new Date(zonedInstant(`${yy}-${pad(mm + 1)}-${pad(SYNC_DAY)}`, `${pad(SYNC_HOUR_WIB)}:00`, WIB));
   if (at(y, m) > now) {
     m -= 1;
     if (m < 0) [y, m] = [y - 1, 11];
   }
   const slot = at(y, m);
-  return { slot, month: prevMonth(`${y}-${String(m + 1).padStart(2, "0")}`) };
+  return { slot, month: prevMonth(`${y}-${pad(m + 1)}`) };
 }
 
 /** Story IG hanya tersedia di API selama 24 jam → kumpulkan tiap 6 jam (hanya info, bukan KPI). */

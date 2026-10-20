@@ -6,9 +6,10 @@ import { enMonth } from "../month";
 import { planFill } from "./tokens";
 import { exportPdf, uploadPdf } from "./pdf";
 import { applyPlan, copyFile, gcall, readGrids, renameFile, ReportError, reportClients } from "./sheets";
+import { WIB, dateIn } from "../../tz";
 
 export const reportName = (title: string, month: string) => `MKK ${title} Monthly Performance Report – ${enMonth(month)}`;
-const today = () => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+const today = () => dateIn(Date.now(), WIB);
 
 /** ID master template channel (env), null jika belum dikonfigurasi. */
 export function templateId(channelId: string): string | null {

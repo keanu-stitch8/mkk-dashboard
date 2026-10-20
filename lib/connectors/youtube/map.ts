@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import type { Dataset } from "../../parsers/types";
 import { parseDate, parseRate } from "../../parsers/values";
 import { apiDataset, num } from "../common";
+import { WIB, dateIn } from "../../tz";
 
 /** "PT1H2M3S" → 3723 detik. */
 export function isoDuration(iso: string | null | undefined): number | null {
@@ -13,7 +14,7 @@ export function isoDuration(iso: string | null | undefined): number | null {
 }
 
 /** Tanggal publish (UTC dari API) → tanggal WIB, konsisten dengan laporan lain. */
-export const wibDate = (iso: string) => new Date(Date.parse(iso) + 7 * 3600_000).toISOString().slice(0, 10);
+export const wibDate = (iso: string) => dateIn(iso, WIB);
 
 /** Respons youtubeAnalytics.reports.query. */
 export interface AnalyticsResponse {

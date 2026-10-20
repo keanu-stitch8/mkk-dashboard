@@ -8,11 +8,10 @@ import { googleErrorMessage, isRetryableGoogleError } from "../google-errors";
 import { GOOGLE_SCOPES, oauthAccount, oauthClientConfigured } from "../google-oauth";
 import { hasServiceAccount, resolveGoogleAuth, type AuthInfo } from "../google-auth";
 import { mapGscMonth, type GscMonthResponses, type GscResponse } from "./map";
+import { PACIFIC, addDays, dateIn } from "../../tz";
 
 /** Jumlah baris query & halaman yang ditarik per bulan. */
 export const GSC_TOP_ROWS = 1000;
-/** Data Search Console baru lengkap ±2–3 hari setelah tanggalnya. */
-const GSC_DELAY_DAYS = 3;
 
 const rawSite = () => process.env.GSC_SITE_URL?.trim() ?? "";
 
@@ -46,12 +45,26 @@ async function resolveSite(sc: searchconsole_v1.Searchconsole): Promise<string> 
   throw new ConnectorError(`Properti Search Console "${raw}" tidak bisa diakses akun ini. Properti yang tersedia: ${list}.`);
 }
 
-/** Rentang bulan dipotong sesuai delay GSC. */
-function gscRange(month: string, now = new Date()) {
-  const { start, end } = monthRange(month, now);
-  const latest = new Date(now.getTime() + 7 * 3600_000 - GSC_DELAY_DAYS * 86400_000).toISOString().slice(0, 10);
-  if (start > latest) throw new ConnectorError(`Data Search Console untuk ${month} belum tersedia (data GSC terlambat ±${GSC_DELAY_DAYS} hari).`);
-  return end > latest ? { start, end: latest, partial: true } : { start, end, partial: false };
+/**
+ * Tanggal terakhir yang datanya sudah final menurut API: hari sebelum `metadata.firstIncompleteDate`
+ * (hanya dikirim untuk dataState "all" + dimensi date bila rentang memuat hari yang belum final).
+ * Tanggal GSC = Pacific Time (dokumentasi searchanalytics.query).
+ */
+async function lastFinalDate(sc: searchconsole_v1.Searchconsole, siteUrl: string, start: string, end: string): Promise<string> {
+  const { data } = await withRetry(
+    () => sc.searchanalytics.query({ siteUrl, requestBody: { startDate: start, endDate: end, type: "web", dimensions: ["date"], dataState: "all" } }),
+    isRetryableGoogleError,
+  );
+  const firstIncomplete = (data as { metadata?: { firstIncompleteDate?: string } }).metadata?.firstIncompleteDate;
+  return firstIncomplete ? addDays(firstIncomplete, -1) : end;
+}
+
+/** Rentang bulan (hari Pacific Time) dipotong sampai data final terakhir menurut API. */
+async function gscRange(sc: searchconsole_v1.Searchconsole, siteUrl: string, month: string, now = new Date()) {
+  const range = monthRange(month, now, PACIFIC);
+  const latest = await lastFinalDate(sc, siteUrl, range.start, range.end);
+  if (range.start > latest) throw new ConnectorError(`Data Search Console untuk ${month} belum final (hari pertama yang masih diproses Google: ${addDays(latest, 1)}, Pacific Time).`);
+  return range.end > latest ? { start: range.start, end: latest, partial: true } : range;
 }
 
 export const gsc: Connector = {
@@ -81,9 +94,9 @@ export const gsc: Connector = {
       const c = await client();
       info = c.info;
       siteUrl = await resolveSite(c.sc);
-      const now = new Date();
-      const end = new Date(now.getTime() + 7 * 3600_000 - GSC_DELAY_DAYS * 86400_000).toISOString().slice(0, 10);
-      const start = new Date(Date.parse(end) - 6 * 86400_000).toISOString().slice(0, 10);
+      const today = dateIn(new Date(), PACIFIC);
+      const end = await lastFinalDate(c.sc, siteUrl, addDays(today, -14), today);
+      const start = addDays(end, -6);
       const { data } = await withRetry(() => c.sc.searchanalytics.query({ siteUrl, requestBody: { startDate: start, endDate: end, type: "web" } }), isRetryableGoogleError);
       const row = data.rows?.[0];
       const via = info.mode === "oauth" ? `akun Google ${info.account ?? ""}`.trim() : `service account ${info.account}`;
@@ -101,7 +114,7 @@ export const gsc: Connector = {
     let siteUrl: string | undefined;
     try {
       siteUrl = await resolveSite(sc);
-      const { start, end, partial } = gscRange(month);
+      const { start, end, partial } = await gscRange(sc, siteUrl, month);
       const q = (dimensions: string[], rowLimit?: number): Promise<GscResponse> =>
         withRetry(
           () => sc.searchanalytics.query({ siteUrl, requestBody: { startDate: start, endDate: end, type: "web", dimensions, ...(rowLimit ? { rowLimit } : {}) } }),
@@ -117,8 +130,8 @@ export const gsc: Connector = {
         countries: await q(["country"]),
       };
       const via = info.mode === "oauth" ? `akun ${info.account ?? "Google"}` : "service account";
-      const datasets = mapGscMonth(res, month, `API Search Console · ${siteUrl} · ${via} · ${start} s/d ${end}`);
-      if (partial) for (const d of datasets) d.warnings.push(`Data GSC baru tersedia sampai ${end} (terlambat ±${GSC_DELAY_DAYS} hari) — sync ulang setelah awal bulan depan.`);
+      const datasets = mapGscMonth(res, month, `API Search Console · ${siteUrl} · ${via} · ${start} s/d ${end} (Pacific Time)`);
+      if (partial) for (const d of datasets) d.warnings.push(`Data GSC final baru sampai ${end} (Pacific Time; hari setelahnya masih diproses Google) — sync ulang setelah awal bulan depan.`);
       return datasets;
     } catch (e) {
       throw translate(e, info, siteUrl);

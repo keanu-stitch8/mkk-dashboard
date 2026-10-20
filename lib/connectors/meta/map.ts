@@ -3,14 +3,15 @@
 import type { Dataset } from "../../parsers/types";
 import { normalizeFormat } from "../../parsers/meta";
 import { apiDataset, num } from "../common";
+import { WIB, zonedParts } from "../../tz";
 
 /** Waktu Graph API ("2026-09-30T05:27:00+0000", offset tanpa titik dua) → epoch ms. */
 export const graphTime = (iso: string): number => Date.parse(iso.replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
 
 /** ISO dari Graph API ("2026-09-30T05:27:00+0000") → tanggal & jam WIB. */
 export function wibDateTime(iso: string): { date: string; publishedAt: string } {
-  const s = new Date(graphTime(iso) + 7 * 3600_000).toISOString();
-  return { date: s.slice(0, 10), publishedAt: `${s.slice(0, 10)} ${s.slice(11, 16)}` };
+  const { date, time } = zonedParts(graphTime(iso), WIB);
+  return { date, publishedAt: `${date} ${time}` };
 }
 
 /** Respons /{id}/insights → { metric: value }. Mendukung bentuk `values[0].value` dan `total_value.value`. */
