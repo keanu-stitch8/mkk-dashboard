@@ -86,6 +86,7 @@ const STYLE: RowStyleSpec = {
   "01 Executive Summary": [
     ["reportTitle", 1],
     ["subtitle", 2],
+    ["autoFit", [3, 4]],
     ...[5, 10, 15].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
     ["section", 20],
     ["header", 21],
@@ -104,6 +105,18 @@ const STYLE: RowStyleSpec = {
   "08 Search Pages": titled(["header", 4], ["row", 5]),
   "09 GSC Devices & Countries": titled(["header", 4], ["row", 5], ["section", 7], ["header", 9], ["row", 10]),
   "10 Metric Guide & Sources": titled(["header", 4], ["text", [5, 21]]),
+};
+
+/** Teks penanda di posisi yang dipakai TEXT & STYLE; layout berubah (template diedit) → patch berhenti. */
+const ANCHORS: Record<string, string> = {
+  "'01 Executive Summary'!A20": "ACQUISITION MIX",
+  "'01 Executive Summary'!A24": "KEY FINDINGS",
+  "'01 Executive Summary'!A27": "NOTES",
+  "'02 Traffic Acquisition'!A5": "TOTAL",
+  "'03 Visitor Cities'!A4": "Rank",
+  "'06 Search Console'!A7": "DAILY SEARCH PERFORMANCE",
+  "'09 GSC Devices & Countries'!A7": "COUNTRY BREAKDOWN",
+  "'10 Metric Guide & Sources'!A4": "Section",
 };
 
 /** Tulis TEXT + format kolom baru sheet 03 ke template yang sudah ada (desain/edit user lain tidak disentuh). */
@@ -142,8 +155,9 @@ async function main() {
   const patch = process.argv.find((a) => a.startsWith("--patch="))?.split("=")[1];
   if (patch) {
     const { reportClients } = await import("../lib/reports/engine/sheets");
-    const { applyRowStyles, fitWidths } = await import("../lib/reports/engine/template-tools");
+    const { applyRowStyles, assertAnchors, fitWidths } = await import("../lib/reports/engine/template-tools");
     const c = await reportClients();
+    await assertAnchors(c, patch, ANCHORS);
     await patchText(c, patch);
     await applyRowStyles(c, patch, STYLE);
     await fitWidths(c, patch);

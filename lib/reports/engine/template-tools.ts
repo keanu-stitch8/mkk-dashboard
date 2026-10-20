@@ -82,7 +82,8 @@ export const ROW_STYLE = {
   cardLabel: { px: 20, fs: 9 },
   cardValue: { px: 34, fs: 18 },
 } satisfies Record<string, RowStyle>;
-export type RowRole = keyof typeof ROW_STYLE;
+/** "autoFit": hanya tinggi = sesuai isi (Sheets auto-fit), format tidak disentuh */
+export type RowRole = keyof typeof ROW_STYLE | "autoFit";
 
 /** Peran baris per sheet: [peran, baris (1-based) atau [dari, sampai], opsional kolom (1-based) [dari, sampai]]. */
 export type RowStyleSpec = Record<string, ([RowRole, number | [number, number]] | [RowRole, number | [number, number], [number, number]])[]>;
@@ -104,6 +105,7 @@ export async function applyRowStyles(c: ReportClients, id: string, spec: RowStyl
   const structural: Req[] = [];
   const requests: Req[] = [];
   const fitRows: { sheetId: number; row: number }[] = [];
+  const autoRows: Req[] = [];
   for (const [title, roles] of Object.entries(spec)) {
     const sh = sheets.get(title);
     if (!sh) throw new Error(`Sheet "${title}" tidak ada`);
@@ -120,8 +122,12 @@ export async function applyRowStyles(c: ReportClients, id: string, spec: RowStyl
     // huruf seragam di seluruh area terpakai
     requests.push({ repeatCell: { range: range(0, sh.properties!.gridProperties!.rowCount!, 0, used), cell: { userEnteredFormat: { textFormat: { fontFamily: FONT } } }, fields: "userEnteredFormat.textFormat.fontFamily" } });
     for (const [role, rows, colLimit] of roles) {
-      const st: RowStyle = ROW_STYLE[role];
       const [from, to] = typeof rows === "number" ? [rows, rows] : rows;
+      if (role === "autoFit") {
+        autoRows.push({ autoResizeDimensions: { dimensions: { sheetId, dimension: "ROWS", startIndex: from - 1, endIndex: to } } });
+        continue;
+      }
+      const st: RowStyle = ROW_STYLE[role];
       for (let row = from - 1; row < to; row++) {
         const vspan = merges.find((m) => m.startRowIndex === row && m.endRowIndex! - row > 1);
         const n = vspan ? vspan.endRowIndex! - row : 1;
@@ -163,6 +169,21 @@ export async function applyRowStyles(c: ReportClients, id: string, spec: RowStyl
   if (structural.length) await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: structural } });
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
   await fitTextRows(c, id, fitRows, ROW_STYLE.text.px);
+  if (autoRows.length) await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests: autoRows } });
+}
+
+/**
+ * Pengaman --patch: template diedit user secara visual, jadi posisi baris bisa bergeser. Cek teks penanda di sel yang
+ * diharapkan dulu; kalau tidak cocok, berhenti sebelum menulis apa pun (supaya tidak menimpa sel yang salah).
+ */
+export async function assertAnchors(c: ReportClients, id: string, anchors: Record<string, string>) {
+  const ranges = Object.keys(anchors);
+  const r = await c.sheets.spreadsheets.values.batchGet({ spreadsheetId: id, ranges });
+  const bad = ranges.filter((a, i) => (r.data.valueRanges?.[i]?.values?.[0]?.[0] ?? "").trim() !== anchors[a]);
+  if (bad.length)
+    throw new Error(
+      `Layout template berubah, patch dibatalkan. Sesuaikan posisi di script:\n${bad.map((a) => `  ${a}: diharapkan "${anchors[a]}", isi "${r.data.valueRanges?.[ranges.indexOf(a)]?.values?.[0]?.[0] ?? ""}"`).join("\n")}`,
+    );
 }
 
 /**

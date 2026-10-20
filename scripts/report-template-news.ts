@@ -37,12 +37,9 @@ const GUIDE: [string, string, string][] = [
 const TEXT: Record<string, Record<string, string>> = {
   [ES]: {
     A1: "MAIN KE KUDUS | NEWS MONTHLY PERFORMANCE REPORT - {{month_label}}",
-    A3: "Reporting period: {{period}} · Sources: News Publishing Log and Google Analytics 4",
-    A19: "KEY FINDINGS",
-    // tabel tipe & kategori di halaman sendiri setelah chart (baris 32 px tidak muat di bawah chart)
-    A36: "CONTENT TYPE AND CATEGORY",
-    L36: "{{pagebreak}}",
-    A58: "Views come from Google Analytics for {{period}} and are matched to each article in the Publishing Log by its exact URL. {{match_note}}",
+    A2: "Reporting period: {{period}} · Sources: News Publishing Log and Google Analytics 4",
+    A21: "KEY FINDINGS",
+    A62: "Views come from Google Analytics for {{period}} and are matched to each article in the Publishing Log by its exact URL. {{match_note}}",
   },
   [AP]: {
     // subjudul satu baris seperti Website (dulu 2 baris: A3 + A4)
@@ -74,18 +71,19 @@ const TEXT: Record<string, Record<string, string>> = {
 const STYLE: RowStyleSpec = {
   [ES]: [
     ["reportTitle", 1],
-    ["subtitle", 3],
-    ...[5, 9].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
-    ["section", 13],
-    ["section", 19],
-    ["text", 20],
-    ["section", 23],
-    ["section", 36],
-    ["header", 37],
-    ["row", [38, 54]],
-    ["total", 41, [1, 5]],
-    ["total", 55],
-    ["note", 58],
+    ["subtitle", 2],
+    ["autoFit", [3, 4]],
+    ...[5, 10].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
+    ["section", 15],
+    ["section", 21],
+    ["text", 22],
+    ["section", 25],
+    ["section", 40],
+    ["header", 41],
+    ["row", [42, 58]],
+    ["total", 45, [1, 5]],
+    ["total", 59],
+    ["note", 62],
   ],
   [AP]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["row", 6], ["total", 7]],
   [PL]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
@@ -93,24 +91,25 @@ const STYLE: RowStyleSpec = {
   [MG]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["text", [6, 18]], ["section", 21], ["text", 22]],
 };
 
+/** Teks penanda di posisi yang dipakai TEXT & STYLE (layout template setelah diedit user, 2026-10-20). */
+const ANCHORS: Record<string, string> = {
+  [`'${ES}'!A15`]: "TOP PERFORMING ARTICLE",
+  [`'${ES}'!A21`]: "KEY FINDINGS",
+  [`'${ES}'!A25`]: "CONTENT BREAKDOWN",
+  [`'${ES}'!A41`]: "Content Type",
+  [`'${ES}'!H59`]: "Monthly Quota",
+  [`'${AP}'!A5`]: "No.",
+  [`'${PL}'!A9`]: "No.",
+  [`'${AR}'!A9`]: "No.",
+  [`'${MG}'!A5`]: "Metric",
+  [`'${MG}'!A21`]: "REPORTING METHODOLOGY",
+};
+
 async function patchText(c: ReportClients, id: string) {
   const data = Object.entries(TEXT).flatMap(([sheet, cells]) => Object.entries(cells).map(([a1, v]) => ({ range: `'${sheet.replace(/'/g, "''")}'!${a1}`, values: [[v]] })));
   await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data } });
   // menulis teks ke sel mereset format angkanya → format strip 03 (A6:H6) dipasang lagi
   const meta = await c.sheets.spreadsheets.get({ spreadsheetId: id, fields: "sheets(properties(sheetId,title))" });
-  // baris kategori 11–15 (r48–52) dulu disisipkan tanpa format r47 (nama H:I tidak di-merge) → samakan; idempoten
-  const es = meta.data.sheets!.find((x) => x.properties!.title === ES)!.properties!.sheetId!;
-  const grid = (r0: number, r1: number, c0: number, c1: number) => ({ sheetId: es, startRowIndex: r0, endRowIndex: r1, startColumnIndex: c0, endColumnIndex: c1 });
-  await c.sheets.spreadsheets.batchUpdate({
-    spreadsheetId: id,
-    requestBody: {
-      requests: [
-        { unmergeCells: { range: grid(47, 52, 7, 12) } },
-        { copyPaste: { source: grid(46, 47, 7, 12), destination: grid(47, 52, 7, 12), pasteType: "PASTE_FORMAT" } },
-        ...[47, 48, 49, 50, 51].flatMap((r) => [{ mergeCells: { range: grid(r, r + 1, 7, 9), mergeType: "MERGE_ALL" } }, { mergeCells: { range: grid(r, r + 1, 10, 12), mergeType: "MERGE_ALL" } }]),
-      ],
-    },
-  });
   // baris subjudul kedua 02 (A4) sudah digabung ke A3 → hapus barisnya; idempoten
   const ap = meta.data.sheets!.find((x) => x.properties!.title === AP)!.properties!.sheetId!;
   const a4 = (await c.sheets.spreadsheets.values.get({ spreadsheetId: id, range: `'${AP}'!A4` })).data.values?.[0]?.[0] ?? "";
@@ -125,12 +124,13 @@ async function patchText(c: ReportClients, id: string) {
 
 async function main() {
   const { reportClients, copyFile, readGrids } = await import("../lib/reports/engine/sheets");
-  const { applyRowStyles, fitWidths } = await import("../lib/reports/engine/template-tools");
+  const { applyRowStyles, assertAnchors, fitWidths } = await import("../lib/reports/engine/template-tools");
   const { NEWS_CATEGORY_SLOTS } = await import("../lib/reports/channels/news");
   const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1];
   const c = await reportClients();
   if (arg("fit-widths")) return fitWidths(c, arg("fit-widths")!);
   if (arg("patch")) {
+    await assertAnchors(c, arg("patch")!, ANCHORS);
     await patchText(c, arg("patch")!);
     await applyRowStyles(c, arg("patch")!, STYLE);
     await fitWidths(c, arg("patch")!);
