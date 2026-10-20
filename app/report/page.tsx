@@ -87,6 +87,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
       channel: ch.id,
       title: ch.title,
       configured: !!templateId(ch.id),
+      templateUrl: templateId(ch.id) ? `https://docs.google.com/spreadsheets/d/${templateId(ch.id)}/edit` : null,
       latest: latest ? { url: latest.url, pdfUrl: latest.pdfUrl, status: latest.status, createdAt: latest.createdAt.toISOString(), error: latest.error, warnings: latest.warnings } : null,
     };
   });

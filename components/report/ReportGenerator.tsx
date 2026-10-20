@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { ExternalLink, FileSpreadsheet, FileText, Loader2, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface ReportRow {
   channel: string;
   title: string;
   configured: boolean;
+  /** link edit master template (null = belum dikonfigurasi) */
+  templateUrl: string | null;
   latest: { url: string | null; pdfUrl: string | null; status: string; createdAt: string; error: string | null; warnings: string | null } | null;
 }
 
@@ -28,6 +30,9 @@ export function ReportGenerator({ month, locked, rows }: { month: string; locked
 
   return (
     <div className="flex flex-col gap-2">
+      <p className="text-xs text-muted-foreground">
+        Laporan & PDF adalah salinan saat dibuat. Setelah mengedit master template, klik &quot;Buat laporan&quot; lagi supaya perubahannya ikut.
+      </p>
       {!locked && <p className="text-xs text-warning">Bulan ini belum dikunci — angka di laporan masih bisa berubah jika data di-sync ulang.</p>}
       {rows.map((r) => (
         <div key={r.channel} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
@@ -44,6 +49,13 @@ export function ReportGenerator({ month, locked, rows }: { month: string; locked
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {r.templateUrl && (
+              <Button variant="ghost" size="sm" asChild>
+                <a href={r.templateUrl} target="_blank" rel="noreferrer" title="Buka master template di Google Sheets">
+                  <PencilLine /> Edit template
+                </a>
+              </Button>
+            )}
             {r.latest?.status === "success" && r.latest.url && (
               <Button variant="ghost" size="sm" asChild>
                 <a href={r.latest.url} target="_blank" rel="noreferrer">
