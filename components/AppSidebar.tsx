@@ -15,19 +15,24 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const CHANNELS = [
+type NavItem = { href: string; label: string; icon: React.ComponentType; sub?: { href: string; label: string }[] };
+
+const CHANNELS: NavItem[] = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/website", label: "Website", icon: Globe },
-  { href: "/news", label: "News", icon: Newspaper },
-  { href: "/youtube", label: "YouTube", icon: SiYoutube },
+  { href: "/news", label: "News", icon: Newspaper, sub: [{ href: "/news/logs", label: "Publishing Log" }] },
+  { href: "/youtube", label: "YouTube", icon: SiYoutube, sub: [{ href: "/youtube/logs", label: "Publishing Log" }] },
   { href: "/social", label: "Social Media", icon: MessagesSquare },
 ];
 
-const TOOLS = [
+const TOOLS: NavItem[] = [
   { href: "/import", label: "Import Data", icon: Upload },
   { href: "/report", label: "Report / PDF", icon: FileText },
   { href: "/settings/connectors", label: "Connectors API", icon: Cable },
@@ -42,15 +47,28 @@ export function AppSidebar() {
   const withMonth = (href: string) => (m ? `${href}?m=${m}` : href);
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
-  const renderItems = (items: typeof CHANNELS) =>
+  const renderItems = (items: NavItem[]) =>
     items.map((item) => (
       <SidebarMenuItem key={item.href}>
-        <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.label}>
+        <SidebarMenuButton asChild isActive={isActive(item.href) && !item.sub?.some((s) => pathname.startsWith(s.href))} tooltip={item.label}>
           <Link href={withMonth(item.href)} onClick={() => setOpenMobile(false)}>
             <item.icon />
             <span>{item.label}</span>
           </Link>
         </SidebarMenuButton>
+        {item.sub && (
+          <SidebarMenuSub>
+            {item.sub.map((s) => (
+              <SidebarMenuSubItem key={s.href}>
+                <SidebarMenuSubButton asChild isActive={pathname === s.href}>
+                  <Link href={withMonth(s.href)} onClick={() => setOpenMobile(false)}>
+                    <span>{s.label}</span>
+                  </Link>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        )}
       </SidebarMenuItem>
     ));
 

@@ -158,9 +158,10 @@ export type WebsiteSummary = Awaited<ReturnType<typeof getWebsiteSummary>>;
 // ───────────────────────────── News ─────────────────────────────
 
 export async function getNewsSummary(month: string) {
-  const [articles, ga4Pages, reportViews, quotas, manual, imports] = await Promise.all([
+  const [articles, ga4Pages, ga4Sync, reportViews, quotas, manual, imports] = await Promise.all([
     prisma.newsArticle.findMany({ where: { month }, orderBy: { date: "asc" } }),
     prisma.ga4Page.findMany({ where: { month }, select: { path: true, views: true, activeUsers: true, avgEngagementTime: true } }),
+    prisma.import.findFirst({ where: { month, source: "ga4_pages" }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
     prisma.newsView.findMany({ where: { month } }),
     getQuotas(month),
     manualFor(month, "news"),
@@ -193,7 +194,12 @@ export async function getNewsSummary(month: string) {
   // tanpa artikel published (mis. log belum di-import) views = belum ada data, bukan 0
   const hasViews = !!viewsSource && publishedList.length > 0;
   const totalViews = manual.totalViews ?? (hasViews ? sum(publishedList.map((a) => a.views)) : null);
-  const unmatched = viewsSource ? publishedList.filter((a) => !a.matched) : [];
+  // GA4 butuh ±48 jam memproses data: artikel yang tayang ≤1 hari sebelum tanggal sync (WIB) wajar belum ada di GA4
+  const ga4PendingFrom =
+    viewsSource === "ga4" && ga4Sync ? new Date(ga4Sync.createdAt.getTime() + 7 * 3600_000 - 86400_000).toISOString().slice(0, 10) : null;
+  const awaitingGa4 = (a: { matched: boolean; date: string | null }) => !a.matched && !!ga4PendingFrom && !!a.date && a.date >= ga4PendingFrom;
+  const pendingViews = publishedList.filter(awaitingGa4);
+  const unmatched = viewsSource ? publishedList.filter((a) => !a.matched && !awaitingGa4(a)) : [];
   const zeroViews = publishedList.filter((a) => a.matched && (a.views ?? 0) === 0);
 
   const splitPeople = (s: string | null) =>
@@ -228,6 +234,8 @@ export async function getNewsSummary(month: string) {
       : null,
     matchedCount: publishedList.filter((a) => a.matched).length,
     unmatched,
+    /** artikel yang baru tayang dan belum muncul di GA4 (bukan URL bermasalah) */
+    pendingViews,
     zeroViews,
     topArticles: [...publishedList].filter((a) => a.views != null).sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10),
     byCategory: groupBy(publishedList, (a) => [a.category ?? "(tanpa kategori)"], (a) => a.views),

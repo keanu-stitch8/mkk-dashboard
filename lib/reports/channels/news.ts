@@ -95,7 +95,7 @@ export async function buildNews(month: string): Promise<ReportData> {
         ? "Views are not available yet for this month."
         : n.matchedCount === published.length
           ? `All ${published.length} published URLs were matched.`
-          : `${n.matchedCount} of ${published.length} published URLs were matched; the rest show no views.`,
+          : `${n.matchedCount} of ${published.length} published URLs were matched; the rest show no views${n.pendingViews.length ? ` (${n.pendingViews.length} published in the last 2 days, awaiting GA4 data)` : ""}.`,
     "top.title": top ? oneLine(top.title) : "—",
     "top.views": top?.views ?? null,
     "top.avg_time": top?.avgEngagementTime != null ? fmtDurationEn(top.avgEngagementTime) : "—",

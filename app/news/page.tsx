@@ -10,8 +10,6 @@ import { NEWS_KPIS } from "@/lib/reports/kpi";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE = { publish: "good", review: "warn", draft: "neutral" } as const;
-
 export default async function NewsPage({ searchParams }: PageProps<"/news">) {
   const { month, months } = await resolveMonth((await searchParams).m);
   const [{ cur, prev }, trend] = await Promise.all([getMonthAndPrev(month), getTrend(month)]);
@@ -66,7 +64,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
             k.key === "published"
               ? `${fmtNum(n.activeDays)} hari aktif · jeda terpanjang ${fmtNum(n.emptyStreak.length)} hari`
               : k.key === "views"
-                ? `${fmtNum(n.matchedCount)}/${fmtNum(publishedCount)} URL cocok dengan GA4${n.unmatched.length ? ` · ${n.unmatched.length} tidak cocok` : ""}`
+                ? `${fmtNum(n.matchedCount)}/${fmtNum(publishedCount)} URL cocok dengan GA4${n.unmatched.length ? ` · ${n.unmatched.length} tidak cocok` : ""}${n.pendingViews.length ? ` · ${n.pendingViews.length} menunggu data GA4` : ""}`
                 : undefined;
           return (
             <KpiCard
@@ -178,33 +176,29 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
         <Recommendations items={recs} title="Rekomendasi news" showChannel={false} />
       </div>
 
-      {(n.unmatched.length > 0 || n.zeroViews.length > 0) && (
-        <Section title="Perlu dicek" subtitle="Artikel published yang tidak cocok dengan data views, atau 0 views">
+      {(n.unmatched.length > 0 || n.zeroViews.length > 0 || n.pendingViews.length > 0) && (
+        <Section
+          title="Perlu dicek"
+          subtitle={`Artikel published yang tidak cocok dengan data views, atau 0 views${n.pendingViews.length ? " · menunggu data GA4 = baru tayang, GA4 butuh ±48 jam" : ""}`}
+        >
           <DataTable
-            rows={[...n.unmatched, ...n.zeroViews]}
+            rows={[...n.unmatched, ...n.zeroViews, ...n.pendingViews]}
             columns={[
               { header: "Judul", cell: (r) => truncate(r.title, 70) },
               { header: "URL", cell: (r) => <span className="break-all text-muted-foreground">{r.path ?? "(tanpa URL)"}</span> },
-              { header: "Masalah", cell: (r) => <StatusBadge tone="warn">{r.matched ? "0 views" : "Tidak cocok"}</StatusBadge> },
+              {
+                header: "Masalah",
+                cell: (r) =>
+                  n.pendingViews.includes(r) ? (
+                    <StatusBadge tone="neutral">Menunggu data GA4</StatusBadge>
+                  ) : (
+                    <StatusBadge tone="warn">{r.matched ? "0 views" : "Tidak cocok"}</StatusBadge>
+                  ),
+              },
             ]}
           />
         </Section>
       )}
-
-      <Section title="Semua artikel" subtitle={`${n.articles.length} baris dari content log`}>
-        <DataTable
-          rows={n.articles}
-          columns={[
-            { header: "Tanggal", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.date)}</span> },
-            { header: "Judul", cell: (r) => truncate(r.title, 70) },
-            { header: "Reporter", cell: (r) => r.reporter ?? "—" },
-            { header: "Kategori", cell: (r) => r.category ?? "—" },
-            { header: "Tipe", cell: (r) => r.type ?? "—" },
-            { header: "Status", cell: (r) => <StatusBadge tone={STATUS_TONE[r.status as keyof typeof STATUS_TONE] ?? "neutral"}>{r.status}</StatusBadge> },
-            { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
-          ]}
-        />
-      </Section>
     </div>
   );
 }
