@@ -43,7 +43,9 @@ export function readYtCalendarSummary(table: RawTable): RecordRow[] | null {
         status: normalizeStatus(at(r, status)),
         _date: date,
       };
-    });
+    })
+    // status Event = penanda jadwal tim berangkat event (tidak ada video), bukan konten
+    .filter((r) => r.status !== "event");
 }
 
 export interface GanttVideo {

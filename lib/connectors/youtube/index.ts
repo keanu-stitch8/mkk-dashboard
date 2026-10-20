@@ -110,26 +110,29 @@ async function ensureReachJob(c: Clients): Promise<{ id: string; created: boolea
 /** Unduh laporan Reach yang belum tersimpan → YtReachDaily. Mengembalikan jumlah laporan baru. */
 async function ingestReachReports(c: Clients, jobId: string): Promise<number> {
   const known = new Set((await prisma.ytReachReport.findMany({ select: { id: true } })).map((r) => r.id));
+  const pending: youtubereporting_v1.Schema$Report[] = [];
   let pageToken: string | undefined;
-  let added = 0;
   do {
     const { data } = await retry(() => c.reporting.jobs.reports.list({ jobId, pageToken }));
-    for (const rep of data.reports ?? []) {
-      if (!rep.id || !rep.downloadUrl || known.has(rep.id)) continue;
-      const res = await retry(() => c.auth.request<string>({ url: rep.downloadUrl!, responseType: "text" }));
-      const rows = parseReachCsv(typeof res.data === "string" ? res.data : String(res.data));
-      const date = rep.startTime ? new Date(Date.parse(rep.startTime) - 8 * 3600_000).toISOString().slice(0, 10) : rows[0]?.date ?? "";
-      await prisma.$transaction(async (tx) => {
-        // laporan ulang untuk hari yang sama menggantikan data hari itu
-        if (date) await tx.ytReachDaily.deleteMany({ where: { date } });
-        for (let i = 0; i < rows.length; i += 200) await tx.ytReachDaily.createMany({ data: rows.slice(i, i + 200) });
-        await tx.ytReachReport.create({ data: { id: rep.id!, date } });
-      });
-      added++;
-    }
+    pending.push(...(data.reports ?? []).filter((r) => r.id && r.downloadUrl && !known.has(r.id)));
     pageToken = data.nextPageToken ?? undefined;
   } while (pageToken);
-  return added;
+  // urut createTime: laporan ulang (restatement) untuk hari yang sama diproses belakangan dan menggantikan versi lama
+  pending.sort((a, b) => (a.createTime ?? "").localeCompare(b.createTime ?? ""));
+  for (const rep of pending) {
+    const res = await retry(() => c.auth.request<string>({ url: rep.downloadUrl!, responseType: "text" }));
+    const rows = parseReachCsv(typeof res.data === "string" ? res.data : String(res.data));
+    // tanggal dari isi CSV; startTime = tengah malam waktu Pacific (PST/PDT), jadi dikonversi per zona, bukan −8 jam
+    const dates = [...new Set(rows.map((r) => r.date))];
+    const date = dates[0] ?? (rep.startTime ? new Date(rep.startTime).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" }) : "");
+    await prisma.$transaction(async (tx) => {
+      // laporan ulang untuk hari yang sama menggantikan data hari itu
+      if (dates.length || date) await tx.ytReachDaily.deleteMany({ where: { date: { in: dates.length ? dates : [date] } } });
+      for (let i = 0; i < rows.length; i += 200) await tx.ytReachDaily.createMany({ data: rows.slice(i, i + 200) });
+      await tx.ytReachReport.create({ data: { id: rep.id!, date } });
+    });
+  }
+  return pending.length;
 }
 
 export const youtube: Connector = {
