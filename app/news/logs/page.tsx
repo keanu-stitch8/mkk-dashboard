@@ -4,6 +4,7 @@ import { PublishingLogTable, type LogColumn } from "@/components/PublishingLogTa
 import { BADGE } from "@/components/log-badges";
 import { prisma } from "@/lib/db";
 import { resolveMonth } from "@/lib/data/summary";
+import { ogImages } from "@/lib/data/page-meta";
 import { fmtNum } from "@/lib/format";
 import { monthLabel } from "@/lib/month";
 
@@ -33,6 +34,8 @@ export default async function NewsLogsPage({ searchParams }: PageProps<"/news/lo
   }
 
   const count = (s: string) => articles.filter((a) => a.status === s).length;
+  // thumbnail = og:image halaman artikel (1024×576 di mainkekudus.com), di-cache per URL
+  const thumbs = await ogImages(articles.flatMap((a) => (a.url ? [a.url] : [])));
 
   return (
     <div className="mx-auto max-w-7xl space-y-5">
@@ -47,7 +50,9 @@ export default async function NewsLogsPage({ searchParams }: PageProps<"/news/lo
             url: a.url,
             status: a.status,
             fields: { reporter: a.reporter, category: a.category, type: a.type },
+            thumb: a.url ? (thumbs.get(a.url) ?? null) : null,
           }))}
+          thumbnails
         />
       </Section>
     </div>

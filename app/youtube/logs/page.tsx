@@ -18,11 +18,19 @@ const COLUMNS: LogColumn[] = [
 export default async function YoutubeLogsPage({ searchParams }: PageProps<"/youtube/logs">) {
   const { month, months } = await resolveMonth((await searchParams).m);
   const [logs, reviewItems] = await Promise.all([
-    prisma.ytLog.findMany({ where: { month }, select: { date: true, title: true, url: true, format: true, category: true, status: true } }),
+    prisma.ytLog.findMany({ where: { month }, select: { date: true, title: true, url: true, videoId: true, format: true, category: true, status: true } }),
     prisma.breakdown.findMany({ where: { month, channel: "youtube", dimension: "yt_in_review", import: { source: "yt_review" } }, select: { label: true } }),
   ]);
 
-  const rows: LogRow[] = logs.map((l) => ({ date: l.date, title: l.title, url: l.url, status: l.status, fields: { format: l.format, category: l.category } }));
+  const rows: LogRow[] = logs.map((l) => ({
+    date: l.date,
+    title: l.title,
+    url: l.url,
+    status: l.status,
+    fields: { format: l.format, category: l.category },
+    // thumbnail "medium" YouTube Data API = 320×180 (16:9); high/standard 4:3
+    thumb: l.videoId ? `https://i.ytimg.com/vi/${l.videoId}/mqdefault.jpg` : null,
+  }));
   // video in review (Gantt) yang sudah ada di Summary cukup ditandai review; sisanya ditambahkan tanpa tanggal
   const byTitle = new Map(rows.map((r) => [r.title.trim().toLowerCase(), r]));
   for (const { label } of reviewItems) {
@@ -47,7 +55,7 @@ export default async function YoutubeLogsPage({ searchParams }: PageProps<"/yout
       <PageHeader title="Publishing Log" description={`Semua video YouTube di Calendar Timeline ${monthLabel(month)}. Klik judul untuk membuka video.`} month={month} months={months} />
 
       <Section title="Semua video" subtitle={`${fmtNum(rows.length)} video · ${fmtNum(count("publish"))} published · ${fmtNum(count("review"))} in review`}>
-        <PublishingLogTable columns={COLUMNS} rows={rows} />
+        <PublishingLogTable columns={COLUMNS} rows={rows} thumbnails />
       </Section>
     </div>
   );

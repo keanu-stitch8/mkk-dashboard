@@ -463,3 +463,11 @@ model Ga4City {
   @@id([month, city, country])
   @@index([month])
 }
+
+/// Cache metadata halaman web per URL (og:image = thumbnail artikel di Publishing Log News).
+/// ogImage null = halaman sudah dicek tapi tidak punya og:image (atau gagal diambil; dicoba ulang setelah 7 hari).
+model PageMeta {
+  url       String   @id
+  ogImage   String?
+  fetchedAt DateTime @default(now())
+}

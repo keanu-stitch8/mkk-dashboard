@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ImageOff } from "lucide-react";
 import { StatusBadge } from "@/components/blocks";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,6 +14,8 @@ export interface LogRow {
   url: string | null;
   status: string;
   fields: Record<string, string | null>;
+  /** URL gambar thumbnail 16:9 (kolom Thumbnail tampil jika tabel diberi `thumbnails`) */
+  thumb?: string | null;
 }
 
 /** Kolom tambahan di antara Judul dan Status. `badges` = nilai (huruf kecil) → class warna; ada `badges` berarti tampil sebagai Badge. */
@@ -31,7 +33,7 @@ const valueOf = (r: LogRow, key: string) => (key === "date" || key === "title" |
 const collator = new Intl.Collator("id", { sensitivity: "base", numeric: true });
 
 /** Tabel Publishing Log: klik header untuk sort A-Z / Z-A, default per tanggal. Nilai kosong selalu di bawah. */
-export function PublishingLogTable({ rows, columns }: { rows: LogRow[]; columns: LogColumn[] }) {
+export function PublishingLogTable({ rows, columns, thumbnails = false }: { rows: LogRow[]; columns: LogColumn[]; thumbnails?: boolean }) {
   const [sort, setSort] = useState<{ key: string; dir: SortDir }>({ key: "date", dir: "asc" });
   const headers = [{ key: "date", label: "Tanggal" }, { key: "title", label: "Judul" }, ...columns, { key: "status", label: "Status" }];
 
@@ -53,6 +55,7 @@ export function PublishingLogTable({ rows, columns }: { rows: LogRow[]; columns:
       <TableHeader>
         <TableRow>
           <TableHead>#</TableHead>
+          {thumbnails && <TableHead>Thumbnail</TableHead>}
           {headers.map((c) => {
             const active = sort.key === c.key;
             const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
@@ -71,6 +74,20 @@ export function PublishingLogTable({ rows, columns }: { rows: LogRow[]; columns:
         {sorted.map((r, i) => (
           <TableRow key={`${r.url ?? r.title}-${i}`}>
             <TableCell className="align-top text-muted-foreground">{i + 1}</TableCell>
+            {thumbnails && (
+              <TableCell className="align-top">
+                {r.thumb ? (
+                  <a href={r.url ?? r.thumb} target="_blank" rel="noreferrer" className="block w-24">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail eksternal kecil, tanpa optimasi next/image */}
+                    <img src={r.thumb} alt="" loading="lazy" className="aspect-video w-24 rounded-md bg-muted object-cover" />
+                  </a>
+                ) : (
+                  <div className="flex aspect-video w-24 items-center justify-center rounded-md bg-muted text-muted-foreground/60" title="Belum ada thumbnail">
+                    <ImageOff className="size-6" aria-hidden />
+                  </div>
+                )}
+              </TableCell>
+            )}
             <TableCell className="align-top whitespace-nowrap">{fmtDate(r.date)}</TableCell>
             <TableCell className="align-top whitespace-normal">
               {r.url ? (
