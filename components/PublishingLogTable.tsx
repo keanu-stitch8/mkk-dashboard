@@ -16,7 +16,13 @@ export interface LogRow {
   fields: Record<string, string | null>;
   /** URL gambar thumbnail 16:9 (kolom Thumbnail tampil jika tabel diberi `thumbnails`) */
   thumb?: string | null;
+  /** rasio kotak thumbnail (default 16:9) */
+  thumbRatio?: ThumbRatio;
 }
+
+export type ThumbRatio = "16:9" | "4:5";
+/** Ukuran kotak per rasio: 16:9 (YouTube/News) lebar 96px; 4:5 (Instagram) tinggi 96px. */
+const RATIO_CLASS: Record<ThumbRatio, string> = { "16:9": "aspect-video w-24", "4:5": "aspect-[4/5] h-24" };
 
 /** Kolom tambahan di antara Judul dan Status. `badges` = nilai (huruf kecil) → class warna; ada `badges` berarti tampil sebagai Badge. */
 export interface LogColumn {
@@ -77,12 +83,12 @@ export function PublishingLogTable({ rows, columns, thumbnails = false }: { rows
             {thumbnails && (
               <TableCell className="align-top">
                 {r.thumb ? (
-                  <a href={r.url ?? r.thumb} target="_blank" rel="noreferrer" className="block w-24">
+                  <a href={r.url ?? r.thumb} target="_blank" rel="noreferrer" className="block w-fit">
                     {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail eksternal kecil, tanpa optimasi next/image */}
-                    <img src={r.thumb} alt="" loading="lazy" className="aspect-video w-24 rounded-md bg-muted object-cover" />
+                    <img src={r.thumb} alt="" loading="lazy" className={`${RATIO_CLASS[r.thumbRatio ?? "16:9"]} rounded-md bg-muted object-cover`} />
                   </a>
                 ) : (
-                  <div className="flex aspect-video w-24 items-center justify-center rounded-md bg-muted text-muted-foreground/60" title="Belum ada thumbnail">
+                  <div className={`flex ${RATIO_CLASS[r.thumbRatio ?? "16:9"]} items-center justify-center rounded-md bg-muted text-muted-foreground/60`} title="Belum ada thumbnail">
                     <ImageOff className="size-6" aria-hidden />
                   </div>
                 )}

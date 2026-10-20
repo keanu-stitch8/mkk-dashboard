@@ -45,3 +45,6 @@ next-env.d.ts
 # database lokal
 /prisma/*.db
 /prisma/*.db-journal
+
+# file lokal dashboard (thumbnail Instagram yang diunduh)
+/storage/

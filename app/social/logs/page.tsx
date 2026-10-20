@@ -1,10 +1,9 @@
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, Section } from "@/components/blocks";
-import { PublishingLogTable, type LogColumn, type LogRow } from "@/components/PublishingLogTable";
+import { PublishingLogTable, type LogColumn, type LogRow, type ThumbRatio } from "@/components/PublishingLogTable";
 import { BADGE } from "@/components/log-badges";
-import { prisma } from "@/lib/db";
 import { getSocialSummary, resolveMonth } from "@/lib/data/summary";
-import { matchStoryArticle } from "@/lib/data/story-links";
+import { igThumbs } from "@/lib/data/ig-thumbs";
 import { fmtNum } from "@/lib/format";
 import { monthLabel } from "@/lib/month";
 
@@ -29,29 +28,30 @@ const platforms = (s: string) =>
     .map((p) => PLATFORMS[p] ?? p)
     .join(", ");
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** Kotak thumbnail Instagram 4:5 (rasio feed); reels 9:16 dipotong di tengah. */
+const IG_RATIO: ThumbRatio = "4:5";
 
 /** Log konten Social Media per bulan — publishing log + in review dari Task Progress, tanpa views/metrics. */
 export default async function SocialLogsPage({ searchParams }: PageProps<"/social/logs">) {
   const { month, months } = await resolveMonth((await searchParams).m);
-  const [s, articles] = await Promise.all([
-    getSocialSummary(month),
-    prisma.newsArticle.findMany({ where: { url: { not: null }, status: "publish" }, select: { title: true, url: true, date: true } }),
-  ]);
-  // story tanpa caption tidak bisa dipasangkan ke story IG tertentu → story Featured News di-link ke artikel News-nya
-  const storyLink = (l: (typeof s.logs)[number]) =>
-    l.format === "story" && l.category === "Featured News" ? (matchStoryArticle(l, articles)?.url ?? null) : null;
+  const s = await getSocialSummary(month);
+  // thumbnail = gambar post IG pasangannya (diunduh & disimpan lokal). Story tidak punya caption sehingga tidak bisa
+  // dipasangkan ke story IG tertentu, dan API tidak memberi gambar story yang sudah lewat 24 jam → story tanpa link/gambar.
+  const igThumb = await igThumbs(s.logs.flatMap((l) => (l.igMediaId ? [l.igMediaId] : [])));
 
   const rows: LogRow[] = s.logs.map((l) => ({
     date: l.date,
     title: l.title ?? "(tanpa judul)",
-    url: l.link ?? storyLink(l),
+    url: l.link,
     status: l.status,
     fields: { format: capitalize(l.format), category: l.category, platform: platforms(l.platform), admin: l.admin, designer: l.designer },
+    thumb: l.igMediaId ? (igThumb.get(l.igMediaId) ?? null) : null,
+    thumbRatio: IG_RATIO,
   }));
   // in review dari tracker Task Progress: label "format · judul", tanpa tanggal tayang
   for (const label of s.inReviewItems) {
     const [format, ...title] = label.split(" · ");
-    rows.push({ date: null, title: title.join(" · ") || "(tanpa judul)", url: null, status: "review", fields: { format: capitalize(format), category: null, platform: null, admin: null, designer: null } });
+    rows.push({ date: null, title: title.join(" · ") || "(tanpa judul)", url: null, status: "review", fields: { format: capitalize(format), category: null, platform: null, admin: null, designer: null }, thumbRatio: IG_RATIO });
   }
 
   if (!rows.length) {
@@ -64,22 +64,22 @@ export default async function SocialLogsPage({ searchParams }: PageProps<"/socia
   }
 
   const count = (st: string) => rows.filter((r) => r.status === st).length;
-  const linked = rows.filter((r) => r.url).length;
+  const withLink = rows.filter((r) => r.url).length;
 
   return (
     <div className="mx-auto max-w-7xl space-y-5">
       <PageHeader
         title="Publishing Log"
-        description={`Semua konten Social Media di publishing log ${monthLabel(month)}. Judul bisa diklik: post Instagram yang cocok, atau artikel News untuk story Featured News.`}
+        description={`Semua konten Social Media di publishing log ${monthLabel(month)}. Judul bisa diklik jika post-nya cocok dengan post Instagram (story tidak bisa dipasangkan).`}
         month={month}
         months={months}
       />
 
       <Section
         title="Semua konten"
-        subtitle={`${fmtNum(rows.length)} konten · ${fmtNum(count("publish"))} published · ${fmtNum(count("review"))} in review · ${fmtNum(linked)} dengan link`}
+        subtitle={`${fmtNum(rows.length)} konten · ${fmtNum(count("publish"))} published · ${fmtNum(count("review"))} in review · ${fmtNum(withLink)} dengan link`}
       >
-        <PublishingLogTable columns={COLUMNS} rows={rows} />
+        <PublishingLogTable columns={COLUMNS} rows={rows} thumbnails />
       </Section>
     </div>
   );
