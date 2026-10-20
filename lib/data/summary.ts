@@ -288,6 +288,7 @@ export async function getYoutubeSummary(month: string) {
     hasSubsLost: subsLost != null,
     avgViewDurationSec,
     uniqueViewers: metric("uniqueViewers"),
+    viewsPerVideo: views == null || !videos.length ? null : views / videos.length,
     published,
     quota: quotas.youtube,
     achievement: safeDiv(published, quotas.youtube.value),

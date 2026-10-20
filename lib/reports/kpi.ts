@@ -120,3 +120,30 @@ export const NEWS_KPIS: KpiDef<NewsKpiSource>[] = [
   { key: "readers", label: "Readers", kind: "count", get: (s) => s.readers, hint: "Jumlah active users per artikel (satu orang bisa terhitung di beberapa artikel)." },
   { key: "avg_engagement_time", label: "Avg engagement time", kind: "duration", get: (s) => s.avgEngagementTime, hint: "Rata-rata waktu engagement per pembaca, tertimbang jumlah pembaca." },
 ];
+
+/** Field summary YouTube yang dipakai kartu KPI. */
+export interface YoutubeKpiSource {
+  published: number;
+  quota: { value: number };
+  views: number | null;
+  viewsPerVideo: number | null;
+  impressions: number | null;
+  ctr: number | null;
+  watchHours: number | null;
+  avgViewDurationSec: number | null;
+  subsNet: number | null;
+}
+
+const signed = (v: number | null) => (v == null ? null : `${v > 0 ? "+" : ""}${v.toLocaleString("en-US")}`);
+
+/** Kartu KPI YouTube (urutan = grid dashboard & blok kartu laporan): baris 1 produksi & jangkauan, baris 2 tontonan. */
+export const YOUTUBE_KPIS: KpiDef<YoutubeKpiSource>[] = [
+  { key: "published", label: "Videos published", kind: "count", get: (s) => s.published, display: (s) => `${s.published} / ${s.quota.value}`, hint: "Video di publishing log berstatus Publish (termasuk recap) vs kuota bulanan." },
+  { key: "views", label: "Views", kind: "count", get: (s) => s.views },
+  { key: "views_per_video", label: "Views per video", kind: "decimal", get: (s) => s.viewsPerVideo },
+  { key: "impressions", label: "Impressions", kind: "count", get: (s) => s.impressions, hint: "Berapa kali thumbnail ditampilkan di YouTube." },
+  { key: "ctr", label: "Impressions CTR", kind: "rate", get: (s) => s.ctr, hint: "Rasio klik thumbnail. Di bawah 4% = perlu perbaikan thumbnail/judul." },
+  { key: "watch_hours", label: "Watch time (hours)", kind: "decimal", get: (s) => s.watchHours },
+  { key: "avg_view_duration", label: "Avg view duration", kind: "duration", get: (s) => s.avgViewDurationSec },
+  { key: "subs_net", label: "Subscribers (net)", kind: "count", get: (s) => s.subsNet, display: (s) => signed(s.subsNet) },
+];

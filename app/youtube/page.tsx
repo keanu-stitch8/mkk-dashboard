@@ -6,10 +6,9 @@ import { contentQuota, getMonthAndPrev, getTrend, resolveMonth } from "@/lib/dat
 import { generateRecommendations } from "@/lib/recommendations";
 import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { monthLabel } from "@/lib/month";
+import { YOUTUBE_KPIS } from "@/lib/reports/kpi";
 
 export const dynamic = "force-dynamic";
-
-const perVideo = (views: number | null, count: number) => (views == null || !count ? null : views / count);
 
 export default async function YoutubePage({ searchParams }: PageProps<"/youtube">) {
   const { month, months } = await resolveMonth((await searchParams).m);
@@ -30,8 +29,8 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
     );
   }
 
-  const vpv = perVideo(y.views, y.videos.length);
-  const prevVpv = p ? perVideo(p.views, p.videos.length) : null;
+  const vpv = y.viewsPerVideo;
+  const prevVpv = p ? p.viewsPerVideo : null;
 
   return (
     <div className="mx-auto max-w-7xl space-y-5">
@@ -48,22 +47,30 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
         </Section>
       </div>
 
-      {/* 2. KPI — urutan sama di semua channel */}
+      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (lib/reports/kpi.ts) */}
       <KpiGrid cols={4}>
-        <KpiCard label="Published" value={`${fmtNum(y.published)}/${fmtNum(y.quota.value)}`} cur={y.published} prev={p?.published} />
-        <KpiCard label="Views" value={fmtNum(y.views)} cur={y.views} prev={p?.views} />
-        <KpiCard label="Views / video" value={fmtNum(vpv)} cur={vpv} prev={prevVpv} />
-        <KpiCard label="Impressions" value={fmtNum(y.impressions)} cur={y.impressions} prev={p?.impressions} hint="Berapa kali thumbnail ditampilkan di YouTube." />
-        <KpiCard label="Impressions CTR" value={fmtPct(y.ctr, 2)} cur={y.ctr} prev={p?.ctr} kind="rate" hint="Rasio klik thumbnail. Di bawah 4% = perlu perbaikan thumbnail/judul." />
-        <KpiCard label="Watch time" value={`${fmtNum(y.watchHours, 1)} jam`} cur={y.watchHours} prev={p?.watchHours} />
-        <KpiCard label="Avg view duration" value={fmtDuration(y.avgViewDurationSec)} cur={y.avgViewDurationSec} prev={p?.avgViewDurationSec} />
-        <KpiCard
-          label="Subscribers (net)"
-          value={y.subsNet == null ? "—" : `${y.subsNet > 0 ? "+" : ""}${fmtNum(y.subsNet)}`}
-          cur={y.subsNet}
-          prev={p?.subsNet}
-          note={y.hasSubsLost ? `+${fmtNum(y.subsGained)} / −${fmtNum(y.subsLost)}` : "Data subscribers lost tidak ada"}
-        />
+        {YOUTUBE_KPIS.map((k) => {
+          const cur = k.get(y);
+          const value =
+            k.key === "watch_hours"
+              ? `${fmtNum(cur, 1)} jam`
+              : (k.display?.(y) ?? (k.kind === "rate" ? fmtPct(cur, 2) : k.kind === "duration" ? fmtDuration(cur) : k.kind === "decimal" ? fmtNum(cur, 1) : fmtNum(cur))) ?? "—";
+          const note = k.key === "subs_net" ? (y.hasSubsLost ? `+${fmtNum(y.subsGained)} / −${fmtNum(y.subsLost)}` : "Data subscribers lost tidak ada") : undefined;
+          return (
+            <KpiCard
+              key={k.key}
+              label={k.label}
+              value={value}
+              cur={cur}
+              prev={p ? k.get(p) : null}
+              kind={k.kind === "rate" ? "rate" : undefined}
+              goodWhenUp={k.goodWhenUp}
+              neutral={k.neutral}
+              hint={k.hint}
+              note={note}
+            />
+          );
+        })}
       </KpiGrid>
 
       {/* 3. Performa & aktivitas */}

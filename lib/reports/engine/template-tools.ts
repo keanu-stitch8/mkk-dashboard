@@ -139,21 +139,24 @@ export async function applyRowStyles(c: ReportClients, id: string, spec: RowStyl
           const m = merges.find((mm) => mm.startRowIndex === row && mm.startColumnIndex === j);
           return [j, m ? m.endColumnIndex! : j + 1] as [number, number];
         });
+        // baris TOTAL: satu blok utuh selebar tabel (kolom kosong di tengah ikut berwarna)
+        if (role === "total" && spans.length)
+          spans = colLimit ? [[colLimit[0] - 1, colLimit[1]]] : [[Math.min(...spans.map((s) => s[0])), Math.max(...spans.map((s) => s[1]))]];
         if (st.fullWidth && !colLimit && cols.length === 1 && cols[0] === 0) {
           const end = marker(row) > 0 ? marker(row) : used; // sel penanda tidak ikut merge (isinya akan hilang)
           structural.push({ unmergeCells: { range: range(row, row + n, 0, used) } }, { mergeCells: { range: range(row, row + n, 0, end), mergeType: "MERGE_ALL" } });
           spans = [[0, used]];
         }
+        // hanya properti yang didefinisikan gaya ini yang ditulis (field mask), sisanya format template tetap
         const tf: Record<string, unknown> = { fontSize: st.fs };
-        const tfFields = ["fontSize"];
-        if (st.bold != null) (tf.bold = st.bold), tfFields.push("bold");
-        if (st.italic != null) (tf.italic = st.italic), tfFields.push("italic");
-        if (st.fg) (tf.foregroundColor = rgb(st.fg)), tfFields.push("foregroundColor");
+        if (st.bold != null) tf.bold = st.bold;
+        if (st.italic != null) tf.italic = st.italic;
+        if (st.fg) tf.foregroundColor = rgb(st.fg);
         const fmt: Record<string, unknown> = { textFormat: tf, verticalAlignment: "MIDDLE" };
-        const fields = [`textFormat(${tfFields.join(",")})`, "verticalAlignment"];
-        if (st.bg) (fmt.backgroundColor = rgb(st.bg)), fields.push("backgroundColor");
-        if (st.hAlign) (fmt.horizontalAlignment = st.hAlign), fields.push("horizontalAlignment");
-        if (st.wrap) (fmt.wrapStrategy = "WRAP"), fields.push("wrapStrategy");
+        if (st.bg) fmt.backgroundColor = rgb(st.bg);
+        if (st.hAlign) fmt.horizontalAlignment = st.hAlign;
+        if (st.wrap) fmt.wrapStrategy = "WRAP";
+        const fields = [`textFormat(${Object.keys(tf).join(",")})`, ...Object.keys(fmt).filter((k) => k !== "textFormat")];
         for (const [c0, c1] of spans) {
           requests.push({ repeatCell: { range: range(row, row + n, c0, c1), cell: { userEnteredFormat: fmt }, fields: `userEnteredFormat(${fields.join(",")})` } });
           if (st.box) {
