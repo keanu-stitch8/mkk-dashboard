@@ -4,6 +4,19 @@ import { planFill, type SheetGrid } from "../lib/reports/engine/tokens";
 const grid = (rows: string[][], merges: SheetGrid["merges"] = []): SheetGrid => ({ sheetId: 7, title: "01 Summary", rows, merges });
 
 describe("planFill", () => {
+  it("openEnd: baris terakhir tabel dicatat untuk dihapus garis bawahnya", () => {
+    const plan = planFill([grid([["{{#ch.name}}", "{{#ch.n}}"], ["{{x}}"]])], { values: { x: 1 }, tables: { ch: [{ name: "A", n: 1 }, { name: "B", n: 2 }, { name: "C", n: 3 }] }, openEnd: ["ch"] });
+    expect(plan.openEnd).toEqual([{ sheetId: 7, row: 2, endCol: 2 }]);
+  });
+
+  it("menyembunyikan baris berisi penanda di hideRows (posisi setelah sisipan tabel)", () => {
+    const plan = planFill(
+      [grid([["{{#ch.name}}"], ["", "", "{{cat.9.name}}", "{{cat.9.count}}"], ["{{cat.8.name}}"]])],
+      { values: { "cat.9.name": "Other", "cat.9.count": 0, "cat.8.name": "Teaser" }, tables: { ch: [{ name: "A" }, { name: "B" }] }, hideRows: ["cat.9.name"] },
+    );
+    expect(plan.hidden).toEqual([{ sheetId: 7, row: 2 }]);
+  });
+
   it("mengisi nilai bertipe & teks campuran", () => {
     const plan = planFill([grid([["{{users}}", "Period: {{period}} · {{users}} users"]])], { values: { users: 1839, period: "1–30 September 2026" }, tables: {} });
     expect(plan.writes).toEqual([

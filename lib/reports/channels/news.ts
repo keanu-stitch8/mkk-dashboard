@@ -55,6 +55,9 @@ export async function buildNews(month: string): Promise<ReportData> {
     published: n.published,
     inReview: n.inReview,
     delivered: n.delivered,
+    prevDelivered: p?.delivered ?? null,
+    prevPublished: p?.published ?? null,
+    prevTop: p?.topArticles[0] ? { title: oneLine(p.topArticles[0].title), views: p.topArticles[0].views ?? 0 } : null,
     achievement: n.achievement,
     prevAchievement: p?.achievement ?? null,
     totalViews: n.totalViews,
@@ -63,9 +66,6 @@ export async function buildNews(month: string): Promise<ReportData> {
     top: n.topArticles.map((a) => ({ title: oneLine(a.title), views: a.views ?? 0 })),
     byType: n.byType,
     byCategory: n.byCategory,
-    activeDays: n.activeDays,
-    daysInMonth: daysInMonth(month).length,
-    emptyStreak: n.emptyStreak,
     matched: n.matchedCount,
     publishedListed: published.length,
   });
@@ -139,6 +139,8 @@ export async function buildNews(month: string): Promise<ReportData> {
     values,
     tones: kpi.tones,
     autoHeight: ["findings", "articles", "log", "review"],
+    // kategori "Other" (slot terakhir) hanya tampil jika ada isinya
+    hideRows: cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : [],
     tables: {
       findings: findings.map((text) => ({ text })),
       articles: published.map((a, i) => ({

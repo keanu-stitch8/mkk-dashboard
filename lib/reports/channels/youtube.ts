@@ -69,6 +69,11 @@ export async function buildYoutube(month: string): Promise<ReportData> {
   const ranked = [...list].filter((v) => v.m?.views != null).sort((a, b) => b.m!.views - a.m!.views);
   const top = ranked[0];
 
+  const days = daysInMonth(month).length;
+  // bagian video yang ditonton rata-rata, tertimbang views (hanya video yang durasinya diketahui)
+  const withLen = list.filter((v) => v.m?.durationSec && v.m.avgViewDurationSec != null && v.m.views);
+  const watchedShare = withLen.length ? sumOf(withLen.map((v) => v.m!.views * (v.m!.avgViewDurationSec! / v.m!.durationSec!))) / sumOf(withLen.map((v) => v.m!.views)) : null;
+  const topSubs = [...list].filter((v) => v.m?.subsGained).sort((a, b) => b.m!.subsGained! - a.m!.subsGained!)[0];
   const findings = youtubeFindings({
     monthLabel: enMonth(month),
     prevMonthLabel: enMonth(prev),
@@ -78,15 +83,16 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     series: series && prog ? { name: series.name, produced: series.produced, publishedToDate: prog.before + prog.thisMonth, remaining: prog.remaining } : null,
     views: y.views,
     prevViews: p?.views ?? null,
-    viewsPerVideo: y.viewsPerVideo,
     top: ranked.map((v) => ({ title: v.title, views: v.m!.views })),
-    impressions: y.impressions,
-    ctr: y.ctr,
-    lowCtr: y.lowCtrVideos.length,
-    watchHours: y.watchHours,
+    prevTop: p?.topVideos[0] ? { title: p.topVideos[0].title, views: p.topVideos[0].views } : null,
+    late: list
+      .filter((v) => v.date?.startsWith(month) && days - Number(v.date.slice(8, 10)) + 1 <= 7)
+      .map((v) => ({ title: v.title, date: v.date!, days: days - Number(v.date!.slice(8, 10)) + 1 })),
+    lowCtr: y.lowCtrVideos.map((v) => ({ title: v.title, ctr: v.ctr! })),
+    watchedShare,
     avgViewDurationSec: y.avgViewDurationSec,
     subsGained: y.subsGained,
-    subsLost: y.subsLost,
+    topSubs: topSubs ? { title: topSubs.title, subs: topSubs.m!.subsGained! } : null,
   });
 
   const monthName = enMonth(month).split(" ")[0];
@@ -97,7 +103,7 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     month_name: monthName,
     year: Number(month.slice(0, 4)),
     prev_month_label: enMonth(prev),
-    period: `1–${daysInMonth(month).length} ${enMonth(month)}`,
+    period: `1–${days} ${enMonth(month)}`,
     ...kpi.values,
     quota,
     published: y.published,
@@ -145,6 +151,8 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     values,
     tones: kpi.tones,
     autoHeight: ["findings", "videos", "log"],
+    // kategori "Other" (slot terakhir) hanya tampil jika ada isinya
+    hideRows: cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : [],
     tables: {
       findings: findings.map((text) => ({ text })),
       videos: list.map((v, i) => ({

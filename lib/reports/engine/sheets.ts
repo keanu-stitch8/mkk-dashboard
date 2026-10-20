@@ -116,6 +116,30 @@ export async function applyPlan(c: ReportClients, spreadsheetId: string, plan: P
     }));
   if (toneReqs.length) await gcall(() => c.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: toneReqs } }));
 
+  if (plan.hidden.length)
+    await gcall(() =>
+      c.sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: plan.hidden.map((h) => ({
+            updateDimensionProperties: { range: { sheetId: h.sheetId, dimension: "ROWS", startIndex: h.row, endIndex: h.row + 1 }, properties: { hiddenByUser: true }, fields: "hiddenByUser" },
+          })),
+        },
+      }),
+    );
+
+  if (plan.openEnd.length)
+    await gcall(() =>
+      c.sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: plan.openEnd.map((o) => ({
+            updateBorders: { range: { sheetId: o.sheetId, startRowIndex: o.row, endRowIndex: o.row + 1, startColumnIndex: 0, endColumnIndex: o.endCol }, bottom: { style: "NONE" } },
+          })),
+        },
+      }),
+    );
+
   // tabel berteks panjang: tinggi sesuai isi, minimal tinggi baris data standar (ROW_STYLE.row)
   const fit = plan.autoHeight.flatMap((r) => Array.from({ length: r.endRow - r.startRow }, (_, k) => ({ sheetId: r.sheetId, row: r.startRow + k })));
   await gcall(() => fitTextRows(c, spreadsheetId, fit, ROW_STYLE.row.px));

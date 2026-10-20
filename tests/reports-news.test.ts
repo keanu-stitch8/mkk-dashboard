@@ -11,6 +11,9 @@ const sep: NewsNarrativeInput = {
   published: 42,
   inReview: 11,
   delivered: 53,
+  prevDelivered: 43,
+  prevPublished: 43,
+  prevTop: { title: "Klub Futsal Kudus", views: 180 },
   achievement: 53 / 60,
   prevAchievement: 43 / 60,
   totalViews: 1353,
@@ -30,9 +33,6 @@ const sep: NewsNarrativeInput = {
     { label: "Komunitas", count: 7, views: 372 },
     { label: "Kegiatan", count: 11, views: 257 },
   ],
-  activeDays: 20,
-  daysInMonth: 30,
-  emptyStreak: { length: 3, from: "2026-09-04", to: "2026-09-06" },
   matched: 42,
   publishedListed: 42,
 };
@@ -41,21 +41,32 @@ describe("news narrative", () => {
   it("temuan September: kalimat pendek tanpa tanda pisah", () => {
     const f = newsFindings(sep);
     expect(f).toEqual([
-      "53 of the 60 planned articles were delivered (88.3%), 7 short of the quota. 42 are published and 11 are still in review.",
-      "Quota achievement rose 16.7 percentage points from August 2026.",
-      "Articles published in September 2026 received 1,353 views, an average of 32.2 views per article.",
-      "Views rose 3.6% from August 2026 (1,306 to 1,353).",
-      'The next most read were "Wushu Indonesia Kudus" (102 views) and "Berlian Sports Centre" (73 views).',
-      "Features made up the largest share with 20 articles (47.6%), while Editorial drew the most views per article (35.5).",
+      // delivered naik, tapi published turun 1 karena 11 masih in review → dijelaskan, bukan hanya "achievement naik"
+      "53 of the 60 planned articles were delivered, up from 43 in August.",
+      "11 are still waiting for approval, so 42 are live, one fewer than August.",
+      "Views rose 3.6% from August (1,306 to 1,353).",
+      'The next most read were "Wushu Indonesia Kudus" (102 views) and "Berlian Sports Centre" (73).',
+      "Features made up almost half of the output (20 articles), while Editorial drew the most views per article (35.5).",
       "Komunitas was the most read category with 372 views from 7 articles.",
-      "New articles went live on 20 of 30 days. The longest gap without a new article was 3 days (4 to 6 September).",
     ]);
     expect(f.join(" ")).not.toMatch(/—|–|“|”/);
   });
 
+  it("tanpa data bulan lalu: sebut kekurangan kuota", () => {
+    const f = newsFindings({ ...sep, prevDelivered: null, prevPublished: null, prevViews: null });
+    expect(f[0]).toBe("53 of the 60 planned articles were delivered, 7 short of the quota.");
+    expect(f[1]).toBe("11 are still waiting for approval, so 42 are live.");
+  });
+
+  it("views turun tajam karena bulan lalu didominasi satu artikel → penyebab disebut", () => {
+    const f = newsFindings({ ...sep, totalViews: 500, prevTop: { title: "Klub Futsal Kudus | Liga Desa", views: 700 } });
+    expect(f).toContain('Views fell from 1,306 to 500. August was lifted by one article, "Klub Futsal Kudus", with 700 views.');
+  });
+
   it("URL tidak cocok & kuota terpenuhi", () => {
     const f = newsFindings({ ...sep, delivered: 60, published: 50, inReview: 10, matched: 40, publishedListed: 42 });
-    expect(f[0]).toBe("60 of the 60 planned articles were delivered (100.0%). 50 are published and 10 are still in review.");
+    expect(f[0]).toBe("60 of the 60 planned articles were delivered, up from 43 in August.");
+    expect(f[1]).toBe("10 are still waiting for approval, so 50 are live, 7 more than August.");
     expect(f.at(-1)).toBe("2 published articles could not be matched to Google Analytics by URL, so their views are not counted.");
   });
 });

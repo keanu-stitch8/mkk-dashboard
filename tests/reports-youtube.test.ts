@@ -50,33 +50,48 @@ describe("tipe & kategori", () => {
 });
 
 describe("youtubeFindings", () => {
-  it("kalimat kuota, seri, views MoM, CTR rendah, subscriber", () => {
-    const out = youtubeFindings({
-      monthLabel: "September 2026",
-      prevMonthLabel: "August 2026",
-      quota: 4,
-      published: 4,
-      recaps: 1,
-      series: { name: "Q3 2026", produced: 13, publishedToDate: 8, remaining: 5 },
-      views: 732,
-      prevViews: 2453,
-      viewsPerVideo: 183,
-      top: [{ title: "Caffino", views: 350 }, { title: "Sapphire Boutique Hotel", views: 190 }],
-      impressions: 6203,
-      ctr: 0.04435,
-      lowCtr: 2,
-      watchHours: 12.15,
-      avgViewDurationSec: 104,
-      subsGained: 5,
-      subsLost: 0,
-    });
-    expect(out[0]).toBe("4 of the 4 planned videos were published (100.0%). This includes 1 recap video.");
-    expect(out[1]).toBe("The Q3 2026 production series has 8 of 13 videos published, with 5 still to be released.");
-    expect(out).toContain("Views fell 70.2% from August 2026 (2,453 to 732).");
-    expect(out).toContain('The next most watched was "Sapphire Boutique Hotel" with 190 views.');
-    expect(out).toContain("2 videos had a click rate below 4%, so their title or thumbnail may need work.");
-    expect(out).toContain("Viewers watched 12.2 hours in total, about 1 min 44 sec per view.");
-    expect(out.at(-1)).toBe("The channel gained 5 new subscribers from these videos.");
-    expect(out.join(" ")).not.toMatch(/[—–]-|\s—\s/);
+  const sep = {
+    monthLabel: "September 2026",
+    prevMonthLabel: "August 2026",
+    quota: 4,
+    published: 4,
+    recaps: 1,
+    series: { name: "Q3 2026", produced: 13, publishedToDate: 8, remaining: 5 },
+    views: 732,
+    prevViews: 2453,
+    top: [
+      { title: "Caffino Srikandi Merdeka Cup 2026 (Recap)", views: 350 },
+      { title: "Sapphire Boutique Hotel | Esthetic Staycation di Kudus", views: 190 },
+    ],
+    prevTop: { title: "Klub Sepak Bola Putri Kudus | Scorpion FC", views: 2237 },
+    late: [{ title: "MARKASS Sport Center, Beragam Arena Olahraga di Satu Lokasi", date: "2026-09-25", days: 6 }],
+    lowCtr: [
+      { title: "Muhammad Daffa Nugraha | Perjalanan Bersama PB Sahabat", ctr: 0.0142 },
+      { title: "MARKASS Sport Center, Beragam Arena Olahraga di Satu Lokasi", ctr: 0.034 },
+    ],
+    watchedShare: 0.32,
+    avgViewDurationSec: 104,
+    subsGained: 5,
+    topSubs: { title: "Sapphire Boutique Hotel | Esthetic Staycation di Kudus", subs: 4 },
+  };
+
+  it("September: penyebab views turun, video telat publish & CTR rendah disebut namanya", () => {
+    const out = youtubeFindings(sep);
+    expect(out).toEqual([
+      "All 4 planned videos were published, including 1 recap.",
+      "The Q3 2026 series now has 8 of its 13 videos out, with 5 still to be released.",
+      'Views fell from 2,453 to 732. August was lifted by one video, "Klub Sepak Bola Putri Kudus", with 2,237 views.',
+      'The next most watched was "Sapphire Boutique Hotel" with 190 views.',
+      '"MARKASS Sport Center" went live on 25 September, so it had only 6 days to collect views for this report.',
+      '"Muhammad Daffa Nugraha" (1.4%) and "MARKASS Sport Center" (3.4%) were rarely clicked when shown. Their titles or thumbnails may need work.',
+      "Viewers watched about 32% of each video on average (1 min 44 sec per view).",
+      'The videos brought in 5 new subscribers, 4 of them from "Sapphire Boutique Hotel".',
+    ]);
+    expect(out.join(" ")).not.toMatch(/—|–(?!\d)/);
+  });
+
+  it("kuota terlewati / kurang", () => {
+    expect(youtubeFindings({ ...sep, published: 5 })[0]).toBe("5 videos were published against a quota of 4, including 1 recap.");
+    expect(youtubeFindings({ ...sep, published: 3, recaps: 0 })[0]).toBe("3 of the 4 planned videos were published.");
   });
 });

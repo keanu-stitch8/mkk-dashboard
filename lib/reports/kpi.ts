@@ -147,3 +147,28 @@ export const YOUTUBE_KPIS: KpiDef<YoutubeKpiSource>[] = [
   { key: "avg_view_duration", label: "Avg view duration", kind: "duration", get: (s) => s.avgViewDurationSec },
   { key: "subs_net", label: "Subscribers (net)", kind: "count", get: (s) => s.subsNet, display: (s) => signed(s.subsNet) },
 ];
+
+/** Field kartu KPI Social (lib/data/summary.ts socialKpiSources). */
+export interface SocialKpiSource {
+  published: number;
+  quota: { value: number };
+  views: number | null;
+  viewsPerPost: number | null;
+  reach: number | null;
+  engagementRate: number | null;
+  interactions: number | null;
+  follows: number | null;
+  activeDays: number;
+}
+
+/** Kartu KPI Social / Instagram (urutan = grid dashboard & blok kartu laporan). */
+export const SOCIAL_KPIS: KpiDef<SocialKpiSource>[] = [
+  { key: "published", label: "Posts published", kind: "count", get: (s) => s.published, display: (s) => `${s.published} / ${s.quota.value}`, hint: "Satu baris publishing log = satu konten (semua format, termasuk Stories) vs kuota bulanan." },
+  { key: "views", label: "Views", kind: "count", get: (s) => s.views, hint: "Insight akun Instagram selama bulan ini (API) — termasuk Stories & post lama, bukan hanya post yang dipublish bulan ini." },
+  { key: "views_per_post", label: "Views per post", kind: "count", get: (s) => s.viewsPerPost, hint: "Rata-rata views lifetime per post feed/Reels yang dipublish bulan ini (sejak publish)." },
+  { key: "reach", label: "Reach", kind: "count", get: (s) => s.reach, hint: "Akun unik yang melihat konten selama bulan ini (insight akun). Untuk bulan 31 hari Meta hanya memberi 30 hari pertama." },
+  { key: "engagement_rate", label: "Engagement rate", kind: "rate", get: (s) => s.engagementRate, hint: "Interactions ÷ reach akun selama bulan ini. Lebih tinggi dari ER per post karena pembaginya akun unik." },
+  { key: "interactions", label: "Interactions", kind: "count", get: (s) => s.interactions, hint: "Total interaksi (likes, comments, shares, saves, replies) di semua konten selama bulan ini — insight akun." },
+  { key: "follows", label: "Follows", kind: "count", get: (s) => s.follows, hint: "Follow baru ke akun Instagram selama bulan ini (insight akun via API)." },
+  { key: "active_days", label: "Active publishing days", kind: "count", get: (s) => s.activeDays, display: (s) => `${s.activeDays} days`, hint: "Hari dengan minimal satu konten dipublish (publishing log)." },
+];

@@ -27,15 +27,14 @@ describe("website narrative", () => {
   it("temuan: kalimat pendek tanpa tanda pisah", () => {
     const f = websiteFindings(sep);
     expect(f).toEqual([
-      "Direct brought in 905 sessions (49.2%), followed by Organic Search with 632 (34.4%).",
-      "835 users viewed 7,203 pages across 431 URLs, an average of 8.6 pages per user.",
-      "Kudus is the largest audience with 301 users, 36.0% of the total.",
-      "Sessions rose 22.6% from August 2026 (1,500 to 1,839).",
-      "Direct sessions rose 126.3% from August 2026 (400 to 905).",
-      "147 sessions (8.0%) had no recorded landing page. This usually happens when a visitor returns to a tab left open for more than 30 minutes.",
-      "Google Search sent 98 clicks from 546 impressions, a click-through rate of 17.95% at an average position of 8.6.",
-      "Click-through rate from Google fell 3.3 percentage points from August 2026. The titles and descriptions of the most-shown pages are worth reviewing.",
-      "202 users (24.2%) were located outside Indonesia, mainly in Tel Aviv-Yafo, Prineville and Lulea. This is largely automated traffic from data centres, so these locations are left out of the city ranking, together with 20 users whose city could not be identified.",
+      // pembuka: arah + channel penyebab; angka kartu (users, views) tidak diulang
+      "Visits rose 23% from August to 1,839 sessions. The biggest change came from Direct (+505 sessions).",
+      "Direct brought in almost half of all visits (905), followed by Organic Search with 632.",
+      "Each visitor viewed 8.6 pages on average, spread over 431 different pages.",
+      "Kudus is the largest audience with 301 users, 36% of the total, followed by Semarang (168).",
+      "The share of Google searchers who clicked through fell from 21.2% to 18.0%. The titles and descriptions of the most-shown pages are worth reviewing.",
+      "About a quarter of users (202) came from data centre locations abroad such as Tel Aviv-Yafo, Prineville and Lulea. These are most likely bots, so they are left out of the city ranking, along with 20 users whose city is unknown.",
+      "147 visits (8%) had no recorded landing page, which usually happens when someone returns to a tab left open for more than 30 minutes.",
     ]);
     expect(f.join(" ")).not.toMatch(/—|“|”/);
   });

@@ -2,6 +2,8 @@
 // npx tsx scripts/report-template-news.ts --from=<ID file laporan contoh>   → template baru (DRAFT)
 // npx tsx scripts/report-template-news.ts --patch=<ID template>          → perbarui teks template yang ada
 // npx tsx scripts/report-template-news.ts --fit-widths=<ID template>     → samakan lebar kolom semua sheet (PDF penuh)
+// Catatan: TEXT/STYLE/ANCHORS mengikuti master yang sudah diedit user (2026-10-20). --from hanya riwayat pembuatan awal;
+// hasilnya berlayout lama dan tidak cocok lagi dengan posisi di bawah.
 // Sumber hanya DISALIN (file user tidak diubah); semua perubahan di file baru milik app.
 // Laporan contoh berisi rumus (COUNTIF/XLOOKUP ke Publishing Log & Ref) → semuanya diganti penanda {{…}}.
 import { loadEnvConfig } from "@next/env";
@@ -38,8 +40,8 @@ const TEXT: Record<string, Record<string, string>> = {
   [ES]: {
     A1: "MAIN KE KUDUS | NEWS MONTHLY PERFORMANCE REPORT - {{month_label}}",
     A2: "Reporting period: {{period}} · Sources: News Publishing Log and Google Analytics 4",
-    A21: "KEY FINDINGS",
-    A62: "Views come from Google Analytics for {{period}} and are matched to each article in the Publishing Log by its exact URL. {{match_note}}",
+    A20: "KEY FINDINGS",
+    A61: "Views come from Google Analytics for {{period}} and are matched to each article in the Publishing Log by its exact URL. {{match_note}}",
   },
   [AP]: {
     // subjudul satu baris seperti Website (dulu 2 baris: A3 + A4)
@@ -72,18 +74,19 @@ const STYLE: RowStyleSpec = {
   [ES]: [
     ["reportTitle", 1],
     ["subtitle", 2],
-    ["autoFit", [3, 4]],
-    ...[5, 10].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
-    ["section", 15],
-    ["section", 21],
-    ["text", 22],
-    ["section", 25],
-    ["section", 40],
-    ["header", 41],
-    ["row", [42, 58]],
-    ["total", 45, [1, 5]],
-    ["total", 59],
-    ["note", 62],
+    // 1 baris spasi setelah subjudul (r3; baris spasi kedua dihapus user 2026-10-20 di semua laporan)
+    ["autoFit", 3],
+    ...[4, 9].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
+    ["section", 14],
+    ["section", 20],
+    ["text", 21],
+    ["section", 24],
+    ["section", 39],
+    ["header", 40],
+    ["row", [41, 57]],
+    ["total", 44, [1, 5]],
+    ["total", 58],
+    ["note", 61],
   ],
   [AP]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["row", 6], ["total", 7]],
   [PL]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
@@ -93,11 +96,11 @@ const STYLE: RowStyleSpec = {
 
 /** Teks penanda di posisi yang dipakai TEXT & STYLE (layout template setelah diedit user, 2026-10-20). */
 const ANCHORS: Record<string, string> = {
-  [`'${ES}'!A15`]: "TOP PERFORMING ARTICLE",
-  [`'${ES}'!A21`]: "KEY FINDINGS",
-  [`'${ES}'!A25`]: "CONTENT BREAKDOWN",
-  [`'${ES}'!A41`]: "Content Type",
-  [`'${ES}'!H59`]: "Monthly Quota",
+  [`'${ES}'!A14`]: "TOP PERFORMING ARTICLE",
+  [`'${ES}'!A20`]: "KEY FINDINGS",
+  [`'${ES}'!A24`]: "CONTENT BREAKDOWN",
+  [`'${ES}'!A40`]: "Content Type",
+  [`'${ES}'!H58`]: "Monthly Quota",
   [`'${AP}'!A5`]: "No.",
   [`'${PL}'!A9`]: "No.",
   [`'${AR}'!A9`]: "No.",

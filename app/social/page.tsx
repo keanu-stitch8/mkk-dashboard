@@ -3,7 +3,8 @@ import { Section, CompareTable, DataTable, DeltaBadge, EmptyState, KpiCard, KpiG
 import { BreakdownBars, TrendChart, type SeriesDef } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
 import { SocialRecon } from "@/components/SocialRecon";
-import { contentQuota, getMonthAndPrev, getTrend, resolveMonth, socialComparable } from "@/lib/data/summary";
+import { contentQuota, getMonthAndPrev, getTrend, resolveMonth, socialKpiSources } from "@/lib/data/summary";
+import { SOCIAL_KPIS } from "@/lib/reports/kpi";
 import { generateRecommendations } from "@/lib/recommendations";
 import { fmtDate, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { monthLabel, prevMonth } from "@/lib/month";
@@ -15,7 +16,6 @@ const fmtLabel = (platform: string, format: string) => `${PLATFORM_LABEL[platfor
 const perPost = (v: number | null | undefined, n: number | null | undefined) => (v == null || !n ? null : v / n);
 /** Tanggal (WIB) dari timestamp sync — acuan metrik lifetime. */
 const wibDate = (d: Date) => new Date(d.getTime() + 7 * 3600_000).toISOString().slice(0, 10);
-const ACCOUNT_NOTE = "Insight akun Instagram selama bulan ini (API) — termasuk Stories & post lama, bukan hanya post yang dipublish bulan ini.";
 const POSTS_NOTE = "Jumlah metrik lifetime post yang dipublish bulan ini (export CSV lama).";
 
 const FOLLOWS_HINT: Record<"manual" | "account" | "posts", string> = {
@@ -28,7 +28,8 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
   const { month, months } = await resolveMonth((await searchParams).m);
   const [{ cur, prev }, trend] = await Promise.all([getMonthAndPrev(month), getTrend(month)]);
   const s = cur.social;
-  const cmp = socialComparable(cur.social, prev.social);
+  const kpi = socialKpiSources(cur.social, prev.social.hasData ? prev.social : null);
+  const cmp = kpi.cmp;
   const c = cmp?.cur;
   const p = cmp?.prev;
   const quota = contentQuota(cur, "social");
@@ -85,58 +86,50 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
         </Section>
       </div>
 
-      {/* 2. KPI — urutan sama di semua channel */}
+      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (lib/reports/kpi.ts) */}
       <KpiGrid cols={4}>
-        <KpiCard
-          label="Published"
-          value={quota.available ? `${fmtNum(quota.published)}/${fmtNum(quota.target)}` : fmtNum(s.postsPublished)}
-          cur={quota.available ? quota.published : null}
-          prev={prevQuota?.available ? prevQuota.published : null}
-          note={`Total ${fmtNum(s.postsPublished)} post · ${s.countSource === "log" ? "dari publishing log" : "dari export Meta"}`}
-        />
-        <KpiCard label="Views" value={fmtNum(s.views)} cur={c?.views ?? null} prev={p?.views ?? null} hint={s.metricsSource === "account" ? ACCOUNT_NOTE : POSTS_NOTE} />
-        <KpiCard
-          label="Views / post"
-          value={fmtNum(perPost(s.postViews, s.posts.length))}
-          cur={perPost(c?.postViews, c?.posts)}
-          prev={perPost(p?.postViews, p?.posts)}
-          hint={`Rata-rata views lifetime per post yang dipublish bulan ini (sejak publish${asOf}).`}
-        />
-        <KpiCard
-          label="Reach"
-          value={fmtNum(s.reach)}
-          cur={c?.reach ?? null}
-          prev={p?.reach ?? null}
-          hint={
-            s.metricsSource === "account"
-              ? "Akun unik yang melihat konten selama bulan ini (insight akun). Untuk bulan 31 hari Meta hanya memberi 30 hari pertama."
-              : "Jumlah reach per post (bukan reach unik akun)."
-          }
-        />
-        <KpiCard
-          label="Engagement rate"
-          value={fmtPct(s.engagementRate, 2)}
-          cur={c?.engagementRate ?? null}
-          prev={p?.engagementRate ?? null}
-          kind="rate"
-          hint={s.metricsSource === "account" ? "Interactions ÷ reach akun selama bulan ini. Catatan: lebih tinggi dari ER per post karena pembaginya akun unik." : "Interactions ÷ reach."}
-        />
-        <KpiCard
-          label="Interactions"
-          value={fmtNum(s.interactions)}
-          cur={c?.interactions ?? null}
-          prev={p?.interactions ?? null}
-          hint={s.metricsSource === "account" ? "Total interaksi (likes, comments, shares, saves, replies) di semua konten selama bulan ini — insight akun." : "IG: likes + comments + shares + saves. FB: reactions, comments & shares."}
-        />
-        <KpiCard
-          label="Follows"
-          value={fmtNum(s.follows)}
-          cur={c?.follows ?? null}
-          prev={p?.follows ?? null}
-          hint={FOLLOWS_HINT[s.followsSource ?? "posts"]}
-          note={prev.social.hasData && prev.social.followsSource !== s.followsSource && s.follows != null ? "Definisi beda dari bulan lalu — tidak dibandingkan" : undefined}
-        />
-        <KpiCard label="Hari aktif publish" value={`${fmtNum(s.activeDays)} hari`} cur={s.activeDays} prev={prev.social.hasData ? prev.social.activeDays : null} note={`Jeda terpanjang ${fmtNum(s.emptyStreak.length)} hari`} />
+        {SOCIAL_KPIS.map((k) => {
+          const cur = k.get(kpi.cur);
+          const value =
+            k.key === "published"
+              ? quota.available
+                ? `${fmtNum(quota.published)}/${fmtNum(quota.target)}`
+                : fmtNum(s.postsPublished)
+              : k.key === "active_days"
+                ? `${fmtNum(cur)} hari`
+                : k.kind === "rate"
+                  ? fmtPct(cur, 2)
+                  : fmtNum(cur);
+          const note =
+            k.key === "published"
+              ? `Total ${fmtNum(s.postsPublished)} post · ${s.countSource === "log" ? "dari publishing log" : "dari export Meta"}`
+              : k.key === "follows" && prev.social.hasData && prev.social.followsSource !== s.followsSource && s.follows != null
+                ? "Definisi beda dari bulan lalu — tidak dibandingkan"
+                : k.key === "active_days"
+                  ? `Jeda terpanjang ${fmtNum(s.emptyStreak.length)} hari`
+                  : undefined;
+          const hint =
+            k.key === "views" && s.metricsSource !== "account"
+              ? POSTS_NOTE
+              : k.key === "follows"
+                ? FOLLOWS_HINT[s.followsSource ?? "posts"]
+                : k.key === "views_per_post"
+                  ? `Rata-rata views lifetime per post yang dipublish bulan ini (sejak publish${asOf}).`
+                  : k.hint;
+          return (
+            <KpiCard
+              key={k.key}
+              label={k.label}
+              value={value}
+              cur={k.key === "published" ? (quota.available ? quota.published : null) : cur}
+              prev={kpi.prev ? k.get(kpi.prev) : null}
+              kind={k.kind === "rate" ? "rate" : undefined}
+              goodWhenUp={k.goodWhenUp}
+              hint={hint}
+              note={note}
+            />
+          );
+        })}
       </KpiGrid>
 
       {s.byType && (

@@ -35,6 +35,10 @@ export interface Plan {
   autoHeight: { sheetId: number; startRow: number; endRow: number }[];
   /** baris (posisi akhir) tempat PDF memulai halaman baru */
   pageBreaks: { sheetId: number; row: number }[];
+  /** baris (posisi akhir) yang disembunyikan (`data.hideRows`) */
+  hidden: { sheetId: number; row: number }[];
+  /** baris terakhir tabel `data.openEnd`: garis bawah dihapus (kolom 0..endCol) */
+  openEnd: { sheetId: number; row: number; endCol: number }[];
 }
 
 const TOKEN = /\{\{\s*(#?[\w.-]+)\s*\}\}/g;
@@ -44,7 +48,7 @@ const a1 = (row: number, col: number) => `${String.fromCharCode(65 + col)}${row 
 const fmt = (v: Cell) => (v == null ? "" : typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : v);
 
 export function planFill(grids: SheetGrid[], data: ReportData): Plan {
-  const plan: Plan = { inserts: [], merges: [], writes: [], warnings: [], autoHeight: [], pageBreaks: [] };
+  const plan: Plan = { inserts: [], merges: [], writes: [], warnings: [], autoHeight: [], pageBreaks: [], hidden: [], openEnd: [] };
 
   for (const g of grids) {
     let offset = 0; // baris yang sudah disisipkan di atas baris ini
@@ -94,6 +98,7 @@ export function planFill(grids: SheetGrid[], data: ReportData): Plan {
 
       // baris biasa
       if (!tables.length) {
+        if (cells.some((c) => data.hideRows?.includes(c?.match(EXACT)?.[1] ?? ""))) plan.hidden.push({ sheetId: g.sheetId, row });
         cells.forEach((text, col) => {
           if (!text || !keysIn(text).length) return;
           const w = resolve(text, r, col, row, null);
@@ -125,6 +130,9 @@ export function planFill(grids: SheetGrid[], data: ReportData): Plan {
         for (let i = 1; i < records.length; i++)
           for (const m of rowMerges) plan.merges.push({ sheetId: g.sheetId, startRow: row + i, endRow: row + i + 1, startCol: m.startCol, endCol: m.endCol });
       }
+      // selebar area terpakai sheet (tabel berdampingan bisa melewati sel berisi terakhir baris contoh)
+      if (data.openEnd?.includes(name))
+        plan.openEnd.push({ sheetId: g.sheetId, row: row + records.length - 1, endCol: Math.max(...g.rows.map((x) => x.length), ...g.merges.map((m) => m.endCol)) });
       if (data.autoHeight?.includes(name)) plan.autoHeight.push({ sheetId: g.sheetId, startRow: row, endRow: row + records.length });
       records.forEach((rec, i) => {
         cells.forEach((text, col) => {

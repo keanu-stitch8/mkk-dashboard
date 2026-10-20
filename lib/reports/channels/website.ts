@@ -163,6 +163,8 @@ export async function buildWebsite(month: string): Promise<ReportData> {
     values,
     tones: kpi.tones,
     autoHeight: ["findings", "pages", "landing", "queries", "gsc_pages"],
+    // halaman 1 PDF berakhir tepat setelah tabel mix → garis bawah baris terakhirnya tercetak lagi di atas halaman 2
+    openEnd: ["mix"],
     tables: {
       mix,
       channels: channelRows,

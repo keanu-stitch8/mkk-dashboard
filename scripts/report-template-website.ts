@@ -15,10 +15,8 @@ const TEXT: Record<string, Record<string, string>> = {
   "01 Executive Summary": {
     A1: "MAIN KE KUDUS | WEBSITE MONTHLY PERFORMANCE REPORT - {{month_label}}",
     A2: "Reporting period: {{period}} · Sources: Google Analytics 4 and Google Search Console",
-    H21: "Share of Users",
-    A24: "KEY FINDINGS",
-    A27: "NOTES",
-    A28: "Figures cover {{period}}. City figures in Google Analytics are estimates, and visits from outside Indonesia are not included in the city ranking.",
+    H20: "Share of Users",
+    A23: "KEY FINDINGS",
   },
   "02 Traffic Acquisition": { A2: "Sessions by channel, {{period}}", F4: "Avg Engagement Time" },
   "03 Visitor Cities": {
@@ -86,15 +84,14 @@ const STYLE: RowStyleSpec = {
   "01 Executive Summary": [
     ["reportTitle", 1],
     ["subtitle", 2],
-    ["autoFit", [3, 4]],
-    ...[5, 10, 15].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
-    ["section", 20],
-    ["header", 21],
-    ["row", 22],
-    ["section", 24],
-    ["text", 25],
-    ["section", 27],
-    ["note", 28],
+    // 1 baris spasi setelah subjudul (r3; baris spasi kedua dihapus user 2026-10-20 di semua laporan)
+    ["autoFit", 3],
+    ...[4, 9, 14].flatMap((r): RowStyleSpec[string] => [["cardLabel", r], ["cardValue", r + 1], ["cardLabel", r + 2]]),
+    ["section", 19],
+    ["header", 20],
+    ["row", 21],
+    ["section", 23],
+    ["text", 24],
   ],
   "02 Traffic Acquisition": titled(["header", 4], ["total", 5], ["row", 6]),
   "03 Visitor Cities": titled(["header", 4], ["row", 5], ["total", 6], ["row", [8, 9]]),
@@ -109,9 +106,8 @@ const STYLE: RowStyleSpec = {
 
 /** Teks penanda di posisi yang dipakai TEXT & STYLE; layout berubah (template diedit) → patch berhenti. */
 const ANCHORS: Record<string, string> = {
-  "'01 Executive Summary'!A20": "ACQUISITION MIX",
-  "'01 Executive Summary'!A24": "KEY FINDINGS",
-  "'01 Executive Summary'!A27": "NOTES",
+  "'01 Executive Summary'!A19": "ACQUISITION MIX",
+  "'01 Executive Summary'!A23": "KEY FINDINGS",
   "'02 Traffic Acquisition'!A5": "TOTAL",
   "'03 Visitor Cities'!A4": "Rank",
   "'06 Search Console'!A7": "DAILY SEARCH PERFORMANCE",

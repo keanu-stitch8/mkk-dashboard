@@ -567,7 +567,7 @@ export async function getSocialSummary(month: string) {
     // Format bisnis dari publishing log (Reels berbayar ≠ Video upload, walau di IG sama-sama "reels");
     // post yang tidak di log: istilah Meta, carousel/foto disamakan dengan "feeds" milik log.
     const format = log?.format ?? (logs.length && ["carousel", "photo"].includes(p.format) ? "feeds" : p.format);
-    return { ...p, format, metaFormat: p.format, monthViews, category: log?.category ?? null, inLog: !!log, er: safeDiv(p.interactions, p.reach) };
+    return { ...p, format, metaFormat: p.format, monthViews, category: log?.category ?? null, title: log?.title ?? null, inLog: !!log, er: safeDiv(p.interactions, p.reach) };
   });
 
   // Views, reach & interactions: insight akun selama bulan itu (API) jika ada — termasuk post lama & Stories.
@@ -805,6 +805,38 @@ export function socialComparable(cur: SocialSummary, prev: SocialSummary | null)
   };
   const partial = common.length < cur.platforms.length || common.length < prev.platforms.length;
   return { platforms: common, partial, cur: pick(cur), prev: pick(prev) };
+}
+
+/**
+ * Sumber kartu KPI Social (dashboard & laporan, SOCIAL_KPIS): nilai bulan ini lengkap; bulan lalu hanya metrik yang
+ * sebanding (aturan socialComparable — platform sama & definisi sama), selain itu null → tidak dibandingkan.
+ */
+export function socialKpiSources(cur: SocialSummary, prev: SocialSummary | null) {
+  const cmp = socialComparable(cur, prev);
+  const per = (v: number | null | undefined, n: number) => (v == null || !n ? null : v / n);
+  const src = (s: SocialSummary) => ({
+    published: s.postsPublished,
+    quota: s.quotaProgress[0].quota,
+    views: s.views,
+    viewsPerPost: per(s.postViews, s.posts.length),
+    reach: s.reach,
+    engagementRate: s.engagementRate,
+    interactions: s.interactions,
+    follows: s.follows,
+    activeDays: s.activeDays,
+  });
+  const prevSrc = !prev?.hasData
+    ? null
+    : {
+        ...src(prev),
+        views: cmp?.prev.views ?? null,
+        viewsPerPost: cmp ? per(cmp.prev.postViews, cmp.prev.posts) : null,
+        reach: cmp?.prev.reach ?? null,
+        engagementRate: cmp?.prev.engagementRate ?? null,
+        interactions: cmp?.prev.interactions ?? null,
+        follows: cmp?.prev.follows ?? null,
+      };
+  return { cur: src(cur), prev: prevSrc, cmp };
 }
 
 /** KPI lintas channel untuk Overview. */
