@@ -76,13 +76,18 @@ export async function saveGa4Cities(month: string, client?: BetaAnalyticsDataCli
     dimensions: [{ name: "city" }, { name: "country" }],
     metrics: [{ name: "activeUsers" }, { name: "newUsers" }],
   });
-  const rows = (res.rows ?? []).map((r) => ({
-    month,
-    city: r.dimensionValues?.[0]?.value || "(not set)",
-    country: r.dimensionValues?.[1]?.value || "(not set)",
-    activeUsers: Number(r.metricValues?.[0]?.value ?? 0),
-    newUsers: Number(r.metricValues?.[1]?.value ?? 0),
-  }));
+  // GA4 bisa mengirim kota kosong DAN "(not set)" sebagai baris terpisah (mis. China, Okt 2026) → keduanya
+  // menjadi "(not set)", jadi baris dengan kunci sama digabung (kunci tabel = month + city + country)
+  const byKey = new Map<string, { month: string; city: string; country: string; activeUsers: number; newUsers: number }>();
+  for (const r of res.rows ?? []) {
+    const city = r.dimensionValues?.[0]?.value || "(not set)";
+    const country = r.dimensionValues?.[1]?.value || "(not set)";
+    const row = byKey.get(`${city}\u0000${country}`) ?? { month, city, country, activeUsers: 0, newUsers: 0 };
+    row.activeUsers += Number(r.metricValues?.[0]?.value ?? 0);
+    row.newUsers += Number(r.metricValues?.[1]?.value ?? 0);
+    byKey.set(`${city}\u0000${country}`, row);
+  }
+  const rows = [...byKey.values()];
   await prisma.$transaction([prisma.ga4City.deleteMany({ where: { month } }), prisma.ga4City.createMany({ data: rows })]);
   return rows.length;
 }
