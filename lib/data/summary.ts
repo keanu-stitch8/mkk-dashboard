@@ -583,6 +583,10 @@ export async function getSocialSummary(month: string) {
   const collabPosts = allPosts.filter((p) => !posts.includes(p)).map((p) => ({ ...p, er: safeDiv(p.interactions, p.reach) }));
 
   const matched = matchLogsToPosts(posts, logs);
+  const permalinkByLog = new Map([...matched].flatMap(([postId, l]) => {
+    const link = posts.find((p) => p.id === postId)?.permalink;
+    return link ? [[l.id, link] as const] : [];
+  }));
   const monthSnap = await monthEndSnapshot(month);
   const enriched = posts.map((p) => {
     const log = matched.get(p.id);
@@ -706,7 +710,8 @@ export async function getSocialSummary(month: string) {
     byCategory: logs.length ? byCategory : [],
     topPosts: [...enriched].sort((a, b) => (b.reach ?? 0) - (a.reach ?? 0)).slice(0, 10),
     daily,
-    logs,
+    // link konten: URL di log, atau permalink post Meta pasangannya (log Sosmed umumnya tanpa URL)
+    logs: logs.map((l) => ({ ...l, link: l.url ?? permalinkByLog.get(l.id) ?? null })),
   };
 }
 export type SocialSummary = Awaited<ReturnType<typeof getSocialSummary>>;

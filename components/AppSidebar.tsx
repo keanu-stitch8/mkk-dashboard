@@ -29,7 +29,7 @@ const CHANNELS: NavItem[] = [
   { href: "/website", label: "Website", icon: Globe },
   { href: "/news", label: "News", icon: Newspaper, sub: [{ href: "/news/logs", label: "Publishing Log" }] },
   { href: "/youtube", label: "YouTube", icon: SiYoutube, sub: [{ href: "/youtube/logs", label: "Publishing Log" }] },
-  { href: "/social", label: "Social Media", icon: MessagesSquare },
+  { href: "/social", label: "Social Media", icon: MessagesSquare, sub: [{ href: "/social/logs", label: "Publishing Log" }] },
 ];
 
 const TOOLS: NavItem[] = [
