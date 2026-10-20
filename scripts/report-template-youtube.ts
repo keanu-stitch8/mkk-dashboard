@@ -65,18 +65,18 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     A21: "KEY FINDINGS",
     A22: "{{#findings.text}}",
     // seri produksi: video dari satu kali syuting, dipublish bertahap (recap = produksi terpisah)
-    A24: "PRODUCTION SERIES · {{series.name}}",
-    A25: ["SHOOT PERIOD", "", "VIDEOS PRODUCED", "", "{{series.before_label}}", "", "{{series.month_label}}", "", "REMAINING", "", "RECAPS THIS MONTH", ""],
-    A26: ["{{series.shoot}}", "", "{{series.produced}}", "", "{{series.before}}", "", "{{series.month}}", "", "{{series.remaining}}", "", "{{recaps}}", ""],
-    A29: "CONTENT BREAKDOWN",
-    A44: "CONTENT TYPE",
-    H44: "CONTENT CATEGORY",
-    A45: ["Content Type", "", "Published", "Share of Published", "", "", "", "Category", "", "Videos", "Share of Quota"],
-    ...Object.fromEntries([1, 2, 3].map((i) => [`A${45 + i}`, [`{{type.${i}.name}}`, "", `{{type.${i}.count}}`, `{{type.${i}.share}}`]])),
-    ...Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`H${46 + i}`, [`{{cat.${i + 1}.name}}`, "", `{{cat.${i + 1}.count}}`, `{{cat.${i + 1}.share}}`]])),
-    H57: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
-    H58: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
-    A61: "Views, watch time and subscribers come from YouTube Analytics for {{period}}. Each video in the Publishing Log is matched by its video link.",
+    A25: "PRODUCTION SERIES · {{series.name}}",
+    A26: ["SHOOT PERIOD", "", "VIDEOS PRODUCED", "", "{{series.before_label}}", "", "{{series.month_label}}", "", "REMAINING", "", "RECAPS THIS MONTH", ""],
+    A27: ["{{series.shoot}}", "", "{{series.produced}}", "", "{{series.before}}", "", "{{series.month}}", "", "{{series.remaining}}", "", "{{recaps}}", ""],
+    A30: "CONTENT BREAKDOWN",
+    A45: "CONTENT TYPE",
+    H45: "CONTENT CATEGORY",
+    A46: ["Content Type", "", "Published", "Share of Published", "", "", "", "Category", "", "Videos", "Share of Quota"],
+    ...Object.fromEntries([1, 2, 3].map((i) => [`A${46 + i}`, [`{{type.${i}.name}}`, "", `{{type.${i}.count}}`, `{{type.${i}.share}}`]])),
+    ...Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`H${47 + i}`, [`{{cat.${i + 1}.name}}`, "", `{{cat.${i + 1}.count}}`, `{{cat.${i + 1}.share}}`]])),
+    H58: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
+    H59: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
+    A62: "Views, watch time and subscribers come from YouTube Analytics for {{period}}. Each video in the Publishing Log is matched by its video link.",
   },
   [VP]: {
     A1: "YOUTUBE VIDEO PERFORMANCE",
@@ -113,16 +113,16 @@ const STYLE: RowStyleSpec = {
     ["section", 15],
     ["section", 21],
     ["text", 22],
-    ["section", 24],
-    ["cardLabel", 25],
-    ["cardValue", 26],
-    ["section", 29],
-    ["section", 44],
-    ["header", 45],
-    ["row", [46, 57]],
-    ["total", 49, [1, 5]],
-    ["total", 58],
-    ["note", 61],
+    ["section", 25],
+    ["cardLabel", 26],
+    ["cardValue", 27],
+    ["section", 30],
+    ["section", 45],
+    ["header", 46],
+    ["row", [47, 58]],
+    ["total", 50, [1, 5]],
+    ["total", 59],
+    ["note", 62],
   ],
   [VP]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["row", 6], ["total", 7, [1, 13]]],
   [PL]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
@@ -133,9 +133,9 @@ const STYLE: RowStyleSpec = {
 const ANCHORS: Record<string, string> = {
   [`'${ES}'!A15`]: "TOP PERFORMING VIDEO",
   [`'${ES}'!A21`]: "KEY FINDINGS",
-  [`'${ES}'!A29`]: "CONTENT BREAKDOWN",
-  [`'${ES}'!A45`]: "Content Type",
-  [`'${ES}'!H58`]: "Monthly Quota",
+  [`'${ES}'!A30`]: "CONTENT BREAKDOWN",
+  [`'${ES}'!A46`]: "Content Type",
+  [`'${ES}'!H59`]: "Monthly Quota",
   [`'${VP}'!A5`]: "No.",
   [`'${PL}'!A9`]: "No.",
   [`'${MG}'!A5`]: "Metric",
@@ -175,14 +175,14 @@ async function patchText(c: ReportClients, id: string) {
     ...CARDS.map(([, r, c0, f]) => num(ES, r + 1, c0, c0 + 3, f ?? TXT)),
     num(ES, 17, 8, 10, INT),
     num(ES, 17, 10, 12, PCT1),
-    num(ES, 26, 0, 12, INT),
-    num(ES, 26, 0, 2, TXT),
-    num(ES, 46, 2, 3, INT, 49, "RIGHT"),
-    num(ES, 46, 3, 5, PCT1, 49, "RIGHT"),
-    num(ES, 46, 9, 10, INT, 58, "RIGHT"),
-    num(ES, 46, 10, 12, PCT1, 58, "RIGHT"),
-    right(ES, 45, 2, 5),
-    right(ES, 45, 9, 12),
+    num(ES, 27, 0, 12, INT),
+    num(ES, 27, 0, 2, TXT),
+    num(ES, 47, 2, 3, INT, 50, "RIGHT"),
+    num(ES, 47, 3, 5, PCT1, 50, "RIGHT"),
+    num(ES, 47, 9, 10, INT, 59, "RIGHT"),
+    num(ES, 47, 10, 12, PCT1, 59, "RIGHT"),
+    right(ES, 46, 2, 5),
+    right(ES, 46, 9, 12),
     num(VP, 6, 1, 2, DATE),
     num(VP, 6, 5, 7, INT, 7, "RIGHT"),
     num(VP, 6, 7, 8, DEC1, 7, "RIGHT"),
@@ -200,7 +200,10 @@ async function patchText(c: ReportClients, id: string) {
   await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
 }
 
-/** Salinan master News → struktur YouTube (sekali, saat --from). Posisi baris = posisi master News saat ini. */
+/**
+ * Salinan master News → struktur YouTube (sekali, saat --from). Hasilnya = layout master YouTube yang disetujui user
+ * 2026-10-20 (posisi TEXT/STYLE/ANCHORS di atas). Posisi sumber = master News saat itu.
+ */
 async function restructure(c: ReportClients, id: string) {
   const sid = await sheetIds(c, id);
   const requests: Req[] = [
@@ -219,18 +222,18 @@ async function restructure(c: ReportClients, id: string) {
     spreadsheetId: id,
     requestBody: {
       requests: [
-        // 01: blok seri produksi (4 baris) setelah Key Findings → baris di bawahnya (chart, tabel) turun 4
-        { insertDimension: { range: ROWS(ES, 24, 27), inheritFromBefore: false } },
+        // 01: blok seri produksi (5 baris: spasi, bar, label, nilai, spasi) setelah Key Findings → baris di bawahnya turun 5
+        { insertDimension: { range: ROWS(ES, 24, 28), inheritFromBefore: false } },
         // kategori News 15 + "Under review" → YouTube 11 kategori (+ Unpublished, Monthly Quota tetap); di dalam
         // rentang pie chart sehingga rentangnya ikut menyusut
-        { deleteDimension: { range: ROWS(ES, 57, 61) } },
+        { deleteDimension: { range: ROWS(ES, 58, 62) } },
         // strip seri = gaya strip angka 03 Publishing Log (label kecil + angka besar), 6 sel × 2 kolom
-        { copyPaste: { source: r2(PL, 5, 0, 2), destination: r2(ES, 25, 0, 12), pasteType: "PASTE_FORMAT" } },
-        { copyPaste: { source: r2(PL, 6, 0, 2), destination: r2(ES, 26, 0, 12), pasteType: "PASTE_FORMAT" } },
-        // nilai strip 03 di-merge 2 baris (r6:r7) → bersihkan sampai r27 sebelum merge per pasang kolom
-        { unmergeCells: { range: r2(ES, 25, 0, 12, 27) } },
-        ...pairs(25),
+        { copyPaste: { source: r2(PL, 5, 0, 2), destination: r2(ES, 26, 0, 12), pasteType: "PASTE_FORMAT" } },
+        { copyPaste: { source: r2(PL, 6, 0, 2), destination: r2(ES, 27, 0, 12), pasteType: "PASTE_FORMAT" } },
+        // nilai strip 03 di-merge 2 baris (r6:r7) → bersihkan sampai r28 sebelum merge per pasang kolom
+        { unmergeCells: { range: r2(ES, 26, 0, 12, 28) } },
         ...pairs(26),
+        ...pairs(27),
         // 02: 10 → 13 kolom (Watch time, Impressions, CTR, Subs, Share), format ikut kolom terakhir
         { insertDimension: { range: COLS(VP, 10, 13), inheritFromBefore: true } },
         // 03: kolom Method dihapus (9 → 8 kolom)
