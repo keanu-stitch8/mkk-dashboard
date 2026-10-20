@@ -263,11 +263,13 @@ export const RULES: Rule[] = [
     channel: "youtube",
     run: ({ cur }) => {
       const y = cur.youtube;
-      if (!y.hasData || y.achievement == null || y.achievement >= 0.9) return null;
+      if (!y.hasData || y.deliveredRate == null || y.deliveredRate >= 0.9) return null;
       return {
         priority: "sedang",
         title: "Kuota video YouTube belum tercapai",
-        text: `${fmtNum(y.published)} dari ${fmtNum(y.quota.value)} video terbit (${fmtPct(y.achievement)}).`,
+        text: `Delivered ${fmtNum(y.delivered)} dari ${fmtNum(y.quota.value)} video (${fmtPct(y.deliveredRate)}): ${fmtNum(y.published)} published + ${fmtNum(y.inReview)} in review.${
+          y.inReview ? ` Percepat approval ${fmtNum(y.inReview)} video yang masih review supaya cepat tayang.` : ""
+        }`,
       };
     },
   },
@@ -297,7 +299,9 @@ export const RULES: Rule[] = [
       return {
         priority: q.rate < 0.7 ? "tinggi" : "sedang",
         title: "Kuota post sosmed belum tercapai",
-        text: `${fmtNum(q.count)} dari ${fmtNum(q.quota.value)} post (${fmtPct(q.rate)}); kurang ${fmtNum(gap)}.${
+        text: `Delivered ${fmtNum(q.count)} dari ${fmtNum(q.quota.value)} post (${fmtPct(q.rate)}): ${fmtNum(q.published)} published + ${fmtNum(q.inReview)} in review; kurang ${fmtNum(gap)}.${
+          q.inReview ? ` Percepat approval ${fmtNum(q.inReview)} konten yang masih review supaya cepat tayang.` : ""
+        }${
           cur.social.countSource === "meta" ? " Dihitung dari export Meta tanpa Stories — import Publishing Log untuk angka resmi." : ""
         }`,
       };

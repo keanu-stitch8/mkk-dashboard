@@ -216,20 +216,23 @@ Catatan:
 
 ### 7. Google Sheets (Publishing Log)
 
-Publishing Log dibaca langsung dari Google Drive — tidak perlu upload XLSX. **1 bulan = 1 file**, dicari otomatis berdasarkan nama + bulan (bahasa Inggris/Indonesia, mis. "September 2026" / "Oktober 2026"):
+Publishing Log dibaca langsung dari Google Drive — tidak perlu upload XLSX. Log News & Sosmed: **1 bulan = 1 file**, dicari otomatis berdasarkan nama + bulan (bahasa Inggris/Indonesia, mis. "September 2026" / "Oktober 2026"). Tracker: **1 file untuk semua bulan**.
 
 | Log | Nama file yang dicari | Tab yang dibaca |
 |---|---|---|
-| News | `… News Content Logs - <Bulan> <Tahun>` | tab log (Planned Date, Judul Berita, Status, Published Date, Link Berita, …) |
+| News | `… News Content Logs - <Bulan> <Tahun>` | tab log (Planned Date, Judul Berita, Status, Submitted Date, Published Date, Link Berita, …) |
 | Sosmed | `… Socmed Content Logs - <Bulan> <Tahun>` | tab log (Tanggal, Konten, Kategori, Channels, Type, Admin, Designer/Editor, Status) |
-| YouTube | `… Youtube Monthly Performance Report - <Bulan> <Tahun>` | sheet `03 Publishing Log` |
+| Sosmed · in review | `… Social Media - Task Progress` | tab per bulan (Planned Date, Artikel, Status, Submitted Date, Published Date) |
+| YouTube | `… Youtube Calendar Timeline` (satu-satunya log YouTube yang di-update tim) | tab `Summary` = video & tanggal tayang; tab `Tracker` (Gantt) = status harian → in review |
 
-File di-export ke XLSX lewat Drive API lalu diparse dengan parser yang sama seperti upload manual. Jika ada beberapa file untuk bulan yang sama, yang terakhir diubah dipakai (salinan "Copy of …" dikalahkan) dan ada peringatan. Tab Summary/Ref dilewati. Tanggal artikel News = **Published Date** (artikel review/draft memakai Planned Date).
+File di-export ke XLSX lewat Drive API lalu diparse. Jika ada beberapa file yang cocok, yang terakhir diubah dipakai (salinan "Copy of …" dikalahkan) dan ada peringatan. Tab Summary/Ref log bulanan dilewati. Tanggal artikel News = **Published Date** (artikel review/draft memakai Planned Date). Daftar file yang dipakai per bulan (dengan link) ada di halaman **Sumber Logs**.
+
+**Delivered = published + in review** (News, Sosmed, YouTube), dengan in review = **snapshot akhir bulan**: konten yang diserahkan bulan itu dan per akhir bulan belum tayang (status Review/Reviewing/Submitted/Approved, atau Published dengan tanggal tayang bulan berikutnya). Dihitung dari tanggal, jadi angka bulan lalu tidak berubah walau status di-update belakangan. Konten yang menyeberang bulan sengaja dihitung dua kali: in review di bulan penyerahan, published di bulan tayang. YouTube: status tugas Video Editor di Gantt pada hari terakhir bulan (QC = cek internal, tidak dihitung).
 
 Setup:
 1. Aktifkan **Google Drive API**: https://console.cloud.google.com/apis/library/drive.googleapis.com
 2. OAuth consent screen → **Data access** → tambahkan scope `…/auth/drive.readonly` (lihat semua file Google Drive — hanya baca; dibutuhkan untuk mencari file by nama & export ke XLSX).
-3. Halaman **Connectors API** → kartu **Google Sheets** → **Hubungkan akun Google** → login dengan akun yang bisa membuka ketiga spreadsheet (mis. pemilik log News dan akun yang dibagikan log Sosmed) → centang izin Drive.
+3. Halaman **Connectors API** → kartu **Google Sheets** → **Hubungkan akun Google** → login dengan akun yang bisa membuka semua spreadsheet log (mis. pemilik log News dan akun yang dibagikan log Sosmed) → centang izin Drive.
 4. **Test koneksi** menampilkan file log yang ditemukan untuk bulan ini & bulan lalu (✓/✗).
 
 ### 8. Menjalankan sync
@@ -349,7 +352,7 @@ Urutan file per bulan yang disarankan: GA4 (4 CSV) → GSC (XLSX) → YouTube (Z
 | Engagement rate website | Engaged sessions ÷ sessions; **bounce rate** = 1 − engagement rate |
 | Avg engagement time | Rata-rata per sesi, tertimbang jumlah sesi per channel |
 | GSC CTR / posisi | Clicks ÷ impressions; posisi rata-rata tertimbang impressions |
-| Achievement News | (Published + In review) ÷ kuota, sama dengan "Delivered" di report News. Published ÷ kuota ditampilkan terpisah |
+| Achievement News / Sosmed / YouTube | (Published + In review) ÷ kuota = "Delivered" di dashboard & ketiga report (kartu "Delivered vs quota", baris "In review" di tabel kategori; report Sosmed/YouTube juga mendaftar konten in review di Publishing Log). Published ÷ kuota ditampilkan terpisah di dashboard |
 | Total views News | Jumlah views GA4 untuk URL artikel yang published bulan itu (exact match, tanpa trailing slash & query string) |
 | Interaksi sosmed | IG: likes + comments + shares + saves · FB: kolom *Reactions, Comments and Shares* |
 | Engagement rate sosmed | Interaksi ÷ reach (reach = jumlah reach per post) |

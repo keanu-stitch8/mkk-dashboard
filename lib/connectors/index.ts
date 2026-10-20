@@ -46,7 +46,8 @@ export async function syncConnector(id: ConnectorId, month: string, trigger: "ma
     for (const ds of datasets) {
       const res = await commitDataset(prisma, ds, month);
       rows += res.rows;
-      detail.push(`${DATASETS[ds.key].label}: ${res.skipped ? "0 baris (tidak disimpan)" : `${res.rows.toLocaleString("id-ID")} baris`}`);
+      const inReview = ds.key.endsWith("_review") ? ds.metrics[0]?.value : undefined;
+      detail.push(`${DATASETS[ds.key].label}: ${inReview != null ? `${inReview} konten` : res.skipped ? "0 baris (tidak disimpan)" : `${res.rows.toLocaleString("id-ID")} baris`}`);
     }
     const warnings = [...new Set(datasets.flatMap((d) => d.warnings))];
     await prisma.syncLog.update({

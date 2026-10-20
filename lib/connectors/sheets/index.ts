@@ -4,6 +4,9 @@
 import { google, type drive_v3 } from "googleapis";
 import type { Dataset } from "../../parsers/types";
 import { parseFiles } from "../../parsers";
+import { readTrackerTab, socialReviewDataset } from "../../parsers/logs";
+import { readYtCalendarGantt, readYtCalendarSummary, ytCalendarLogDataset, ytReviewDataset } from "../../parsers/youtube-calendar";
+import { readTables } from "../../parsers/tabular";
 import { prevMonth } from "../../month";
 import type { Connector, ConnectorStatus, TestResult } from "../types";
 import { ConnectorError } from "../types";
@@ -11,7 +14,7 @@ import { monthRange, withRetry } from "../common";
 import { googleErrorMessage, isRetryableGoogleError } from "../google-errors";
 import { GOOGLE_SCOPES, oauthAccount, oauthClientConfigured } from "../google-oauth";
 import { resolveGoogleAuth, type AuthInfo } from "../google-auth";
-import { LOG_FILES, pickLogFile, type DriveFile, type LogKind } from "./map";
+import { LOG_FILES, TRACKER_FILES, pickLogFile, pickTrackerFile, type DriveFile, type LogKind, type TrackerKind } from "./map";
 
 const SHEET_MIME = "application/vnd.google-apps.spreadsheet";
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -73,7 +76,48 @@ async function fetchLog(drive: drive_v3.Drive, files: DriveFile[], kind: LogKind
     return null;
   }
   ds.file = `Google Sheets · ${file.name}`;
+  ds.url = sheetUrl(file);
   return ds;
+}
+
+const sheetUrl = (f: DriveFile) => `https://docs.google.com/spreadsheets/d/${f.id}/edit`;
+
+/** File tracker (satu file untuk semua bulan) → tabel mentah. null + peringatan jika file tidak ada. */
+async function trackerTables(drive: drive_v3.Drive, files: DriveFile[], kind: TrackerKind, warnings: string[]) {
+  const file = pickTrackerFile(files, kind);
+  if (!file) {
+    warnings.push(`${TRACKER_FILES[kind].label}: file tidak ditemukan di Google Drive — data dari file ini tidak diperbarui.`);
+    return null;
+  }
+  const { tables } = readTables({ name: `${file.name}.xlsx`, data: await exportXlsx(drive, file.id) });
+  return { file, tables, label: `Google Sheets · ${file.name}` };
+}
+
+/** In review sosmed bulan ini dari Task Progress. */
+async function fetchSocialTracker(drive: drive_v3.Drive, files: DriveFile[], month: string, warnings: string[]): Promise<Dataset[]> {
+  const t = await trackerTables(drive, files, "social", warnings);
+  if (!t) return [];
+  // semua tab: konten tab bulan lalu bisa saja baru disubmit bulan ini
+  const tabs = t.tables.map(readTrackerTab).filter((x) => !!x);
+  if (!tabs.some((x) => x.tabMonth === month)) {
+    warnings.push(`${TRACKER_FILES.social.label}: tidak ada tab dengan Planned Date ${month} di “${t.file.name}” — sosmed in review tidak diperbarui.`);
+    return [];
+  }
+  return [{ ...socialReviewDataset(tabs.flatMap((x) => x.rows), month, t.label), url: sheetUrl(t.file) }];
+}
+
+/** Log YouTube (tab Summary) + in review (tab Tracker/Gantt) bulan ini dari Calendar Timeline. */
+async function fetchYoutubeCalendar(drive: drive_v3.Drive, files: DriveFile[], month: string, warnings: string[]): Promise<Dataset[]> {
+  const t = await trackerTables(drive, files, "youtube", warnings);
+  if (!t) return [];
+  const out: Dataset[] = [];
+  const summary = t.tables.map(readYtCalendarSummary).find((x) => !!x);
+  if (summary) out.push({ ...ytCalendarLogDataset(summary, month, t.label), url: sheetUrl(t.file) });
+  else warnings.push(`${TRACKER_FILES.youtube.label}: tab Summary (Publish Date, Video, Status) tidak terbaca di “${t.file.name}”.`);
+  const gantt = t.tables.map(readYtCalendarGantt).find((x) => !!x);
+  if (gantt) out.push({ ...ytReviewDataset(gantt, month, t.label), url: sheetUrl(t.file) });
+  else warnings.push(`${TRACKER_FILES.youtube.label}: tab Tracker (Gantt) tidak terbaca di “${t.file.name}” — YouTube in review tidak diperbarui.`);
+  return out;
 }
 
 export const sheets: Connector = {
@@ -102,6 +146,7 @@ export const sheets: Connector = {
         const found = KINDS.map((k) => `${LOG_FILES[k].label} ${pickLogFile(files, k, m).file ? "✓" : "✗"}`);
         return `${m}: ${found.join(", ")}`;
       });
+      for (const k of Object.keys(TRACKER_FILES) as TrackerKind[]) lines.push(`${TRACKER_FILES[k].label} ${pickTrackerFile(files, k) ? "✓" : "✗"}`);
       return { ok: true, message: `Terhubung sebagai ${info.account ?? "akun Google"} (${files.length} spreadsheet bisa diakses). ${lines.join(" · ")}.` };
     } catch (e) {
       return { ok: false, message: translate(e, info).message };
@@ -119,6 +164,8 @@ export const sheets: Connector = {
         const ds = await fetchLog(drive, files, kind, month, warnings);
         if (ds) datasets.push(ds);
       }
+      datasets.push(...(await fetchSocialTracker(drive, files, month, warnings)));
+      datasets.push(...(await fetchYoutubeCalendar(drive, files, month, warnings)));
       if (!datasets.length) throw new ConnectorError(`Tidak ada Publishing Log ${month} yang bisa dibaca. ${warnings.join(" ")}`);
       for (const d of datasets) d.warnings.push(...warnings);
       return datasets;

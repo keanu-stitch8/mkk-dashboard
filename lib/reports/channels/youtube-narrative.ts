@@ -7,6 +7,10 @@ export interface YoutubeNarrativeInput {
   prevMonthLabel: string;
   quota: number;
   published: number;
+  /** diserahkan, belum tayang per akhir bulan (Review/Approved di Gantt) */
+  inReview: number;
+  /** published + in review */
+  delivered: number;
   recaps: number;
   series: { name: string; produced: number; publishedToDate: number; remaining: number } | null;
   views: number | null;
@@ -38,12 +42,14 @@ export function youtubeFindings(i: YoutubeNarrativeInput): string[] {
   const prevM = monthOnly(i.prevMonthLabel, i.monthLabel);
   if (i.quota > 0) {
     const recap = i.recaps > 0 ? `, including ${plural(i.recaps, "recap")}` : "";
+    // delivered = published + in review (definisi sama dengan News & Social); recap = video yang sudah tayang
+    const split = i.inReview > 0 ? ` (${n(i.published)} live, ${n(i.inReview)} waiting for approval)` : "";
     out.push(
-      i.published === i.quota
-        ? `All ${n(i.quota)} planned videos were published${recap}.`
-        : i.published > i.quota
-          ? `${n(i.published)} videos were published against a quota of ${n(i.quota)}${recap}.`
-          : `${n(i.published)} of the ${n(i.quota)} planned videos were published${recap}.`,
+      i.delivered === i.quota
+        ? `All ${n(i.quota)} planned videos were delivered${split}${recap}.`
+        : i.delivered > i.quota
+          ? `${n(i.delivered)} videos were delivered against a quota of ${n(i.quota)}${split}${recap}.`
+          : `${n(i.delivered)} of the ${n(i.quota)} planned videos were delivered${split}${recap}.`,
     );
   }
   if (i.series)

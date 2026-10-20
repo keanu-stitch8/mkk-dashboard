@@ -59,6 +59,7 @@ export async function commitDataset(prisma: PrismaClient, raw: Dataset, month: s
         month,
         source: ds.key,
         fileName,
+        fileUrl: ds.url ?? null,
         rowCount: rowCount(ds),
         note: ds.warnings.length ? ds.warnings.join("\n") : null,
       },

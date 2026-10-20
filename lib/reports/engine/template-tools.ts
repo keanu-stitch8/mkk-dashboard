@@ -250,3 +250,27 @@ export async function fitTextRows(c: ReportClients, id: string, rows: { sheetId:
   }
   if (requests.length) await c.sheets.spreadsheets.batchUpdate({ spreadsheetId: id, requestBody: { requests } });
 }
+
+/**
+ * Sisip baris "In review" di tabel kategori Executive Summary, tepat sebelum baris Unpublished (`unpublishedRow`,
+ * posisi sebelum disisip). Sekali saja: kalau baris Unpublished sudah turun satu, dilewati. Baris sisipan ada di dalam
+ * rentang pie chart kategori → rentangnya ikut melebar. Merge nama (H:I) & porsi (K:L) dipasang seperti baris lain.
+ */
+export async function ensureReviewRow(c: ReportClients, id: string, sheet: string, unpublishedRow: number) {
+  const q = `'${sheet.replace(/'/g, "''")}'`;
+  const r = await c.sheets.spreadsheets.values.batchGet({ spreadsheetId: id, ranges: [`${q}!H${unpublishedRow}`, `${q}!H${unpublishedRow + 1}`] });
+  const [at, next] = (r.data.valueRanges ?? []).map((v) => String(v.values?.[0]?.[0] ?? "").trim());
+  if (next === "Unpublished" && (at === "In review" || at === "")) return;
+  if (at !== "Unpublished" || next !== "Monthly Quota")
+    throw new Error(`Layout template berubah, baris In review tidak disisipkan: ${sheet}!H${unpublishedRow} = "${at}", H${unpublishedRow + 1} = "${next}".`);
+  const meta = await c.sheets.spreadsheets.get({ spreadsheetId: id, fields: "sheets(properties(sheetId,title))" });
+  const sheetId = meta.data.sheets!.find((s) => s.properties!.title === sheet)!.properties!.sheetId!;
+  const row0 = unpublishedRow - 1;
+  const merge = (c0: number, c1: number) => ({ mergeCells: { range: { sheetId, startRowIndex: row0, endRowIndex: row0 + 1, startColumnIndex: c0, endColumnIndex: c1 }, mergeType: "MERGE_ALL" } });
+  await c.sheets.spreadsheets.batchUpdate({
+    spreadsheetId: id,
+    requestBody: {
+      requests: [{ insertDimension: { range: { sheetId, dimension: "ROWS", startIndex: row0, endIndex: row0 + 1 }, inheritFromBefore: true } }, merge(7, 9), merge(10, 12)],
+    },
+  });
+}

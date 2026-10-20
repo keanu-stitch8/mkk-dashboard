@@ -36,7 +36,9 @@ export type DatasetKey =
   | "meta_ig_stories"
   | "news_log"
   | "news_views"
-  | "social_log";
+  | "social_log"
+  | "social_review"
+  | "yt_review";
 
 export type SourceGroup = "auto" | "ga4" | "gsc" | "youtube" | "meta" | "news" | "social_log";
 
@@ -60,6 +62,8 @@ export type RecordRow = Record<string, string | number | null> & { _date?: strin
 export interface Dataset {
   key: DatasetKey;
   file: string;
+  /** link file sumber (Google Sheets) — disimpan di Import.fileUrl */
+  url?: string;
   sheet?: string;
   /** bulan terdeteksi dari file (null jika tidak diketahui) */
   month: string | null;

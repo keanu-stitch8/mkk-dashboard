@@ -434,3 +434,109 @@ describe("meta stories", () => {
     expect(rows[1]).toMatchObject({ storyId: "222", date: "2026-10-01", publishedAt: "2026-10-01 08:25", linkClicks: 4 });
   });
 });
+
+describe("social tracker (Task Progress)", () => {
+  // serial Excel: 46266 = 1 Sep 2026, 46295 = 30 Sep, 46296 = 1 Okt
+  const head = ["No.", "Planned Date", "Artikel", null, "Brief", "Published Date", "Status", "Assignee", "Google Drive Link", "Submitted Date", "Status", "Instagram Link"];
+  const table = {
+    file: "MKK Kudus Social Media - Task Progress.xlsx",
+    sheet: "September",
+    blockCount: 1,
+    comments: [],
+    rows: [
+      head,
+      head,
+      [1, 46266, null, "Carousel", null, null, null, null, null, null, null, null],
+      [2, null, "IFL 2026", "Reel", "brief", 46268, "Published", "Veno", null, 46268, "Submitted", null],
+      [3, 46267, "Graha Fila Sport", "Carousel", "brief", null, "Reviewing", "Nana", null, null, "Submitted", null],
+      [4, null, "Muria Trail Run", "Carousel", "brief", null, "Approved", null, null, 46270, "Submitted", null],
+      [5, 46268, "Cultural Visit", "Reel", "brief", null, "Revision", "Veno", null, 46270, "Revision", null],
+      [6, null, "Bupati Cup", "Carousel", "brief", 46267, "Unpublished", "Nana", null, 46267, "Submitted", null],
+      [7, 46269, "Ikan Asap", "Reel", "brief", 46296, "Published", "Veno", null, 46295, "Submitted", null],
+      [8, null, "Angkringan", "Reel", "brief", "5 Okt 2026", "Published", "Veno", null, "2 Okt 2026", "Submitted", null],
+    ],
+  };
+
+  it("snapshot akhir bulan: diserahkan tapi belum tayang per akhir bulan, berbasis tanggal", async () => {
+    const { readTrackerTab, socialReviewDataset } = await import("../lib/parsers/logs");
+    const tab = readTrackerTab(table)!;
+    expect(tab.tabMonth).toBe("2026-09");
+    const sep = socialReviewDataset(tab.rows, "2026-09", "x");
+    expect(sep.metrics).toEqual([{ channel: "social", key: "social_in_review", value: 3 }]);
+    expect(sep.breakdowns.map((b) => b.label)).toEqual(["carousel · Graha Fila Sport", "carousel · Muria Trail Run", "reels · Ikan Asap"]);
+    // disubmit & tayang Oktober (walau di tab September) → bukan in review Oktober
+    expect(socialReviewDataset(tab.rows, "2026-10", "x").metrics[0].value).toBe(0);
+  });
+});
+
+describe("YouTube Calendar Timeline", () => {
+  // Gantt: baris bulan + baris tanggal di atas status harian; tahun dari Planned Date (46266 = 1 Sep 2026)
+  const gantt = {
+    file: "MKK Internal - Youtube Calendar Timeline.xlsx",
+    sheet: "Tracker",
+    blockCount: 1,
+    comments: [],
+    rows: [
+      ["No.", "Planned Date", "Video", "Task", null, null, "AUGUST", null, "SEPTEMBER", null, null, "OCTOBER", null],
+      [null, null, null, null, null, null, "Sat", "Mon", "Tue", "Wed", "Wed", "Thu", "Fri"],
+      [null, null, null, null, null, null, 29, 31, 1, 2, 30, 1, 2],
+      [1, 46266, "A", "Helmi", "Video Editor", "Published", "Review", null, "Approved", "Published", null, null, null],
+      [null, null, null, "Arpan", "Thumbnail Designer", "Published", "In Progress", null, null, null, null, null, null],
+      [2, 46270, "B", "Lucky", "Video Editor", "Published", null, null, "Review", "Revision", "Review", null, "Published"],
+      [3, 46280, "C", "Salman", "Video Editor", "QC", null, null, null, null, "QC", null, null],
+    ],
+  };
+
+  it("in review = Review/Approved di akhir bulan, diserahkan bulan itu; QC tidak dihitung", async () => {
+    const { readYtCalendarGantt, ytReviewDataset } = await import("../lib/parsers/youtube-calendar");
+    const videos = readYtCalendarGantt(gantt)!;
+    expect(videos.map((v) => v.title)).toEqual(["A", "B", "C"]);
+    expect(videos[0].timeline).toEqual([
+      { date: "2026-08-29", status: "review" },
+      { date: "2026-09-01", status: "approved" },
+      { date: "2026-09-02", status: "published" },
+    ]);
+    const count = (m: string) => ytReviewDataset(videos, m, "x").breakdowns.map((b) => b.label);
+    expect(count("2026-08")).toEqual(["A"]); // Review 29 Agu, tayang September
+    expect(count("2026-09")).toEqual(["B"]); // diserahkan ulang 30 Sep setelah revisi, tayang Oktober
+    expect(count("2026-10")).toEqual([]);
+  });
+
+  it("tab Summary → log; judul YouTube didahulukan, tanggal = Publish Date (Planned jika belum tayang)", async () => {
+    const { readYtCalendarSummary, ytCalendarLogDataset } = await import("../lib/parsers/youtube-calendar");
+    const rows = readYtCalendarSummary({
+      file: "x.xlsx",
+      sheet: "Summary",
+      blockCount: 1,
+      comments: [],
+      rows: [
+        ["MAIN KE KUDUS INTERNAL - YOUTUBE CALENDAR"],
+        ["No.", "Planned Date", "Publish Date", "Video", "Youtube Title", "Youtube URL", "Format", "Category", "Status"],
+        [1, 46262, 46274, "Caffino", "Lahirnya Para Srikandi", "https://youtu.be/-qgU4zJuOpU", "Recap", "Event", "Published"],
+        [2, 46311, null, "And1 Sport", null, null, "Editorial Feature Video", "Sport Gears", null],
+      ],
+    })!;
+    const sep = ytCalendarLogDataset(rows, "2026-09", "x");
+    expect(sep.rows).toHaveLength(1);
+    expect(sep.rows[0]).toMatchObject({ date: "2026-09-09", title: "Lahirnya Para Srikandi", videoId: "-qgU4zJuOpU", format: "Recap", status: "publish" });
+    expect(ytCalendarLogDataset(rows, "2026-10", "x").rows[0]).toMatchObject({ title: "And1 Sport", status: "unknown" });
+  });
+});
+
+describe("News in review snapshot", () => {
+  it("disubmit September, tayang Oktober → review di September + publish di Oktober; Approved = review", () => {
+    const head = ["Planned Date", "Judul Berita", "Kategori", "Status", "Submitted Date", "Published Date", "Link Berita"];
+    const res = parseFiles([
+      {
+        name: "news.csv",
+        data: new TextEncoder().encode(
+          [head.join(","), "2026-09-28,Pasar Gaib,Culture,Publish,2026-09-28,2026-10-06,https://x.id/a", "2026-09-20,Moeria Jersey,Sport,Approved,2026-09-20,,", "2026-09-10,Soto,Food,Publish,2026-09-10,2026-09-11,https://x.id/b"].join("\n"),
+        ),
+      },
+    ]);
+    const ds = res.datasets.find((d) => d.key === "news_log")!;
+    const sep = applyMonth(ds, "2026-09").rows.map((r) => `${r.title}:${r.status}`);
+    expect(sep).toEqual(["Pasar Gaib:review", "Moeria Jersey:review", "Soto:publish"]);
+    expect(applyMonth(ds, "2026-10").rows.map((r) => `${r.title}:${r.status}`)).toEqual(["Pasar Gaib:publish"]);
+  });
+});

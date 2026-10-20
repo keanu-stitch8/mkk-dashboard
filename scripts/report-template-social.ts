@@ -19,8 +19,9 @@ const tokens = (t: string, cols: string[]) => cols.map((k) => `{{#${t}.${k}}}`);
 
 // Teks laporan untuk client: kalimat pendek & lugas, tanpa jargon (posisi akhir template).
 const GUIDE: [string, string, string][] = [
-  ["Posts published", "Entries in the Social Media Publishing Log with Publish status for the month, all formats including Stories.", "Measures delivery against the quota."],
-  ["Monthly quota", "Planned number of posts for the month.", "Sets the delivery target."],
+  ["Posts published", "Entries in the Social Media Publishing Log with Publish status for the month, all formats including Stories.", "Shows the content that went live."],
+  ["Posts in review", "Content submitted this month and still waiting for approval at the end of the month, from the Social Media Task Progress tracker.", "Shows work that is finished but not yet live."],
+  ["Delivered vs quota", "Posts published plus posts in review, against the planned number of posts for the month. Quota achievement is delivered divided by the quota.", "Measures delivery against the quota."],
   ["Views", "Times Instagram content was shown during {{period}}, from Instagram account insights. Includes Stories and older posts.", "Main measure of visibility."],
   ["Views per post", "Lifetime views of the feed posts and Reels published this month, divided by their number.", "Shows how this month's posts performed."],
   ["Reach", "Number of different accounts that saw the content during the month.", "Shows how many people the account reached."],
@@ -29,14 +30,13 @@ const GUIDE: [string, string, string][] = [
   ["Follows", "New followers of the account during the month.", "Shows audience growth."],
   ["Active publishing days", "Days with at least one post.", "Shows how steady the posting rhythm was."],
   ["Post table figures", "Lifetime totals per post since publishing, as of the report date.", "Posts keep collecting views, so these figures can grow after the month ends."],
-  ["Format", "Feeds (photo and carousel posts), Reels, Stories and Videos, as recorded in the Publishing Log.", "Shows the balance of formats."],
-  ["Content category", "Topic group of each post from the Publishing Log.", "Shows what kind of content was produced."],
+  ["Format and category", "Format (Feeds for photo and carousel posts, Reels, Stories, Videos) and topic group of each post, from the Publishing Log.", "Shows the balance of formats and topics."],
   ["Month-on-month", "KPI cards compare with {{prev_month_label}}.", "Green marks an improvement and red a decline."],
 ];
 
 /** Kartu KPI (urutan SOCIAL_KPIS) → [baris label (1-based), kolom awal (0-based), format angka nilai] */
 const CARDS: [string, number, number, [string, string] | null][] = [
-  ["published", 4, 0, null],
+  ["delivered", 4, 0, null],
   ["views", 4, 3, ["NUMBER", "#,##0"]],
   ["views_per_post", 4, 6, ["NUMBER", "#,##0"]],
   ["reach", 4, 9, ["NUMBER", "#,##0"]],
@@ -73,9 +73,11 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     ...Object.fromEntries(Array.from({ length: FORMAT_SLOTS }, (_, i) => [`A${41 + i}`, [`{{fmt.${i + 1}.name}}`, "", `{{fmt.${i + 1}.count}}`, `{{fmt.${i + 1}.share}}`]])),
     A45: ["Published Total", "", "{{formats.total}}", "100.0%"],
     ...Object.fromEntries(Array.from({ length: CATEGORY_SLOTS }, (_, i) => [`H${41 + i}`, [`{{cat.${i + 1}.name}}`, "", `{{cat.${i + 1}.count}}`, `{{cat.${i + 1}.share}}`]])),
-    H50: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
-    H51: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
-    A54: "Account figures (views, reach, interactions, follows) cover all Instagram activity during {{period}}, including Stories and older posts. Post figures are lifetime totals for the posts published this month.",
+    // In review r50 disisipkan 2026-10-20 (ensureReviewRow): delivered = published + in review, sama dengan News
+    H50: ["In review", "", "{{cat.review}}", "{{cat.review_share}}"],
+    H51: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
+    H52: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
+    A55: "Account figures (views, reach, interactions, follows) cover all Instagram activity during {{period}}, including Stories and older posts. Post figures are lifetime totals for the posts published this month.",
   },
   [PP]: {
     A1: "INSTAGRAM POST PERFORMANCE",
@@ -84,12 +86,12 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     A6: tokens("posts", ["no", "date", "title", "format", "category", "reach", "views", "follows", "interactions", "likes", "comments", "shares", "saves"]),
     A7: ["", "", "TOTAL ({{listed}} posts)", "", "", "{{posts.total_reach}}", "{{posts.total_views}}", "{{posts.total_follows}}", "{{posts.total_interactions}}", "{{posts.total_likes}}", "{{posts.total_comments}}", "{{posts.total_shares}}", "{{posts.total_saves}}"],
   },
-  // strip angka = definisi dashboard: achievement = published ÷ kuota, sisa = kuota − published
+  // strip angka = definisi dashboard: delivered = published + in review, achievement = delivered ÷ kuota, sisa = kuota − delivered
   [PL]: {
     A1: "PUBLISHING LOG · {{month_upper}}",
-    A3: "Content published in {{month_label}}, one entry per piece of content across all channels",
-    A5: ["PUBLISHED", "", "MONTHLY QUOTA", "", "QUOTA ACHIEVEMENT", "", "REMAINING QUOTA"],
-    A6: ["{{published}}", "", "{{quota}}", "", "{{achievement}}", "", "{{remaining}}"],
+    A3: "Content published in {{month_label}}, one entry per piece of content across all channels, followed by content still in review at the end of the month",
+    A5: ["DELIVERED", "", "MONTHLY QUOTA", "", "QUOTA ACHIEVEMENT", "", "REMAINING QUOTA"],
+    A6: ["{{delivered}}", "", "{{quota}}", "", "{{achievement}}", "", "{{remaining}}"],
     A9: ["No.", "Publish Date", "Content", "Link", "Category", "Channels", "Format", "Status"],
     A10: tokens("log", ["no", "date", "title", "url", "category", "channels", "format", "status"]),
   },
@@ -98,7 +100,7 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     A3: "How the figures in this report are defined",
     ...Object.fromEntries(GUIDE.map((g, i) => [`A${6 + i}`, g])),
     A21: "REPORTING METHODOLOGY",
-    A22: "Posts come from the monthly Social Media Publishing Log, one entry per piece of content even when it is shared to several channels. Performance figures cover Instagram only and come from Instagram Insights for {{period}}.",
+    A22: "Posts come from the monthly Social Media Publishing Log, one entry per piece of content even when it is shared to several channels. Posts in review come from the Social Media Task Progress tracker. Performance figures cover Instagram only and come from Instagram Insights for {{period}}.",
   },
 };
 
@@ -116,10 +118,10 @@ const STYLE: RowStyleSpec = {
     ["section", 24],
     ["section", 39],
     ["header", 40],
-    ["row", [41, 50]],
+    ["row", [41, 51]],
     ["total", 45, [1, 5]],
-    ["total", 51],
-    ["note", 54],
+    ["total", 52],
+    ["note", 55],
   ],
   [PP]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["row", 6], ["total", 7, [1, 13]]],
   [PL]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
@@ -132,7 +134,7 @@ const ANCHORS: Record<string, string> = {
   [`'${ES}'!A20`]: "KEY FINDINGS",
   [`'${ES}'!A24`]: "CONTENT BREAKDOWN",
   [`'${ES}'!A40`]: "Format",
-  [`'${ES}'!H51`]: "Monthly Quota",
+  [`'${ES}'!H52`]: "Monthly Quota",
   [`'${PP}'!A5`]: "No.",
   [`'${PL}'!A9`]: "No.",
   [`'${MG}'!A5`]: "Metric",
@@ -171,8 +173,8 @@ async function patchText(c: ReportClients, id: string) {
     num(ES, 16, 8, 12, INT),
     num(ES, 41, 2, 3, INT, 45, "RIGHT"),
     num(ES, 41, 3, 5, PCT1, 45, "RIGHT"),
-    num(ES, 41, 9, 10, INT, 51, "RIGHT"),
-    num(ES, 41, 10, 12, PCT1, 51, "RIGHT"),
+    num(ES, 41, 9, 10, INT, 52, "RIGHT"),
+    num(ES, 41, 10, 12, PCT1, 52, "RIGHT"),
     right(ES, 40, 2, 5),
     right(ES, 40, 9, 12),
     num(PP, 6, 1, 2, DATE),
@@ -246,11 +248,12 @@ async function restructure(c: ReportClients, id: string) {
 
 async function main() {
   const { reportClients, copyFile } = await import("../lib/reports/engine/sheets");
-  const { applyRowStyles, assertAnchors, fitWidths } = await import("../lib/reports/engine/template-tools");
+  const { applyRowStyles, assertAnchors, ensureReviewRow, fitWidths } = await import("../lib/reports/engine/template-tools");
   const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1];
   const c = await reportClients();
   if (arg("fit-widths")) return fitWidths(c, arg("fit-widths")!);
   if (arg("patch")) {
+    await ensureReviewRow(c, arg("patch")!, ES, 50);
     await assertAnchors(c, arg("patch")!, ANCHORS);
     await patchText(c, arg("patch")!);
     await applyRowStyles(c, arg("patch")!, STYLE);
@@ -261,6 +264,7 @@ async function main() {
   if (!from) throw new Error("--from=<ID master template YouTube> (buat template baru) atau --patch=<ID template> wajib");
   const file = await copyFile(c, from, "DRAFT – TEMPLATE – MKK Social Media Monthly Performance Report");
   await restructure(c, file.id);
+  await ensureReviewRow(c, file.id, ES, 50);
   await patchText(c, file.id);
   await assertAnchors(c, file.id, ANCHORS);
   await applyRowStyles(c, file.id, STYLE);

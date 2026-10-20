@@ -246,7 +246,7 @@ export type NewsSummary = Awaited<ReturnType<typeof getNewsSummary>>;
 // ───────────────────────────── YouTube ─────────────────────────────
 
 export async function getYoutubeSummary(month: string) {
-  const [videos, metrics, daily, logs, quotas, manual, imports] = await Promise.all([
+  const [videos, metrics, daily, logs, quotas, manual, imports, reviewItems] = await Promise.all([
     prisma.ytVideo.findMany({ where: { month }, orderBy: { views: "desc" } }),
     prisma.metric.findMany({ where: { month, channel: "youtube" } }),
     prisma.ytDaily.findMany({ where: { month }, orderBy: { date: "asc" } }),
@@ -254,6 +254,8 @@ export async function getYoutubeSummary(month: string) {
     getQuotas(month),
     manualFor(month, "youtube"),
     prisma.import.findMany({ where: { month, source: { startsWith: "yt" } } }),
+    // video Review/Approved per akhir bulan dari Gantt Calendar Timeline (connector Sheets)
+    prisma.breakdown.findMany({ where: { month, channel: "youtube", dimension: "yt_in_review", import: { source: "yt_review" } } }),
   ]);
   const metric = (k: string) => manual[k] ?? metrics.find((m) => m.key === k)?.value ?? null;
   const views = metric("views") ?? (videos.length ? sum(videos.map((v) => v.views)) : null);
@@ -273,6 +275,9 @@ export async function getYoutubeSummary(month: string) {
   const publishedLogs = logs.filter((l) => l.status === "publish");
   const published =
     manual.published ?? (logs.length ? publishedLogs.length : videos.filter((v) => v.publishedDate?.startsWith(month)).length);
+  const hasReview = manual.inReview != null || imports.some((i) => i.source === "yt_review");
+  const inReview = manual.inReview ?? reviewItems.length;
+  const delivered = published + inReview;
 
   return {
     month,
@@ -290,7 +295,15 @@ export async function getYoutubeSummary(month: string) {
     uniqueViewers: metric("uniqueViewers"),
     viewsPerVideo: views == null || !videos.length ? null : views / videos.length,
     published,
+    /** video Review/Approved per akhir bulan (Gantt Calendar Timeline) — sudah diserahkan, belum tayang */
+    inReview,
+    inReviewItems: reviewItems.map((b) => b.label),
+    hasReview,
+    /** published + in review (definisi sama dengan News & Social) */
+    delivered,
+    deliveredRate: safeDiv(delivered, quotas.youtube.value),
     quota: quotas.youtube,
+    /** published saja ÷ kuota (catatan QuotaHero); kuota dihitung dari deliveredRate */
     achievement: safeDiv(published, quotas.youtube.value),
     videos: enriched,
     topVideos: enriched.slice(0, 10),
@@ -539,7 +552,7 @@ function ownAccounts(posts: { platform: string; account: string | null }[]): Set
 }
 
 export async function getSocialSummary(month: string) {
-  const [allPosts, logs, quotas, manual, imports, accountMetrics] = await Promise.all([
+  const [allPosts, logs, quotas, manual, imports, accountMetrics, reviewImport, reviewItems] = await Promise.all([
     // hanya platform aktif (lib/sources.ts) yang dihitung ke performa
     prisma.socialPost.findMany({ where: { month, platform: { in: ACTIVE_SOCIAL_PLATFORMS } }, orderBy: { publishedAt: "asc" } }),
     prisma.socialLog.findMany({ where: { month }, orderBy: { date: "asc" } }),
@@ -550,6 +563,9 @@ export async function getSocialSummary(month: string) {
     ACTIVE_SOCIAL_PLATFORMS.includes("instagram")
       ? prisma.metric.findMany({ where: { month, channel: "social", key: { startsWith: "ig_account_" }, import: { source: "meta_instagram" } } })
       : [],
+    prisma.import.findUnique({ where: { month_source: { month, source: "social_review" } } }),
+    // konten "Reviewing" dari tracker Task Progress (connector Sheets); kosong = tracker belum di-sync bulan ini
+    prisma.breakdown.findMany({ where: { month, channel: "social", dimension: "social_in_review", import: { source: "social_review" } } }),
   ]);
   const account = (k: string) => accountMetrics.find((m) => m.key === `ig_account_${k}`)?.value ?? null;
 
@@ -593,10 +609,16 @@ export async function getSocialSummary(month: string) {
     .map(([format, count]) => ({ format, count }))
     .sort((a, b) => b.count - a.count);
 
-  // Kuota sosmed: satu angka untuk semua format (sama dengan report: Publishing Log = sumber resmi)
-  const quotaProgress = [{ quota: quotas.social, count: postsPublished }].map((q) => ({
+  const hasReview = manual.inReview != null || !!reviewImport;
+  const inReview = manual.inReview ?? reviewItems.length;
+  // Kuota sosmed: satu angka untuk semua format (Publishing Log = sumber resmi). Delivered = published + in review
+  // (snapshot akhir bulan dari Task Progress), sama dengan definisi News & YouTube.
+  const quotaProgress = [{ quota: quotas.social, count: postsPublished + inReview }].map((q) => ({
     ...q,
+    published: postsPublished,
+    inReview,
     rate: safeDiv(q.count, q.quota.value),
+    publishedRate: safeDiv(postsPublished, q.quota.value),
     available: units.length > 0 || manual.posts != null,
   }));
 
@@ -636,6 +658,11 @@ export async function getSocialSummary(month: string) {
     platforms: [...new Set(posts.map((p) => p.platform))],
     posts: enriched,
     postsPublished,
+    /** konten yang diserahkan bulan ini & belum tayang per akhir bulan (Task Progress) */
+    inReview,
+    inReviewItems: reviewItems.map((b) => b.label),
+    /** false = tracker belum di-sync untuk bulan ini (in review dianggap 0) */
+    hasReview,
     countSource,
     reach,
     views,
@@ -741,38 +768,54 @@ export function contentQuota(b: MonthBundle, channel: QuotaSummary["channel"]): 
       label: "Video YouTube",
       unit: "video",
       published: y.published,
-      achieved: y.published,
-      achievedLabel: "Published",
+      // yang sudah diserahkan = publish + Review/Approved di Gantt per akhir bulan
+      achieved: y.delivered,
+      achievedLabel: "Delivered",
       target: y.quota.value,
-      rate: y.hasData ? y.achievement : null,
-      segments: [],
+      rate: y.hasData ? y.deliveredRate : null,
+      segments: [
+        { label: "Published", count: y.published, color: "var(--chart-1)" },
+        { label: "In review", count: y.inReview, color: "var(--chart-2)" },
+      ],
       available: y.hasData,
       breakdown: [],
-      source: y.logs.length ? "Dari publishing log YouTube" : "Dari tanggal publish video",
+      note: y.hasData
+        ? y.hasReview
+          ? `Published saja: ${fmtNum(y.published)} / ${fmtNum(y.quota.value)} (${fmtPct(y.achievement)})`
+          : "Gantt Calendar Timeline belum di-sync bulan ini — in review dianggap 0"
+        : undefined,
+      source: `${y.logs.length ? "Published dari Youtube Calendar Timeline (Summary)" : "Published dari tanggal publish video"} · in review = Review/Approved di Gantt per akhir bulan`,
     };
   }
   const s = b.social;
   const q = s.quotaProgress[0];
   const notInLog = s.postsNotInLog.length;
+  const notes = [
+    s.hasReview ? `Published saja: ${fmtNum(q.published)} / ${fmtNum(q.quota.value)} (${fmtPct(q.publishedRate)})` : "Tracker Task Progress belum di-sync bulan ini — in review dianggap 0",
+    s.countSource === "log"
+      ? notInLog
+        ? `${notInLog} post akun MKK tidak tercatat di Publishing Log (tidak dihitung ke kuota)`
+        : null
+      : "Stories tidak ada di export Meta — import Publishing Log untuk angka resmi",
+  ].filter(Boolean);
   return {
     channel,
     label: "Post sosmed",
     unit: "post",
-    published: q.count,
+    published: q.published,
+    // yang sudah diserahkan = publish (Publishing Log) + in review (Task Progress, snapshot akhir bulan)
     achieved: q.count,
-    achievedLabel: "Published",
+    achievedLabel: "Delivered",
     target: q.quota.value,
     rate: q.available ? q.rate : null,
-    segments: [],
+    segments: [
+      { label: "Published", count: q.published, color: "var(--chart-1)" },
+      { label: "In review", count: q.inReview, color: "var(--chart-2)" },
+    ],
     available: q.available,
     breakdown: s.publishedByFormat.map((f) => ({ label: FORMAT_LABEL[f.format] ?? f.format, count: f.count, target: null, rate: null })),
-    note:
-      s.countSource === "log"
-        ? notInLog
-          ? `${notInLog} post akun MKK tidak tercatat di Publishing Log (tidak dihitung ke kuota)`
-          : undefined
-        : "Stories tidak ada di export Meta — import Publishing Log untuk angka resmi",
-    source: s.countSource === "log" ? "Dari Publishing Log (status Publish) · 1 baris = 1 post" : "Dari export Meta",
+    note: notes.join(" · ") || undefined,
+    source: `${s.countSource === "log" ? "Published dari Publishing Log (1 baris = 1 post)" : "Published dari export Meta"} · in review = diserahkan bulan ini, belum tayang per akhir bulan (Task Progress)`,
   };
 }
 
@@ -816,6 +859,7 @@ export function socialKpiSources(cur: SocialSummary, prev: SocialSummary | null)
   const per = (v: number | null | undefined, n: number) => (v == null || !n ? null : v / n);
   const src = (s: SocialSummary) => ({
     published: s.postsPublished,
+    delivered: s.quotaProgress[0].count,
     quota: s.quotaProgress[0].quota,
     views: s.views,
     viewsPerPost: per(s.postViews, s.posts.length),
@@ -919,6 +963,7 @@ export async function getTrend(month: string, n = 6) {
     newsViews: b.news.hasData ? b.news.totalViews : null,
     ytPublished: b.youtube.hasData ? b.youtube.published : null,
     ytQuota: b.youtube.quota.value,
+    ytDelivered: b.youtube.hasData ? b.youtube.delivered : null,
     ytViews: b.youtube.hasData ? b.youtube.views : null,
     ytWatchHours: b.youtube.hasData ? b.youtube.watchHours : null,
     ytImpressions: b.youtube.hasData ? b.youtube.impressions : null,
@@ -929,6 +974,7 @@ export async function getTrend(month: string, n = 6) {
     socialInteractions: b.social.hasData ? b.social.interactions : null,
     socialPosts: b.social.hasData ? b.social.postsPublished : null,
     socialQuotaCount: b.social.hasData ? contentQuota(b, "social").published : null,
+    socialDelivered: b.social.hasData ? contentQuota(b, "social").achieved : null,
     socialQuota: contentQuota(b, "social").target,
     socialViews: b.social.hasData ? b.social.views : null,
     viewsInstagram: b.social.byPlatform.find((p) => p.platform === "instagram")?.views ?? null,

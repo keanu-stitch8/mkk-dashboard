@@ -19,6 +19,8 @@ model Import {
   month     String
   source    String // dataset key, mis. ga4_traffic, gsc_queries, meta_instagram
   fileName  String
+  /** link file sumber (mis. Google Sheets log) — untuk halaman Sumber Logs */
+  fileUrl   String?
   rowCount  Int
   note      String?
   createdAt DateTime @default(now())

@@ -35,6 +35,13 @@ export function postTitle(title: string | null, caption: string | null): string 
   return t || "(no caption)";
 }
 
+/** Label in review Task Progress ("reels · Judul") → format laporan + judul. */
+export function reviewItem(label: string): { format: string; title: string } {
+  const [format, ...rest] = label.split(" · ");
+  const title = rest.join(" · ");
+  return { format: formatLabel(format), title: !title || title === "(tanpa judul)" ? "(untitled)" : title };
+}
+
 /** Hitung per kategori ke slot tetap; kategori tak dikenal / kosong masuk "Other". */
 export function socCategorySlots(categories: (string | null)[]): { name: string; count: number }[] {
   const slots = [...SOC_CATEGORIES, "Other"].map((name) => ({ name, count: 0 }));
@@ -63,7 +70,11 @@ export async function buildSocial(month: string): Promise<ReportData> {
     prevCount: prevLogs ? prevLogs.filter((l) => l.format === k).length : null,
   }));
   const cats = socCategorySlots(logs.map((l) => l.category));
-  const unpublished = Math.max(quota - src.cur.published, 0);
+  // delivered = published + in review (Task Progress, snapshot akhir bulan) — definisi sama dengan News & YouTube
+  const inReview = s.inReview;
+  const delivered = src.cur.delivered;
+  const unpublished = Math.max(quota - delivered, 0);
+  const review = s.inReviewItems.map(reviewItem);
 
   // post feed/Reels Instagram yang dipublish bulan ini (metrik lifetime per post)
   const posts = s.posts
@@ -86,6 +97,8 @@ export async function buildSocial(month: string): Promise<ReportData> {
     prevMonthLabel: enMonth(prev),
     quota,
     published: src.cur.published,
+    inReview,
+    delivered,
     prevPublished: src.prev?.published ?? null,
     formats: formatRows,
     top: byViews.map((p) => ({ title: p.name, views: p.views! })),
@@ -104,13 +117,17 @@ export async function buildSocial(month: string): Promise<ReportData> {
     ...kpi.values,
     quota,
     published: src.cur.published,
-    achievement: div(src.cur.published, quota),
-    // sama dengan QuotaHero dashboard: sisa = kuota − published
+    in_review: inReview,
+    delivered,
+    achievement: div(delivered, quota),
+    // sama dengan QuotaHero dashboard: sisa = kuota − delivered
     remaining: unpublished,
     "top.title": top?.name ?? "—",
     "top.views": top?.views ?? null,
     "top.reach": top?.reach ?? null,
     "formats.total": sumOf(formatRows.map((f) => f.count)),
+    "cat.review": inReview,
+    "cat.review_share": div(inReview, quota) ?? 0,
     "cat.unpublished": unpublished,
     "cat.unpublished_share": div(unpublished, quota) ?? 0,
     "cat.quota": quota,
@@ -140,8 +157,12 @@ export async function buildSocial(month: string): Promise<ReportData> {
     values,
     tones: kpi.tones,
     autoHeight: ["findings", "posts", "log"],
-    // kategori "Other" (slot terakhir) hanya tampil jika ada isinya
-    hideRows: cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : [],
+    // kategori "Other" (slot terakhir), In review & Unpublished hanya tampil jika ada isinya (tabel tetap muat di halaman 2)
+    hideRows: [
+      ...(cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : []),
+      ...(inReview === 0 ? ["cat.review"] : []),
+      ...(unpublished === 0 ? ["cat.unpublished"] : []),
+    ],
     tables: {
       findings: findings.map((text) => ({ text })),
       posts: posts.map((p, i) => ({
@@ -159,19 +180,22 @@ export async function buildSocial(month: string): Promise<ReportData> {
         shares: p.shares,
         saves: p.saves,
       })),
-      log: logs.map((l, i) => ({
-        no: i + 1,
-        date: sheetDate(l.date),
-        title: l.title ?? "",
-        url: l.url ?? (l.title ? (permalink.get(norm(l.title)) ?? "") : ""),
-        category: l.category ?? "",
-        channels: l.platform
-          .split(",")
-          .map((c) => CHANNEL_LABEL[c.trim()] ?? c.trim())
-          .join(", "),
-        format: formatLabel(l.format),
-        status: "Published",
-      })),
+      log: [
+        ...logs.map((l) => ({
+          date: sheetDate(l.date),
+          title: l.title ?? "",
+          url: l.url ?? (l.title ? (permalink.get(norm(l.title)) ?? "") : ""),
+          category: l.category ?? "",
+          channels: l.platform
+            .split(",")
+            .map((c) => CHANNEL_LABEL[c.trim()] ?? c.trim())
+            .join(", "),
+          format: formatLabel(l.format),
+          status: "Published",
+        })),
+        // lalu konten in review per akhir bulan (belum tayang → tanpa tanggal tayang & link)
+        ...review.map((r) => ({ date: null, title: r.title, url: "", category: "", channels: "", format: r.format, status: "In review" })),
+      ].map((row, i) => ({ no: i + 1, ...row })),
     },
   };
 }

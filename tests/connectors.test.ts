@@ -584,7 +584,15 @@ describe("Google Sheets connector: cari Publishing Log per nama file + bulan", (
     const { pickLogFile } = await import("../lib/connectors/sheets/map");
     expect(pickLogFile(files, "news", "2026-09").file?.id).toBe("news09");
     expect(pickLogFile(files, "news", "2026-08").file?.id).toBe("news08");
-    expect(pickLogFile(files, "youtube", "2026-09").file?.id).toBe("yt09");
+    const { pickTrackerFile } = await import("../lib/connectors/sheets/map");
+    const trackers = [
+      { id: "x", name: "Socmed Content Logs - September 2026" },
+      { id: "tp", name: "MKK Kudus Social Media - Task Progress" },
+      { id: "cal", name: "MKK Internal - Youtube Calendar Timeline" },
+      { id: "rep", name: "MKK YouTube Monthly Performance Report – September 2026" },
+    ];
+    expect(pickTrackerFile(trackers, "social")?.id).toBe("tp");
+    expect(pickTrackerFile(trackers, "youtube")?.id).toBe("cal");
     const social = pickLogFile(files, "social", "2026-09");
     expect(social.file?.id).toBe("soc09");
     expect(social.others.map((f) => f.id)).toEqual(["copy"]);

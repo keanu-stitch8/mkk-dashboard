@@ -21,6 +21,8 @@ export const DATASETS: Record<DatasetKey, { label: string; group: Exclude<Source
   news_log: { label: "News · Content log (artikel)", group: "news", channel: "news" },
   news_views: { label: "News · Views per artikel (dari report)", group: "news", channel: "news" },
   social_log: { label: "Sosmed · Publishing log", group: "social_log", channel: "social" },
+  social_review: { label: "Sosmed · Task Progress (in review)", group: "social_log", channel: "social" },
+  yt_review: { label: "YouTube · Calendar Timeline (in review)", group: "youtube", channel: "youtube" },
 };
 
 export const SOURCE_GROUPS: { value: SourceGroup; label: string; hint: string }[] = [

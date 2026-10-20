@@ -15,14 +15,14 @@ export interface ProductionSeries {
 
 export const YOUTUBE_SERIES: ProductionSeries[] = [{ name: "Q3 2026", shootPeriod: "5–10 Jun 2026", produced: 13, from: "2026-07", to: "2026-09" }];
 
-/** Judul berisi "recap" → produksi terpisah (bukan seri). */
-export const isRecap = (title: string) => /recap/i.test(title);
+/** Judul berisi "recap" atau Format = Recap (Calendar Timeline) → produksi terpisah (bukan seri). */
+export const isRecap = (title: string, format?: string | null) => /recap/i.test(title) || /^recap$/i.test(format?.trim() ?? "");
 
 export const seriesFor = (month: string, list = YOUTUBE_SERIES) => list.find((s) => month >= s.from && month <= s.to) ?? null;
 
 /** Progres seri sampai bulan laporan: video seri (non-recap) yang dipublish sebelum bulan ini, di bulan ini, dan sisanya. */
-export function seriesProgress(series: ProductionSeries, month: string, published: { month: string; title: string }[]) {
-  const own = published.filter((v) => !isRecap(v.title) && v.month >= series.from && v.month <= month);
+export function seriesProgress(series: ProductionSeries, month: string, published: { month: string; title: string; format?: string | null }[]) {
+  const own = published.filter((v) => !isRecap(v.title, v.format) && v.month >= series.from && v.month <= month);
   const before = own.filter((v) => v.month < month).length;
   const thisMonth = own.length - before;
   return { before, thisMonth, remaining: Math.max(series.produced - before - thisMonth, 0) };

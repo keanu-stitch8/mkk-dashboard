@@ -24,7 +24,7 @@ const norm = (s: string) => s.trim().toLowerCase();
 
 /** Tipe konten laporan: judul "recap" → Recap; "Editorial Feature Video" = Editorial Feature; selain Teaser → Editorial Feature. */
 export function videoType(title: string, format: string | null): string {
-  if (isRecap(title) || norm(format ?? "") === "recap") return "Recap";
+  if (isRecap(title, format)) return "Recap";
   if (norm(format ?? "") === "teaser") return "Teaser";
   return "Editorial Feature";
 }
@@ -55,17 +55,18 @@ export async function buildYoutube(month: string): Promise<ReportData> {
       ? logs.map((l) => ({ date: l.date, title: l.title, url: l.url, format: l.format, category: l.category, m: metricOf(l.videoId, l.title) }))
       : y.videos.filter((v) => v.publishedDate?.startsWith(month)).map((v) => ({ date: v.publishedDate, title: v.title, url: `https://www.youtube.com/watch?v=${v.videoId}`, format: v.format, category: v.category, m: v }))
   ).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
-  const recaps = list.filter((v) => isRecap(v.title)).length;
+  const recaps = list.filter((v) => isRecap(v.title, v.format)).length;
 
   const series = seriesFor(month);
   const seriesLogs = series
-    ? await prisma.ytLog.findMany({ where: { status: "publish", month: { gte: series.from, lte: month } }, select: { month: true, title: true } })
+    ? await prisma.ytLog.findMany({ where: { status: "publish", month: { gte: series.from, lte: month } }, select: { month: true, title: true, format: true } })
     : [];
   const prog = series ? seriesProgress(series, month, seriesLogs) : null;
 
   const typeRows = YT_TYPES.map((name) => ({ name, count: list.filter((v) => videoType(v.title, v.format) === name).length }));
   const cats = ytCategorySlots(list.map((v) => v.category));
-  const unpublished = Math.max(quota - list.length, 0);
+  // delivered = published + in review (Gantt Calendar Timeline, snapshot akhir bulan) — definisi sama dengan News & Social
+  const unpublished = Math.max(quota - y.delivered, 0);
   const ranked = [...list].filter((v) => v.m?.views != null).sort((a, b) => b.m!.views - a.m!.views);
   const top = ranked[0];
 
@@ -79,6 +80,8 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     prevMonthLabel: enMonth(prev),
     quota,
     published: y.published,
+    inReview: y.inReview,
+    delivered: y.delivered,
     recaps,
     series: series && prog ? { name: series.name, produced: series.produced, publishedToDate: prog.before + prog.thisMonth, remaining: prog.remaining } : null,
     views: y.views,
@@ -107,9 +110,11 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     ...kpi.values,
     quota,
     published: y.published,
-    achievement: y.achievement,
-    // sama dengan QuotaHero dashboard: sisa = kuota − published
-    remaining: Math.max(quota - y.published, 0),
+    in_review: y.inReview,
+    delivered: y.delivered,
+    achievement: y.deliveredRate,
+    // sama dengan QuotaHero dashboard: sisa = kuota − delivered
+    remaining: unpublished,
     recaps,
     "top.title": top?.title ?? "—",
     "top.views": top?.m?.views ?? null,
@@ -123,6 +128,8 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     "series.month": prog?.thisMonth ?? null,
     "series.remaining": prog?.remaining ?? null,
     "types.total": sumOf(typeRows.map((t) => t.count)),
+    "cat.review": y.inReview,
+    "cat.review_share": div(y.inReview, quota) ?? 0,
     "cat.unpublished": unpublished,
     "cat.unpublished_share": div(unpublished, quota) ?? 0,
     "cat.quota": quota,
@@ -151,8 +158,12 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     values,
     tones: kpi.tones,
     autoHeight: ["findings", "videos", "log"],
-    // kategori "Other" (slot terakhir) hanya tampil jika ada isinya
-    hideRows: cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : [],
+    // kategori "Other" (slot terakhir), In review & Unpublished hanya tampil jika ada isinya (tabel tetap muat di halaman 2)
+    hideRows: [
+      ...(cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : []),
+      ...(y.inReview === 0 ? ["cat.review"] : []),
+      ...(unpublished === 0 ? ["cat.unpublished"] : []),
+    ],
     tables: {
       findings: findings.map((text) => ({ text })),
       videos: list.map((v, i) => ({
@@ -170,16 +181,19 @@ export async function buildYoutube(month: string): Promise<ReportData> {
         subs: v.m?.subsGained ?? null,
         share: div(v.m?.views, y.views),
       })),
-      log: list.map((v, i) => ({
-        no: i + 1,
-        date: sheetDate(v.date),
-        title: v.title,
-        url: v.url ?? "",
-        type: videoType(v.title, v.format),
-        category: v.category ?? "",
-        production: isRecap(v.title) ? "Recap (separate production)" : series ? `${series.name} series` : "",
-        status: "Published",
-      })),
+      log: [
+        ...list.map((v) => ({
+          date: sheetDate(v.date),
+          title: v.title,
+          url: v.url ?? "",
+          type: videoType(v.title, v.format),
+          category: v.category ?? "",
+          production: isRecap(v.title, v.format) ? "Recap (separate production)" : series ? `${series.name} series` : "",
+          status: "Published",
+        })),
+        // lalu video in review per akhir bulan (belum tayang → tanpa tanggal tayang & link)
+        ...y.inReviewItems.map((title) => ({ date: null, title, url: "", type: videoType(title, null), category: "", production: "", status: "In review" })),
+      ].map((row, i) => ({ no: i + 1, ...row })),
     },
   };
 }

@@ -7,6 +7,10 @@ export interface SocialNarrativeInput {
   prevMonthLabel: string;
   quota: number;
   published: number;
+  /** diserahkan, belum tayang per akhir bulan */
+  inReview: number;
+  /** published + in review */
+  delivered: number;
   prevPublished: number | null;
   /** jumlah per format (label laporan), bulan ini & bulan lalu */
   formats: { label: string; count: number; prevCount: number | null }[];
@@ -23,13 +27,18 @@ export interface SocialNarrativeInput {
 export function socialFindings(i: SocialNarrativeInput): string[] {
   const out: string[] = [];
   const prevM = monthOnly(i.prevMonthLabel, i.monthLabel);
-  // 1. kuota
-  if (i.quota > 0)
+  // 1. kuota: delivered = published + in review (definisi sama dengan News & YouTube)
+  // satu kalimat (bukan dua seperti News) supaya tabel kategori Executive Summary tetap muat di halaman 2
+  if (i.quota > 0) {
+    const split = i.inReview > 0 ? ` (${n(i.published)} live, ${n(i.inReview)} waiting for approval)` : "";
     out.push(
-      i.published >= i.quota
-        ? `${n(i.published)} posts were published against a quota of ${n(i.quota)}.`
-        : `${n(i.published)} of the ${n(i.quota)} planned posts were published, ${n(i.quota - i.published)} short of the quota.`,
+      i.delivered === i.quota
+        ? `All ${n(i.quota)} planned posts were delivered${split}.`
+        : i.delivered > i.quota
+          ? `${n(i.delivered)} posts were delivered against a quota of ${n(i.quota)}${split}.`
+          : `${n(i.delivered)} of the ${n(i.quota)} planned posts were delivered${split}, ${n(i.quota - i.delivered)} short of the quota.`,
     );
+  }
   // 2. perubahan besar vs bulan lalu → format penyebabnya (mis. jumlah Stories)
   if (i.prevPublished && Math.abs(i.published - i.prevPublished) / i.prevPublished >= 0.3) {
     const total = i.published - i.prevPublished;

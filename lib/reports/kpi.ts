@@ -124,6 +124,7 @@ export const NEWS_KPIS: KpiDef<NewsKpiSource>[] = [
 /** Field summary YouTube yang dipakai kartu KPI. */
 export interface YoutubeKpiSource {
   published: number;
+  delivered: number;
   quota: { value: number };
   views: number | null;
   viewsPerVideo: number | null;
@@ -138,7 +139,7 @@ const signed = (v: number | null) => (v == null ? null : `${v > 0 ? "+" : ""}${v
 
 /** Kartu KPI YouTube (urutan = grid dashboard & blok kartu laporan): baris 1 produksi & jangkauan, baris 2 tontonan. */
 export const YOUTUBE_KPIS: KpiDef<YoutubeKpiSource>[] = [
-  { key: "published", label: "Videos published", kind: "count", get: (s) => s.published, display: (s) => `${s.published} / ${s.quota.value}`, hint: "Video di publishing log berstatus Publish (termasuk recap) vs kuota bulanan." },
+  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published (Calendar Timeline, termasuk recap) + in review (Review/Approved di Gantt per akhir bulan) vs kuota bulanan." },
   { key: "views", label: "Views", kind: "count", get: (s) => s.views },
   { key: "views_per_video", label: "Views per video", kind: "decimal", get: (s) => s.viewsPerVideo },
   { key: "impressions", label: "Impressions", kind: "count", get: (s) => s.impressions, hint: "Berapa kali thumbnail ditampilkan di YouTube." },
@@ -151,6 +152,7 @@ export const YOUTUBE_KPIS: KpiDef<YoutubeKpiSource>[] = [
 /** Field kartu KPI Social (lib/data/summary.ts socialKpiSources). */
 export interface SocialKpiSource {
   published: number;
+  delivered: number;
   quota: { value: number };
   views: number | null;
   viewsPerPost: number | null;
@@ -163,7 +165,7 @@ export interface SocialKpiSource {
 
 /** Kartu KPI Social / Instagram (urutan = grid dashboard & blok kartu laporan). */
 export const SOCIAL_KPIS: KpiDef<SocialKpiSource>[] = [
-  { key: "published", label: "Posts published", kind: "count", get: (s) => s.published, display: (s) => `${s.published} / ${s.quota.value}`, hint: "Satu baris publishing log = satu konten (semua format, termasuk Stories) vs kuota bulanan." },
+  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published (satu baris publishing log = satu konten, semua format termasuk Stories) + in review (Task Progress per akhir bulan) vs kuota bulanan." },
   { key: "views", label: "Views", kind: "count", get: (s) => s.views, hint: "Insight akun Instagram selama bulan ini (API) — termasuk Stories & post lama, bukan hanya post yang dipublish bulan ini." },
   { key: "views_per_post", label: "Views per post", kind: "count", get: (s) => s.viewsPerPost, hint: "Rata-rata views lifetime per post feed/Reels yang dipublish bulan ini (sejak publish)." },
   { key: "reach", label: "Reach", kind: "count", get: (s) => s.reach, hint: "Akun unik yang melihat konten selama bulan ini (insight akun). Untuk bulan 31 hari Meta hanya memberi 30 hari pertama." },

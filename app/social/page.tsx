@@ -81,8 +81,15 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
       {/* 1. Kuota tercapai + produksi vs kuota */}
       <div className="grid gap-4 lg:grid-cols-3">
         <QuotaHero q={quota} prev={prevQuota} month={month} />
-        <Section title="Published vs kuota" subtitle="Post per bulan (semua format, dari Publishing Log) · 6 bulan terakhir" className="lg:col-span-2">
-          <TrendChart data={labels} series={[{ key: "socialQuotaCount", name: "Published" }, { key: "socialQuota", name: "Kuota", reference: true }]} />
+        <Section title="Delivered vs kuota" subtitle="Post per bulan (semua format) · delivered = published + in review · 6 bulan terakhir" className="lg:col-span-2">
+          <TrendChart
+            data={labels}
+            series={[
+              { key: "socialQuotaCount", name: "Published" },
+              { key: "socialDelivered", name: "Delivered (+ review)" },
+              { key: "socialQuota", name: "Kuota", reference: true },
+            ]}
+          />
         </Section>
       </div>
 
@@ -91,9 +98,9 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
         {SOCIAL_KPIS.map((k) => {
           const cur = k.get(kpi.cur);
           const value =
-            k.key === "published"
+            k.key === "delivered"
               ? quota.available
-                ? `${fmtNum(quota.published)}/${fmtNum(quota.target)}`
+                ? `${fmtNum(quota.achieved)}/${fmtNum(quota.target)}`
                 : fmtNum(s.postsPublished)
               : k.key === "active_days"
                 ? `${fmtNum(cur)} hari`
@@ -101,8 +108,8 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
                   ? fmtPct(cur, 2)
                   : fmtNum(cur);
           const note =
-            k.key === "published"
-              ? `Total ${fmtNum(s.postsPublished)} post · ${s.countSource === "log" ? "dari publishing log" : "dari export Meta"}`
+            k.key === "delivered"
+              ? `${fmtNum(s.postsPublished)} published + ${fmtNum(s.inReview)} in review · ${s.countSource === "log" ? "dari publishing log" : "dari export Meta"}`
               : k.key === "follows" && prev.social.hasData && prev.social.followsSource !== s.followsSource && s.follows != null
                 ? "Definisi beda dari bulan lalu — tidak dibandingkan"
                 : k.key === "active_days"
@@ -121,7 +128,7 @@ export default async function SocialPage({ searchParams }: PageProps<"/social">)
               key={k.key}
               label={k.label}
               value={value}
-              cur={k.key === "published" ? (quota.available ? quota.published : null) : cur}
+              cur={k.key === "delivered" ? (quota.available ? quota.achieved : null) : cur}
               prev={kpi.prev ? k.get(kpi.prev) : null}
               kind={k.kind === "rate" ? "rate" : undefined}
               goodWhenUp={k.goodWhenUp}

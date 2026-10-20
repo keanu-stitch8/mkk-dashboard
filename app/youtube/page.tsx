@@ -42,8 +42,15 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
       {/* 1. Kuota tercapai + produksi vs kuota */}
       <div className="grid gap-4 lg:grid-cols-3">
         <QuotaHero q={quota} prev={prevQuota} month={month} />
-        <Section title="Published vs kuota" subtitle="Video per bulan · 6 bulan terakhir" className="lg:col-span-2">
-          <TrendChart data={labels} series={[{ key: "ytPublished", name: "Published" }, { key: "ytQuota", name: "Kuota", reference: true }]} />
+        <Section title="Delivered vs kuota" subtitle="Video per bulan · delivered = published + in review · 6 bulan terakhir" className="lg:col-span-2">
+          <TrendChart
+            data={labels}
+            series={[
+              { key: "ytPublished", name: "Published" },
+              { key: "ytDelivered", name: "Delivered (+ review)" },
+              { key: "ytQuota", name: "Kuota", reference: true },
+            ]}
+          />
         </Section>
       </div>
 
@@ -55,7 +62,14 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
             k.key === "watch_hours"
               ? `${fmtNum(cur, 1)} jam`
               : (k.display?.(y) ?? (k.kind === "rate" ? fmtPct(cur, 2) : k.kind === "duration" ? fmtDuration(cur) : k.kind === "decimal" ? fmtNum(cur, 1) : fmtNum(cur))) ?? "—";
-          const note = k.key === "subs_net" ? (y.hasSubsLost ? `+${fmtNum(y.subsGained)} / −${fmtNum(y.subsLost)}` : "Data subscribers lost tidak ada") : undefined;
+          const note =
+            k.key === "subs_net"
+              ? y.hasSubsLost
+                ? `+${fmtNum(y.subsGained)} / −${fmtNum(y.subsLost)}`
+                : "Data subscribers lost tidak ada"
+              : k.key === "delivered"
+                ? `${fmtNum(y.published)} published + ${fmtNum(y.inReview)} in review`
+                : undefined;
           return (
             <KpiCard
               key={k.key}

@@ -55,6 +55,8 @@ describe("youtubeFindings", () => {
     prevMonthLabel: "August 2026",
     quota: 4,
     published: 4,
+    inReview: 0,
+    delivered: 4,
     recaps: 1,
     series: { name: "Q3 2026", produced: 13, publishedToDate: 8, remaining: 5 },
     views: 732,
@@ -78,7 +80,7 @@ describe("youtubeFindings", () => {
   it("September: penyebab views turun, video telat publish & CTR rendah disebut namanya", () => {
     const out = youtubeFindings(sep);
     expect(out).toEqual([
-      "All 4 planned videos were published, including 1 recap.",
+      "All 4 planned videos were delivered, including 1 recap.",
       "The Q3 2026 series now has 8 of its 13 videos out, with 5 still to be released.",
       'Views fell from 2,453 to 732. August was lifted by one video, "Klub Sepak Bola Putri Kudus", with 2,237 views.',
       'The next most watched was "Sapphire Boutique Hotel" with 190 views.',
@@ -91,7 +93,9 @@ describe("youtubeFindings", () => {
   });
 
   it("kuota terlewati / kurang", () => {
-    expect(youtubeFindings({ ...sep, published: 5 })[0]).toBe("5 videos were published against a quota of 4, including 1 recap.");
-    expect(youtubeFindings({ ...sep, published: 3, recaps: 0 })[0]).toBe("3 of the 4 planned videos were published.");
+    expect(youtubeFindings({ ...sep, published: 5, delivered: 5 })[0]).toBe("5 videos were delivered against a quota of 4, including 1 recap.");
+    expect(youtubeFindings({ ...sep, published: 3, delivered: 3, recaps: 0 })[0]).toBe("3 of the 4 planned videos were delivered.");
+    // in review ikut dihitung ke kuota (published + in review), sama dengan News & Social
+    expect(youtubeFindings({ ...sep, published: 3, inReview: 1, delivered: 4 })[0]).toBe("All 4 planned videos were delivered (3 live, 1 waiting for approval), including 1 recap.");
   });
 });

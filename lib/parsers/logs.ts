@@ -3,7 +3,7 @@
 import { findHeader, getCell } from "./headers";
 import { dataRows, dominantMonth, findUrlInRow, makeDataset, normalizeStatus } from "./common";
 import type { Dataset, RawTable } from "./types";
-import { normalizePath, parseCount, parseDate, parseDuration, str, strOrNull } from "./values";
+import { normalizePath, parseCount, parseDate, parseDuration, str, strOrNull, toMonth } from "./values";
 
 export const NEWS_FIELDS = {
   date: ["Publish Date", "Tanggal Publish", "Tanggal Terbit", "Tanggal Tayang", "Tanggal", "Date", "Planned Date", "Tanggal Rencana"],
@@ -79,24 +79,33 @@ export function detectNewsLog(table: RawTable): Dataset[] | null {
   if (m.columns.url === undefined && m.columns.reporter === undefined && m.columns.category === undefined) return null;
   const warnings: string[] = [];
   const rows = dataRows(table, m)
-    .map((r) => {
+    .flatMap((r) => {
       const title = str(getCell(r, m, "title"));
       const url = strOrNull(getCell(r, m, "url")) ?? findUrlInRow(r);
+      const publishedDate = parseDate(getCell(r, m, "publishedDate"))?.date ?? null;
+      const submittedDate = parseDate(getCell(r, m, "submittedDate"))?.date ?? null;
       // Published Date (jika ada & terisi) didahulukan; artikel review/draft memakai Planned Date
-      const date = parseDate(getCell(r, m, "publishedDate"))?.date ?? parseDate(getCell(r, m, "date"))?.date ?? null;
-      return {
+      const date = publishedDate ?? parseDate(getCell(r, m, "date"))?.date ?? null;
+      // Approved = sudah disetujui, belum tayang → dihitung in review
+      const status = /^approved?$/i.test(str(getCell(r, m, "status"))) ? "review" : normalizeStatus(getCell(r, m, "status"));
+      const row = {
         date,
-        submittedDate: parseDate(getCell(r, m, "submittedDate"))?.date ?? null,
+        submittedDate,
         title,
         url,
         path: normalizePath(url),
         category: strOrNull(getCell(r, m, "category")),
         reporter: strOrNull(getCell(r, m, "reporter")),
-        status: normalizeStatus(getCell(r, m, "status")),
+        status,
         type: strOrNull(getCell(r, m, "type")),
         method: strOrNull(getCell(r, m, "method")),
         _date: date,
       };
+      // Snapshot akhir bulan: disubmit bulan X tapi baru tayang bulan berikutnya → in review di bulan X (baris
+      // tambahan) + tetap published di bulan tayang. Import per bulan hanya menyimpan baris bulannya sendiri.
+      if (status === "publish" && submittedDate && publishedDate && toMonth(publishedDate)! > toMonth(submittedDate)!)
+        return [row, { ...row, date: submittedDate, status: "review", _date: submittedDate }];
+      return [row];
     })
     .filter((r) => r.title && !/^\d+$/.test(r.title));
   if (!rows.length) return null;
@@ -167,4 +176,80 @@ export function detectSocialLog(table: RawTable): Dataset[] | null {
   const multi = rows.filter((r) => r.platform.includes(",")).length;
   if (multi) warnings.push(`${multi} konten diposting ke beberapa channel sekaligus — tetap dihitung 1 post per baris.`);
   return [makeDataset("social_log", table, m, { month: dominantMonth(rows), rows, rowDated: true, warnings })];
+}
+
+const TRACKER_FORMAT = /^(carousel|reels?|feeds?|video|story|stories)$/i;
+
+export interface TrackerRow {
+  format: string;
+  title: string | null;
+  status: string;
+  /** bulan tab (dominan Planned Date) — pengganti Submitted Date yang kosong */
+  tabMonth: string;
+  submitted: string | null;
+  published: string | null;
+}
+
+/**
+ * Satu tab bulanan "Social Media - Task Progress" (tracker produksi, bukan publishing log) → baris konten.
+ * Bulan tab = bulan dominan Planned Date (nama tab tanpa tahun). null jika bukan tab tracker.
+ */
+export function readTrackerTab(table: RawTable): { tabMonth: string; rows: TrackerRow[] } | null {
+  const h = table.rows.slice(0, 10).findIndex((r) => r.some((c) => /^planned date$/i.test(str(c))) && r.some((c) => /^status$/i.test(str(c))));
+  if (h < 0) return null;
+  const header = table.rows[h].map((c) => str(c));
+  const col = (re: RegExp) => header.findIndex((c) => re.test(c));
+  // kolom Status pertama = status konten (yang kedua = status submit)
+  const statusCol = col(/^status$/i);
+  const dateCol = col(/^planned date$/i);
+  const titleCol = col(/^(artikel|judul|title|konten)$/i);
+  const submittedCol = col(/^submitted date$/i);
+  const publishedCol = col(/^published date$/i);
+  const data = table.rows.slice(h + 1).filter((r) => !header.every((c, i) => !c || str(r[i]) === c));
+  // kolom format tidak berjudul (sel header di-merge dengan Artikel) → kolom dengan isi Carousel/Reel terbanyak
+  const width = Math.max(0, ...data.map((r) => r.length));
+  let formatCol = -1;
+  let best = 0;
+  for (let i = 0; i < width; i++) {
+    const n = data.filter((r) => TRACKER_FORMAT.test(str(r[i]))).length;
+    if (n > best) [formatCol, best] = [i, n];
+  }
+  const tabMonth = dominantMonth(data.map((r) => ({ _date: parseDate(r[dateCol])?.date ?? null })));
+  if (!tabMonth) return null;
+  const date = (r: (typeof data)[number], i: number) => (i >= 0 ? (parseDate(r[i])?.date ?? null) : null);
+  const rows = data
+    .filter((r) => str(r[statusCol]))
+    .map((r) => ({
+      format: formatCol >= 0 ? normalizeLogFormat(str(r[formatCol])) : "lainnya",
+      title: titleCol >= 0 ? strOrNull(r[titleCol]) : null,
+      status: str(r[statusCol]).toLowerCase(),
+      tabMonth,
+      submitted: date(r, submittedCol),
+      published: date(r, publishedCol),
+    }));
+  return { tabMonth, rows };
+}
+
+/**
+ * In review per akhir bulan (snapshot, berbasis tanggal — tidak berubah walau tracker di-update belakangan):
+ * konten yang disubmit bulan ini (Submitted Date; kosong → bulan tab) dan per akhir bulan sudah diserahkan tapi
+ * belum tayang: status Submitted/Reviewing/Approved, atau Published dengan Published Date setelah bulan ini.
+ * Draft/In Progress/Revision (belum diserahkan) dan Unpublished/Rejected tidak dihitung.
+ */
+export function socialReviewDataset(rows: TrackerRow[], month: string, file: string): Dataset {
+  const items = rows.filter((r) => {
+    if ((toMonth(r.submitted) ?? r.tabMonth) !== month) return false;
+    if (/^(submitted|review(ing)?|approved)$/.test(r.status)) return true;
+    return r.status === "published" && !!r.published && toMonth(r.published)! > month;
+  });
+  return makeDataset("social_review", { file, blockCount: 1, rows: [], comments: [] }, null, {
+    month,
+    columns: [
+      { field: "status", header: "Status" },
+      { field: "submitted", header: "Submitted Date" },
+      { field: "published", header: "Published Date" },
+    ],
+    metrics: [{ channel: "social", key: "social_in_review", value: items.length }],
+    breakdowns: items.map((r) => ({ channel: "social" as const, dimension: "social_in_review", label: `${r.format} · ${r.title ?? "(tanpa judul)"}`, metric: "count", value: 1 })),
+  });
 }

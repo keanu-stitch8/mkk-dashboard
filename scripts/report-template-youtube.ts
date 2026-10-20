@@ -19,15 +19,15 @@ const tokens = (t: string, cols: string[]) => cols.map((k) => `{{#${t}.${k}}}`);
 
 // Teks laporan untuk client: kalimat pendek & lugas, tanpa jargon (posisi akhir template).
 const GUIDE: [string, string, string][] = [
-  ["Videos published", "Videos in the YouTube Publishing Log with Publish status for the month, including recap videos.", "Measures completed output against the quota."],
-  ["Monthly quota", "Planned number of videos for the month.", "Sets the delivery target."],
+  ["Videos published", "Videos in the YouTube Publishing Log with Publish status for the month, including recap videos.", "Shows the videos that went live."],
+  ["Videos in review", "Videos submitted for review this month and still waiting for approval at the end of the month, from the production tracker.", "Shows work that is finished but not yet live."],
+  ["Delivered vs quota", "Videos published plus videos in review, against the planned number of videos for the month. Quota achievement is delivered divided by the quota.", "Measures delivery against the quota."],
   ["Views", "YouTube views of the videos published this month, counted for {{period}}.", "Main measure of reach."],
   ["Views per video", "Views divided by the number of published videos.", "Compares months with different output."],
   ["Unique viewers", "Estimated number of different people who watched a video.", "Shows reach per video. One person can watch several videos, so do not add them up."],
   ["Watch time (hours)", "Total time viewers spent watching.", "Shows depth of viewing, not just clicks."],
   ["Avg view duration", "Average time watched per view.", "Best read together with the length of the video."],
-  ["Impressions", "Times a video thumbnail was shown on YouTube.", "Shows how widely YouTube recommended the video."],
-  ["Impressions CTR", "Share of impressions that led to a view.", "Reflects how well the title and thumbnail work. Below 4% suggests they may need work."],
+  ["Impressions and CTR", "Times a video thumbnail was shown on YouTube, and the share of those that led to a view (CTR).", "Shows how widely YouTube recommended the video and how well the title and thumbnail work. A CTR below 4% suggests they may need work."],
   ["Subscribers (net)", "Subscribers gained from the videos minus subscribers lost.", "Shows which videos helped grow the channel."],
   ["Share of views", "A video's views divided by the views of all videos in this report.", "Shows which videos carried the month."],
   ["Production series", "Videos from one shoot, released over several months. Recap videos are a separate production and are not counted in the series.", "Tracks how much of the produced content has been released."],
@@ -36,7 +36,7 @@ const GUIDE: [string, string, string][] = [
 
 /** Kartu KPI (urutan YOUTUBE_KPIS) → [baris label (1-based), kolom awal (0-based), format angka nilai] */
 const CARDS: [string, number, number, [string, string] | null][] = [
-  ["published", 4, 0, null],
+  ["delivered", 4, 0, null],
   ["views", 4, 3, ["NUMBER", "#,##0"]],
   ["views_per_video", 4, 6, ["NUMBER", "#,##0"]],
   ["impressions", 4, 9, ["NUMBER", "#,##0"]],
@@ -74,9 +74,11 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     A45: ["Content Type", "", "Published", "Share of Published", "", "", "", "Category", "", "Videos", "Share of Quota"],
     ...Object.fromEntries([1, 2, 3].map((i) => [`A${45 + i}`, [`{{type.${i}.name}}`, "", `{{type.${i}.count}}`, `{{type.${i}.share}}`]])),
     ...Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`H${46 + i}`, [`{{cat.${i + 1}.name}}`, "", `{{cat.${i + 1}.count}}`, `{{cat.${i + 1}.share}}`]])),
-    H57: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
-    H58: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
-    A61: "Views, watch time and subscribers come from YouTube Analytics for {{period}}. Each video in the Publishing Log is matched by its video link.",
+    // In review r57 disisipkan 2026-10-20 (ensureReviewRow): delivered = published + in review, sama dengan News
+    H57: ["In review", "", "{{cat.review}}", "{{cat.review_share}}"],
+    H58: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
+    H59: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
+    A62: "Views, watch time and subscribers come from YouTube Analytics for {{period}}. Each video in the Publishing Log is matched by its video link.",
   },
   [VP]: {
     A1: "YOUTUBE VIDEO PERFORMANCE",
@@ -85,12 +87,12 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     A6: tokens("videos", ["no", "date", "title", "type", "category", "views", "unique", "watch", "avd", "impressions", "ctr", "subs", "share"]),
     A7: ["", "", "TOTAL ({{listed}} videos)", "", "", "{{videos.total_views}}", "{{videos.total_unique}}", "{{videos.total_watch}}", "{{videos.total_avd}}", "{{videos.total_impressions}}", "{{videos.total_ctr}}", "{{videos.total_subs}}", "100.0%"],
   },
-  // strip angka = definisi dashboard: achievement = published ÷ kuota, sisa = kuota − published
+  // strip angka = definisi dashboard: delivered = published + in review, achievement = delivered ÷ kuota, sisa = kuota − delivered
   [PL]: {
     A1: "PUBLISHING LOG · {{month_upper}}",
-    A3: "Videos published on YouTube in {{month_label}}",
-    A5: ["PUBLISHED", "", "MONTHLY QUOTA", "", "QUOTA ACHIEVEMENT", "", "REMAINING QUOTA"],
-    A6: ["{{published}}", "", "{{quota}}", "", "{{achievement}}", "", "{{remaining}}"],
+    A3: "Videos published on YouTube in {{month_label}}, followed by videos still in review at the end of the month",
+    A5: ["DELIVERED", "", "MONTHLY QUOTA", "", "QUOTA ACHIEVEMENT", "", "REMAINING QUOTA"],
+    A6: ["{{delivered}}", "", "{{quota}}", "", "{{achievement}}", "", "{{remaining}}"],
     A9: ["No.", "Publish Date", "Video", "Video URL", "Type", "Category", "Production", "Status"],
     A10: tokens("log", ["no", "date", "title", "url", "type", "category", "production", "status"]),
   },
@@ -99,7 +101,7 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     A3: "How the figures in this report are defined",
     ...Object.fromEntries(GUIDE.map((g, i) => [`A${6 + i}`, g])),
     A21: "REPORTING METHODOLOGY",
-    A22: "Videos come from the monthly YouTube Publishing Log. Views, watch time, impressions and subscribers come from YouTube Analytics for {{period}}, matched to each video by its link. Figures are final once the month is closed.",
+    A22: "Videos come from the YouTube Publishing Log; videos in review come from the production tracker. Views, watch time, impressions and subscribers come from YouTube Analytics for {{period}}, matched to each video by its link. Figures are final once the month is closed.",
   },
 };
 
@@ -120,10 +122,10 @@ const STYLE: RowStyleSpec = {
     ["section", 29],
     ["section", 44],
     ["header", 45],
-    ["row", [46, 57]],
+    ["row", [46, 58]],
     ["total", 49, [1, 5]],
-    ["total", 58],
-    ["note", 61],
+    ["total", 59],
+    ["note", 62],
   ],
   [VP]: [["sheetTitle", 1], ["subtitle", 3], ["header", 5], ["row", 6], ["total", 7, [1, 13]]],
   [PL]: [["sheetTitle", 1], ["subtitle", 3], ["cardLabel", 5], ["cardValue", 6], ["header", 9], ["row", 10]],
@@ -136,7 +138,7 @@ const ANCHORS: Record<string, string> = {
   [`'${ES}'!A20`]: "KEY FINDINGS",
   [`'${ES}'!A29`]: "CONTENT BREAKDOWN",
   [`'${ES}'!A45`]: "Content Type",
-  [`'${ES}'!H58`]: "Monthly Quota",
+  [`'${ES}'!H59`]: "Monthly Quota",
   [`'${VP}'!A5`]: "No.",
   [`'${PL}'!A9`]: "No.",
   [`'${MG}'!A5`]: "Metric",
@@ -180,8 +182,8 @@ async function patchText(c: ReportClients, id: string) {
     num(ES, 26, 0, 2, TXT),
     num(ES, 46, 2, 3, INT, 49, "RIGHT"),
     num(ES, 46, 3, 5, PCT1, 49, "RIGHT"),
-    num(ES, 46, 9, 10, INT, 58, "RIGHT"),
-    num(ES, 46, 10, 12, PCT1, 58, "RIGHT"),
+    num(ES, 46, 9, 10, INT, 59, "RIGHT"),
+    num(ES, 46, 10, 12, PCT1, 59, "RIGHT"),
     right(ES, 45, 2, 5),
     right(ES, 45, 9, 12),
     num(VP, 6, 1, 2, DATE),
@@ -249,11 +251,12 @@ async function restructure(c: ReportClients, id: string) {
 
 async function main() {
   const { reportClients, copyFile } = await import("../lib/reports/engine/sheets");
-  const { applyRowStyles, assertAnchors, fitWidths } = await import("../lib/reports/engine/template-tools");
+  const { applyRowStyles, assertAnchors, ensureReviewRow, fitWidths } = await import("../lib/reports/engine/template-tools");
   const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1];
   const c = await reportClients();
   if (arg("fit-widths")) return fitWidths(c, arg("fit-widths")!);
   if (arg("patch")) {
+    await ensureReviewRow(c, arg("patch")!, ES, 57);
     await assertAnchors(c, arg("patch")!, ANCHORS);
     await patchText(c, arg("patch")!);
     await applyRowStyles(c, arg("patch")!, STYLE);
@@ -264,6 +267,7 @@ async function main() {
   if (!from) throw new Error("--from=<ID master template News> (buat template baru) atau --patch=<ID template> wajib");
   const file = await copyFile(c, from, "DRAFT – TEMPLATE – MKK YouTube Monthly Performance Report");
   await restructure(c, file.id);
+  await ensureReviewRow(c, file.id, ES, 57);
   await patchText(c, file.id);
   await assertAnchors(c, file.id, ANCHORS);
   await applyRowStyles(c, file.id, STYLE);
