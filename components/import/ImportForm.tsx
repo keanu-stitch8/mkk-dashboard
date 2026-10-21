@@ -46,7 +46,7 @@ interface CommitResponse {
   error?: string;
 }
 
-const fmt = (n: number) => n.toLocaleString("id-ID", { maximumFractionDigits: 4 });
+const fmt = (n: number) => n.toLocaleString("en-ID", { maximumFractionDigits: 4 });
 
 export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
   const router = useRouter();
@@ -122,7 +122,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="grid gap-1.5">
-          <Label htmlFor="import-month">Bulan data</Label>
+          <Label htmlFor="import-month">Data month</Label>
           <Input
             id="import-month"
             type="month"
@@ -136,7 +136,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
           />
         </div>
         <div className="grid gap-1.5">
-          <Label>Jenis sumber</Label>
+          <Label>Source type</Label>
           <Select
             value={group}
             onValueChange={(v) => {
@@ -157,7 +157,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
           </Select>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="import-files">File (.csv, .xlsx, .zip — boleh lebih dari satu)</Label>
+          <Label htmlFor="import-files">Files (.csv, .xlsx, .zip — multiple allowed)</Label>
           <Input
             id="import-files"
             ref={inputRef}
@@ -176,7 +176,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
 
       {loading && (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" /> Membaca file…
+          <Loader2 className="size-4 animate-spin" /> Reading files…
         </p>
       )}
       {error && (
@@ -189,12 +189,12 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
       {done && (
         <Alert className="border-success/30 bg-success-soft">
           <CircleCheck className="text-success" />
-          <AlertTitle>Tersimpan untuk {monthLabel(done.month)}</AlertTitle>
+          <AlertTitle>Saved for {monthLabel(done.month)}</AlertTitle>
           <AlertDescription>
             <ul className="list-disc pl-4">
               {done.results.map((r) => (
                 <li key={r.label}>
-                  {r.label}: {r.skipped ? "dilewati (0 baris untuk bulan ini — data lama tidak diubah)" : `${fmt(r.rows)} baris${r.replaced ? " (menggantikan data lama)" : ""}`}
+                  {r.label}: {r.skipped ? "skipped (0 rows for this month — existing data unchanged)" : `${fmt(r.rows)} rows${r.replaced ? " (replaced existing data)" : ""}`}
                 </li>
               ))}
             </ul>
@@ -206,12 +206,12 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">
-              Preview · {preview.datasets.length} dataset terdeteksi
-              {preview.suggestedMonth && preview.suggestedMonth !== month && <span className="ml-2 font-normal text-warning">(file terdeteksi untuk {monthLabel(preview.suggestedMonth)})</span>}
+              Preview · {preview.datasets.length} dataset(s) detected
+              {preview.suggestedMonth && preview.suggestedMonth !== month && <span className="ml-2 font-normal text-warning">(files detected for {monthLabel(preview.suggestedMonth)})</span>}
             </h3>
             <Button onClick={commit} disabled={saving || selected.size === 0 || !month}>
               {saving && <Loader2 className="animate-spin" />}
-              {saving ? "Menyimpan…" : `Simpan ${selected.size} dataset ke ${month ? monthLabel(month) : "…"}`}
+              {saving ? "Saving…" : `Save ${selected.size} dataset(s) to ${month ? monthLabel(month) : "…"}`}
             </Button>
           </div>
 
@@ -233,8 +233,8 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
                   <Label htmlFor={`ds-${d.key}`} className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-medium">{d.label}</span>
                     <Badge variant={d.rowCount === 0 ? "destructive" : "secondary"} className="num">
-                      {fmt(d.rowCount)} baris
-                      {d.totalRows !== d.rowCount && ` dari ${fmt(d.totalRows)}`}
+                      {fmt(d.rowCount)} rows
+                      {d.totalRows !== d.rowCount && ` of ${fmt(d.totalRows)}`}
                     </Badge>
                     {d.detectedMonth && <span className="text-xs font-normal text-muted-foreground">file: {monthLabel(d.detectedMonth)}</span>}
                   </Label>
@@ -245,7 +245,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
                   </div>
                   {d.replaces && (
                     <div className="mt-1 text-xs text-warning">
-                      Akan menggantikan import sebelumnya ({d.replaces.fileName}, {new Date(d.replaces.createdAt).toLocaleDateString("id-ID")}).
+                      Will replace the previous import ({d.replaces.fileName}, {new Date(d.replaces.createdAt).toLocaleDateString("en-ID")}).
                     </div>
                   )}
                 </div>
@@ -253,12 +253,12 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
 
               <div className="mt-2.5 flex flex-wrap gap-1 pl-7">
                 {d.columns.map((c) => (
-                  <Badge key={c.field} variant="outline" className="border-transparent bg-success-soft font-normal text-success" title={`Kolom "${c.header}" → ${c.field}`}>
+                  <Badge key={c.field} variant="outline" className="border-transparent bg-success-soft font-normal text-success" title={`Column "${c.header}" → ${c.field}`}>
                     {c.header}
                   </Badge>
                 ))}
                 {d.unmatched.map((c) => (
-                  <Badge key={c} variant="outline" className="font-normal text-muted-foreground line-through decoration-muted-foreground/40" title="Kolom tidak dipakai">
+                  <Badge key={c} variant="outline" className="font-normal text-muted-foreground line-through decoration-muted-foreground/40" title="Column not used">
                     {c}
                   </Badge>
                 ))}
@@ -278,7 +278,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
                 <Collapsible className="mt-2 pl-7">
                   <CollapsibleTrigger asChild>
                     <Button variant="link" size="sm" className="h-auto p-0 text-xs">
-                      Lihat contoh baris
+                      Show sample rows
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-2 rounded-md border bg-background">
@@ -313,7 +313,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
           {preview.skipped.some((s) => s.actionable) && (
             <Alert className="border-warning/30 bg-warning-soft">
               <TriangleAlert className="text-warning" />
-              <AlertTitle>Ada file yang dikenali tapi tidak bisa dipakai</AlertTitle>
+              <AlertTitle>Some files were recognized but can&apos;t be used</AlertTitle>
               <AlertDescription>
                 <ul className="list-disc space-y-1 pl-4">
                   {[...new Map(preview.skipped.filter((s) => s.actionable).map((s) => [s.reason, s])).values()].map((s) => (
@@ -330,7 +330,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
             <Collapsible defaultOpen={preview.datasets.length === 0} className="rounded-lg border p-3 text-xs">
               <CollapsibleTrigger asChild>
                 <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground">
-                  {preview.errors.length} error · {preview.skipped.length} tabel/sheet dilewati
+                  {preview.errors.length} error · {preview.skipped.length} table(s)/sheet(s) skipped
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>

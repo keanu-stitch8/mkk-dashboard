@@ -4,15 +4,17 @@ import { daysInMonth, prevMonth } from "../../month";
 import { fmtDurationEn, kpiData, NEWS_KPIS } from "../kpi";
 import { enMonth } from "../month";
 import type { Cell, ReportChannel, ReportData } from "../types";
+import { categoryLabel, NEWS_REPORT_CATEGORIES, newsFormat } from "../../taxonomy";
 import { newsFindings } from "./news-narrative";
 
 /**
  * Baris tetap tabel kategori & tipe di Executive Summary. Rentang pie chart menunjuk baris-baris ini, jadi jumlahnya
- * tidak boleh berubah antar bulan (template: scripts/report-template-news.ts). Kategori di luar daftar → "Other".
+ * tidak boleh berubah antar bulan (template: scripts/report-template-news.ts). Daftar kategori dari lib/taxonomy.ts
+ * (tanpa "Other": kategori baru → peringatan saat generate).
  */
-export const NEWS_CATEGORIES = ["Akomodasi", "Arena", "Atlet", "Atraksi", "Kegiatan", "Kesehatan", "Komunitas", "Kuliner", "Olahraga", "Pelatih", "Perlengkapan", "Profil", "Tentang Kudus", "UMKM"];
+export const NEWS_CATEGORIES = NEWS_REPORT_CATEGORIES;
 export const NEWS_TYPES = ["Editorial", "Features", "Hard News"];
-export const NEWS_CATEGORY_SLOTS = NEWS_CATEGORIES.length + 1; // + Other
+export const NEWS_CATEGORY_SLOTS = NEWS_CATEGORIES.length;
 
 const div = (a: number | null | undefined, b: number | null | undefined) => (a == null || !b ? null : a / b);
 const sumOf = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
@@ -22,12 +24,17 @@ export const sheetDate = (iso: string | null) => (iso ? (Date.UTC(+iso.slice(0, 
 const oneLine = (s: string) => s.replace(/\s*\n\s*/g, " ").trim();
 const STATUS_EN: Record<string, string> = { publish: "Published", review: "In review", draft: "Draft" };
 
-/** Hitung per kategori ke slot tetap; kategori tak dikenal / kosong masuk "Other". */
-export function categorySlots(counts: { label: string; count: number }[]): { name: string; count: number }[] {
-  const slots = [...NEWS_CATEGORIES, "Other"].map((name) => ({ name, count: 0 }));
+/**
+ * Hitung per kategori (label taksonomi) ke slot tetap `names`. Kategori di luar daftar / kosong tidak punya baris →
+ * masuk `warnings` supaya log atau daftar kategori diperbaiki (tidak ada slot "Other").
+ */
+export function categorySlots(counts: { label: string; count: number }[], names: string[] = NEWS_CATEGORIES, warnings: string[] = []): { name: string; count: number }[] {
+  const slots = names.map((name) => ({ name, count: 0 }));
   for (const c of counts) {
-    const i = NEWS_CATEGORIES.findIndex((k) => k.toLowerCase() === c.label.trim().toLowerCase());
-    slots[i >= 0 ? i : slots.length - 1].count += c.count;
+    const label = categoryLabel(c.label);
+    const slot = slots.find((s) => s.name === label);
+    if (slot) slot.count += c.count;
+    else warnings.push(`Category "${c.label || "(empty)"}" has no row in the report (${c.count}×) — fix the log, or add it to lib/taxonomy.ts and the template.`);
   }
   return slots;
 }
@@ -45,7 +52,8 @@ export async function buildNews(month: string): Promise<ReportData> {
   const top = n.topArticles[0];
 
   const typeRows = NEWS_TYPES.map((name) => ({ name, count: n.byType.find((t) => t.label === name)?.count ?? 0 }));
-  const cats = categorySlots(n.byCategory);
+  const warnings: string[] = [];
+  const cats = categorySlots(n.byCategory, NEWS_CATEGORIES, warnings);
   const unpublished = Math.max(quota - sumOf(cats.map((c) => c.count)) - n.inReview, 0);
 
   const findings = newsFindings({
@@ -99,7 +107,7 @@ export async function buildNews(month: string): Promise<ReportData> {
     "top.title": top ? oneLine(top.title) : "—",
     "top.views": top?.views ?? null,
     "top.avg_time": top?.avgEngagementTime != null ? fmtDurationEn(top.avgEngagementTime) : "—",
-    "top.category": top?.category ?? "",
+    "top.category": categoryLabel(top?.category) ?? "",
     "types.total": sumOf(typeRows.map((t) => t.count)),
     "cat.review": n.inReview,
     "cat.review_share": div(n.inReview, quota),
@@ -129,8 +137,8 @@ export async function buildNews(month: string): Promise<ReportData> {
     title: oneLine(a.title),
     url: a.url ?? "",
     reporter: a.reporter ?? "",
-    category: a.category ?? "",
-    type: a.type ?? "",
+    category: categoryLabel(a.category) ?? "",
+    type: newsFormat(a.type) ?? "",
     status: STATUS_EN[a.status] ?? a.status,
     method: a.method ?? "",
   });
@@ -140,15 +148,15 @@ export async function buildNews(month: string): Promise<ReportData> {
     tones: kpi.tones,
     autoHeight: ["findings", "articles", "log", "review"],
     // kategori "Other" (slot terakhir) hanya tampil jika ada isinya
-    hideRows: cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : [],
+    warnings,
     tables: {
       findings: findings.map((text) => ({ text })),
       articles: published.map((a, i) => ({
         no: i + 1,
         date: sheetDate(a.date),
         title: oneLine(a.title),
-        type: a.type ?? "",
-        category: a.category ?? "",
+        type: newsFormat(a.type) ?? "",
+        category: categoryLabel(a.category) ?? "",
         views: a.views,
         users: a.activeUsers,
         views_per_user: div(a.views, a.activeUsers),

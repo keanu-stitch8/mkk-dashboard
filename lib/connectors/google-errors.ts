@@ -37,44 +37,44 @@ export function googleErrorMessage(e: unknown, ctx: Ctx): string {
   const sa = ctx.account ?? ctx.serviceAccount;
 
   if (m.includes("has not been used in project") || m.includes("service_disabled") || m.includes("is disabled")) {
-    return `${info.name} belum diaktifkan di project Google Cloud. Aktifkan di https://console.cloud.google.com/apis/library/${info.library} lalu tunggu beberapa menit.`;
+    return `${info.name} isn't enabled in the Google Cloud project. Enable it at https://console.cloud.google.com/apis/library/${info.library} and wait a few minutes.`;
   }
   if (code === "ENOTFOUND" || code === "ECONNREFUSED" || code === "ETIMEDOUT" || m.includes("getaddrinfo") || m.includes("network")) {
-    return "Tidak bisa terhubung ke server Google. Cek koneksi internet lalu coba lagi.";
+    return "Can't reach Google's servers. Check your internet connection and try again.";
   }
   if (m.includes("invalid_client") || m.includes("unauthorized_client")) {
-    return "OAuth client ditolak Google: GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET salah, atau OAuth client sudah dihapus di Google Cloud.";
+    return "Google rejected the OAuth client: GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET is wrong, or the OAuth client was deleted in Google Cloud.";
   }
   if (code === 16 || status === 401 || m.includes("invalid_grant") || m.includes("unauthenticated") || m.includes("invalid jwt")) {
     if (oauth) {
-      return "Akses akun Google sudah kedaluwarsa atau dicabut. Di halaman Connectors API, klik “Ganti akun” (atau “Hubungkan akun Google”) di kartu connector ini lalu login lagi. (Jika OAuth consent screen masih mode Testing, token kedaluwarsa tiap 7 hari — ubah ke In production.)";
+      return "Google account access expired or was revoked. On the Connectors API page, click “Switch account” (or “Connect Google account”) on this connector's card and sign in again. (If the OAuth consent screen is still in Testing mode, tokens expire every 7 days — switch it to In production.)";
     }
-    return "Kunci service account ditolak (dihapus, kedaluwarsa, atau jam komputer tidak sinkron). Buat kunci JSON baru di Google Cloud → IAM → Service Accounts → Keys.";
+    return "The service account key was rejected (deleted, expired, or the computer clock is out of sync). Create a new JSON key in Google Cloud → IAM → Service Accounts → Keys.";
   }
   if (code === 7 || status === 403 || m.includes("permission") || m.includes("insufficient")) {
     if (ctx.api === "ga4") {
       if (oauth) {
-        return `Akun Google ${sa ? `${sa} ` : ""}tidak punya akses ke properti GA4${ctx.propertyId ? ` ${ctx.propertyId}` : ""}. Pastikan akun ini bisa membuka properti tersebut di analytics.google.com, atau cek GA4_PROPERTY_ID.`;
+        return `Google account ${sa ? `${sa} ` : ""}has no access to GA4 property${ctx.propertyId ? ` ${ctx.propertyId}` : ""}. Make sure this account can open the property at analytics.google.com, or check GA4_PROPERTY_ID.`;
       }
-      return `Service account belum ditambahkan ke properti GA4${ctx.propertyId ? ` ${ctx.propertyId}` : ""}. Tambahkan ${sa ?? "email service account"} sebagai Viewer di GA4 → Admin → Property access management.`;
+      return `The service account hasn't been added to GA4 property${ctx.propertyId ? ` ${ctx.propertyId}` : ""}. Add ${sa ?? "the service account email"} as a Viewer in GA4 → Admin → Property access management.`;
     }
     if (ctx.api === "gsc") {
-      if (oauth) return `Akun Google ${sa ? `${sa} ` : ""}tidak punya akses ke properti Search Console${ctx.siteUrl ? ` ${ctx.siteUrl}` : ""}.`;
-      return `Service account belum punya akses ke properti Search Console${ctx.siteUrl ? ` ${ctx.siteUrl}` : ""}. Tambahkan ${sa ?? "email service account"} sebagai user (Restricted cukup) di Search Console → Settings → Users and permissions.`;
+      if (oauth) return `Google account ${sa ? `${sa} ` : ""}has no access to Search Console property${ctx.siteUrl ? ` ${ctx.siteUrl}` : ""}.`;
+      return `The service account has no access to Search Console property${ctx.siteUrl ? ` ${ctx.siteUrl}` : ""} yet. Add ${sa ?? "the service account email"} as a user (Restricted is enough) in Search Console → Settings → Users and permissions.`;
     }
-    if (ctx.api === "sheets") return "Akses Google Drive ditolak. Hubungkan ulang akun Google di kartu Google Sheets dan centang izin “Lihat semua file Google Drive”.";
-    return "Akses ditolak oleh Google. Hubungkan ulang akun YouTube dan pastikan memilih akun pemilik channel.";
+    if (ctx.api === "sheets") return "Google Drive access denied. Reconnect the Google account on the Google Sheets card and tick the “See all your Google Drive files” permission.";
+    return "Google denied access. Reconnect the YouTube account and make sure to pick the channel owner's account.";
   }
   if (code === 5 || status === 404 || (code === 3 && m.includes("property"))) {
-    if (ctx.api === "ga4") return `Properti GA4 "${ctx.propertyId ?? "?"}" tidak ditemukan. Pakai angka Property ID dari GA4 → Admin → Property details (bukan Measurement ID G-XXXX).`;
-    if (ctx.api === "gsc") return `Properti Search Console "${ctx.siteUrl ?? "?"}" tidak ditemukan. Gunakan format persis seperti di Search Console, mis. "sc-domain:mainkekudus.com" atau "https://mainkekudus.com/".`;
+    if (ctx.api === "ga4") return `GA4 property "${ctx.propertyId ?? "?"}" not found. Use the numeric Property ID from GA4 → Admin → Property details (not the G-XXXX Measurement ID).`;
+    if (ctx.api === "gsc") return `Search Console property "${ctx.siteUrl ?? "?"}" not found. Use the exact format shown in Search Console, e.g. "sc-domain:mainkekudus.com" or "https://mainkekudus.com/".`;
   }
   if (code === 8 || status === 429 || m.includes("quota") || m.includes("rate limit") || m.includes("resource_exhausted")) {
-    return `Kuota ${info.name} habis untuk sementara. Coba lagi beberapa menit lagi (atau besok jika kuota harian).`;
+    return `${info.name} quota is temporarily exhausted. Try again in a few minutes (or tomorrow for a daily quota).`;
   }
   if (code === 3 || status === 400) return `Permintaan ditolak ${info.name}: ${message}`;
-  if (code === 14 || (typeof status === "number" && status >= 500)) return `Server ${info.name} sedang bermasalah. Coba lagi nanti.`;
-  return `Gagal mengambil data dari ${info.name}: ${message}`;
+  if (code === 14 || (typeof status === "number" && status >= 500)) return `${info.name} servers are having problems. Try again later.`;
+  return `Failed to fetch data from ${info.name}: ${message}`;
 }
 
 /** Error sementara yang layak di-retry. */

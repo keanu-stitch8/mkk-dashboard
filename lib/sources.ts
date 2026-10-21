@@ -1,5 +1,6 @@
 // Katalog sumber data (aman dipakai di client maupun server).
 import type { Channel, DatasetKey, SourceGroup } from "./parsers/types";
+import { PLATFORM_LABEL, SOCIAL_FORMAT_LABEL } from "./taxonomy";
 
 export const DATASETS: Record<DatasetKey, { label: string; group: Exclude<SourceGroup, "auto">; channel: Channel }> = {
   ga4_traffic: { label: "GA4 · Traffic acquisition (channel)", group: "ga4", channel: "website" },
@@ -13,26 +14,26 @@ export const DATASETS: Record<DatasetKey, { label: string; group: Exclude<Source
   gsc_devices: { label: "GSC · Devices", group: "gsc", channel: "website" },
   gsc_countries: { label: "GSC · Countries", group: "gsc", channel: "website" },
   yt_table: { label: "YouTube · Table data (per video)", group: "youtube", channel: "youtube" },
-  yt_daily: { label: "YouTube · Totals / Chart data (harian)", group: "youtube", channel: "youtube" },
+  yt_daily: { label: "YouTube · Totals / Chart data (daily)", group: "youtube", channel: "youtube" },
   yt_log: { label: "YouTube · Publishing log", group: "youtube", channel: "youtube" },
   meta_instagram: { label: "Meta · Instagram (per post)", group: "meta", channel: "social" },
   meta_facebook: { label: "Meta · Facebook (per post)", group: "meta", channel: "social" },
-  meta_ig_stories: { label: "Meta · Instagram Stories (info, bukan KPI)", group: "meta", channel: "social" },
-  news_log: { label: "News · Content log (artikel)", group: "news", channel: "news" },
-  news_views: { label: "News · Views per artikel (dari report)", group: "news", channel: "news" },
+  meta_ig_stories: { label: "Meta · Instagram Stories (info, not a KPI)", group: "meta", channel: "social" },
+  news_log: { label: "News · Content log (articles)", group: "news", channel: "news" },
+  news_views: { label: "News · Views per article (from the report)", group: "news", channel: "news" },
   social_log: { label: "Sosmed · Publishing log", group: "social_log", channel: "social" },
   social_review: { label: "Sosmed · Task Progress (in review)", group: "social_log", channel: "social" },
   yt_review: { label: "YouTube · Calendar Timeline (in review)", group: "youtube", channel: "youtube" },
 };
 
 export const SOURCE_GROUPS: { value: SourceGroup; label: string; hint: string }[] = [
-  { value: "auto", label: "Deteksi otomatis", hint: "Jenis file ditebak dari header-nya." },
-  { value: "ga4", label: "Website · GA4", hint: "CSV dari GA4: Traffic acquisition, Pages and screens, Landing page, Demographic City, overview." },
-  { value: "gsc", label: "Website · Search Console", hint: "XLSX lengkap dari GSC (Export → Excel) atau CSV Queries/Pages/Chart." },
-  { value: "youtube", label: "YouTube Studio", hint: "Table data.csv, Chart data.csv, Totals.csv (atau ZIP-nya), dan/atau publishing log." },
-  { value: "meta", label: "Social · Meta Business Suite", hint: "CSV export konten Instagram / Facebook." },
-  { value: "news", label: "News · Content Logs", hint: "Export Google Sheets log artikel (CSV/XLSX), termasuk report News." },
+  { value: "auto", label: "Auto-detect", hint: "The file type is guessed from its headers." },
+  { value: "ga4", label: "Website · GA4", hint: "CSVs from GA4: Traffic acquisition, Pages and screens, Landing page, Demographic City, overview." },
+  { value: "gsc", label: "Website · Search Console", hint: "Full XLSX from GSC (Export → Excel) or the Queries/Pages/Chart CSVs." },
+  { value: "news", label: "News · Content Logs", hint: "Google Sheets export of the article log (CSV/XLSX), including the News report." },
+  { value: "meta", label: "Social · Meta Business Suite", hint: "CSV export of Instagram / Facebook content." },
   { value: "social_log", label: "Social · Publishing log", hint: "Export Google Sheets log posting sosmed (CSV/XLSX)." },
+  { value: "youtube", label: "YouTube Studio", hint: "Table data.csv, Chart data.csv, Totals.csv (or their ZIP), and/or the publishing log." },
 ];
 
 /** Key yang boleh digabung jika muncul lebih dari sekali dalam satu upload. */
@@ -45,25 +46,16 @@ export const CHANNEL_LABEL: Record<Channel, string> = {
   social: "Social Media",
 };
 
+// label format sosmed & platform dari taksonomi bersama (lib/taxonomy.ts): Feed (+ carousel/foto) · Reel · Story · Video
 export const FORMAT_LABEL: Record<string, string> = {
-  reels: "Reels",
-  carousel: "Carousel",
-  feeds: "Feeds",
-  video: "Video",
-  photo: "Foto",
-  story: "Stories",
+  ...SOCIAL_FORMAT_LABEL,
   shorts: "Shorts",
-  text: "Teks",
+  text: "Text",
   link: "Link",
-  lainnya: "Lainnya",
+  lainnya: "Other",
 };
 
-export const PLATFORM_LABEL: Record<string, string> = {
-  instagram: "Instagram",
-  facebook: "Facebook",
-  tiktok: "TikTok",
-  youtube: "YouTube",
-};
+export { PLATFORM_LABEL };
 
 /**
  * Akun sosmed milik MKK. Post dari akun lain di export Meta (kolaborasi/repost)
@@ -81,9 +73,9 @@ export const ACTIVE_SOCIAL_PLATFORMS: string[] = ["instagram"];
 
 /** Kuota bulanan default (bisa diubah di halaman Import → Kuota). */
 export const QUOTA_DEFAULTS: { key: string; label: string; value: number }[] = [
-  { key: "news", label: "Artikel News", value: 60 },
-  { key: "social", label: "Post sosmed (semua format, dari Publishing Log)", value: 60 },
-  { key: "youtube", label: "Video YouTube", value: 4 },
+  { key: "news", label: "News articles", value: 60 },
+  { key: "social", label: "Social posts (all formats, from the Publishing Log)", value: 60 },
+  { key: "youtube", label: "YouTube videos", value: 4 },
 ];
 
 /** Field input manual per channel (fallback jika file tidak tersedia). */
@@ -95,24 +87,24 @@ export const MANUAL_FIELDS: Record<Channel, { key: string; label: string; unit?:
     { key: "engagedSessions", label: "Engaged sessions" },
     { key: "pageviews", label: "Views / pageviews" },
     { key: "engagementRate", label: "Engagement rate (%)", unit: "percent" },
-    { key: "avgEngagementTime", label: "Avg engagement time per sesi (detik)", unit: "seconds" },
+    { key: "avgEngagementTime", label: "Avg engagement time per session (seconds)", unit: "seconds" },
     { key: "gscClicks", label: "GSC clicks" },
     { key: "gscImpressions", label: "GSC impressions" },
     { key: "gscPosition", label: "GSC avg position" },
   ],
   news: [
-    { key: "published", label: "Artikel published" },
-    { key: "inReview", label: "Artikel in review" },
-    { key: "totalViews", label: "Total views artikel" },
+    { key: "published", label: "Articles published" },
+    { key: "inReview", label: "Articles in review" },
+    { key: "totalViews", label: "Total article views" },
   ],
   youtube: [
     { key: "views", label: "Views" },
-    { key: "watchHours", label: "Watch time (jam)" },
+    { key: "watchHours", label: "Watch time (hours)" },
     { key: "subsGained", label: "Subscribers gained" },
     { key: "subsLost", label: "Subscribers lost" },
     { key: "impressions", label: "Impressions" },
     { key: "ctr", label: "Impressions CTR (%)", unit: "percent" },
-    { key: "avgViewDurationSec", label: "Avg view duration (detik)", unit: "seconds" },
+    { key: "avgViewDurationSec", label: "Avg view duration (seconds)", unit: "seconds" },
     { key: "published", label: "Video published" },
   ],
   social: [

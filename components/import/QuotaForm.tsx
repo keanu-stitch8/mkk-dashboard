@@ -30,7 +30,7 @@ export function QuotaForm({ month, rows }: { month: string; rows: Row[] }) {
     setSaving(true);
     const [a, b] = await Promise.all([post("default", toVals(def)), post(month, toVals(own))]);
     setSaving(false);
-    setStatus(a.ok && b.ok ? "Tersimpan." : "Gagal menyimpan.");
+    setStatus(a.ok && b.ok ? "Saved." : "Failed to save.");
     router.refresh();
   };
 
@@ -39,7 +39,7 @@ export function QuotaForm({ month, rows }: { month: string; rows: Row[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Kuota</TableHead>
+            <TableHead>Quota</TableHead>
             <TableHead>Default</TableHead>
             <TableHead>Khusus {monthLabel(month, true)}</TableHead>
           </TableRow>
@@ -67,7 +67,7 @@ export function QuotaForm({ month, rows }: { month: string; rows: Row[] }) {
       </Table>
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving}>
-          Simpan kuota
+          Save quotas
         </Button>
         {status && <span className="text-xs text-muted-foreground">{status}</span>}
       </div>

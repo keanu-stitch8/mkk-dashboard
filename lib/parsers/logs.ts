@@ -68,7 +68,7 @@ export function detectNewsViews(table: RawTable): Dataset[] | null {
       month: dominantMonth(rows),
       rows,
       rowDated: true,
-      warnings: ["Views diambil dari report News (sudah dihitung). Jika GA4 Pages and screens bulan ini di-import, views GA4 yang dipakai."],
+      warnings: ["Views come from the News report (already calculated). If this month's GA4 Pages and screens is imported, GA4 views are used instead."],
     }),
   ];
 }
@@ -110,9 +110,9 @@ export function detectNewsLog(table: RawTable): Dataset[] | null {
     .filter((r) => r.title && !/^\d+$/.test(r.title));
   if (!rows.length) return null;
   const noDate = rows.filter((r) => !r.date).length;
-  if (noDate) warnings.push(`${noDate} baris tanpa tanggal — tetap disimpan ke bulan yang dipilih.`);
+  if (noDate) warnings.push(`${noDate} rows without a date — still saved to the selected month.`);
   const noUrl = rows.filter((r) => r.status === "publish" && !r.url).length;
-  if (noUrl) warnings.push(`${noUrl} artikel Publish tanpa URL — tidak bisa dicocokkan ke GA4.`);
+  if (noUrl) warnings.push(`${noUrl} published articles without a URL — can't be matched to GA4.`);
   return [makeDataset("news_log", table, m, { month: dominantMonth(rows), rows, rowDated: true, warnings })];
 }
 
@@ -150,7 +150,7 @@ export function detectSocialLog(table: RawTable): Dataset[] | null {
   const hasPlatform = m.columns.platform !== undefined;
   if (!hasPlatform && m.columns.admin === undefined && m.columns.designer === undefined) return null;
   const warnings: string[] = [];
-  if (!hasPlatform) warnings.push('Kolom Channel/Platform tidak ada — semua baris dianggap Instagram.');
+  if (!hasPlatform) warnings.push('No Channel/Platform column — every row is treated as Instagram.');
   const rows = dataRows(table, m)
     .map((r) => {
       // satu baris = satu konten; kolom Channels bisa berisi beberapa platform sekaligus
@@ -174,7 +174,7 @@ export function detectSocialLog(table: RawTable): Dataset[] | null {
     .filter((r) => r.format !== "lainnya" || r.title || r.date);
   if (!rows.length) return null;
   const multi = rows.filter((r) => r.platform.includes(",")).length;
-  if (multi) warnings.push(`${multi} konten diposting ke beberapa channel sekaligus — tetap dihitung 1 post per baris.`);
+  if (multi) warnings.push(`${multi} items were posted to several channels at once — still counted as 1 post per row.`);
   return [makeDataset("social_log", table, m, { month: dominantMonth(rows), rows, rowDated: true, warnings })];
 }
 
@@ -250,6 +250,6 @@ export function socialReviewDataset(rows: TrackerRow[], month: string, file: str
       { field: "published", header: "Published Date" },
     ],
     metrics: [{ channel: "social", key: "social_in_review", value: items.length }],
-    breakdowns: items.map((r) => ({ channel: "social" as const, dimension: "social_in_review", label: `${r.format} · ${r.title ?? "(tanpa judul)"}`, metric: "count", value: 1 })),
+    breakdowns: items.map((r) => ({ channel: "social" as const, dimension: "social_in_review", label: `${r.format} · ${r.title ?? "(untitled)"}`, metric: "count", value: 1 })),
   });
 }

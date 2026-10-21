@@ -8,7 +8,7 @@ import { ConnectorError } from "../types";
 import { monthRange, serviceAccountKey, withRetry } from "../common";
 import { googleErrorMessage, isRetryableGoogleError } from "../google-errors";
 import { authorizedClient, oauthAccount, oauthClientConfigured } from "../google-oauth";
-import { mapGa4Month, type Ga4MonthReports, type Ga4Report } from "./map";
+import { cumulativeMetric, mapGa4Month, returningMetric, type Ga4MonthReports, type Ga4Report } from "./map";
 import { prisma } from "../../db";
 import { WIB } from "../../tz";
 
@@ -19,9 +19,9 @@ const PAGE_LIMIT = 10000;
 
 function propertyId(): string {
   const id = process.env.GA4_PROPERTY_ID?.trim().replace(/^properties\//, "");
-  if (!id) throw new ConnectorError("GA4_PROPERTY_ID belum diisi di .env.local (angka Property ID, mis. 123456789).");
+  if (!id) throw new ConnectorError("GA4_PROPERTY_ID isn't set in .env.local (the numeric Property ID, e.g. 123456789).");
   if (!/^\d+$/.test(id)) {
-    throw new ConnectorError(`GA4_PROPERTY_ID harus berupa angka Property ID (GA4 → Admin → Property details), bukan "${id}". Measurement ID G-XXXX bukan Property ID.`);
+    throw new ConnectorError(`GA4_PROPERTY_ID must be the numeric Property ID (GA4 → Admin → Property details), not "${id}". A G-XXXX Measurement ID isn't a Property ID.`);
   }
   return id;
 }
@@ -38,7 +38,7 @@ async function resolveClient(): Promise<{ client: BetaAnalyticsDataClient; auth:
   if (oauth) {
     return { client: new BetaAnalyticsDataClient({ auth: new GoogleAuth({ authClient: oauth.client }) }), auth: { mode: "oauth", account: oauth.email } };
   }
-  throw new ConnectorError("Belum ada kredensial GA4: isi GOOGLE_APPLICATION_CREDENTIALS (service account), atau klik “Hubungkan akun Google” di kartu GA4.");
+  throw new ConnectorError("No GA4 credentials yet: set GOOGLE_APPLICATION_CREDENTIALS (service account), or click “Connect Google account” on the GA4 card.");
 }
 
 /** runReport dengan pagination (limit/offset) + retry. */
@@ -54,6 +54,28 @@ async function runReport(c: BetaAnalyticsDataClient, req: RunReportRequest): Pro
   return { dimensionHeaders: head.dimensionHeaders, metricHeaders: head.metricHeaders, rows: all };
 }
 
+/** Tanggal paling awal yang diterima GA4 Data API = "sejak awal data" (data properti ini mulai 23 Jun 2026). */
+const GA4_EARLIEST = "2015-08-14";
+
+/**
+ * Isi metrik audiens (returningUsers, cumulativeUsers) untuk bulan yang sudah di-sync — termasuk bulan terkunci —
+ * tanpa menyentuh data lain: ditempel ke import ga4_overview bulan itu. Metrik yang sudah ada dilewati.
+ */
+export async function saveGa4Audience(month: string): Promise<Record<string, number>> {
+  const imp = await prisma.import.findUnique({ where: { month_source: { month, source: "ga4_overview" } }, select: { id: true } });
+  if (!imp) return {};
+  const have = new Set((await prisma.metric.findMany({ where: { month, channel: "website", key: { in: ["returningUsers", "cumulativeUsers"] } }, select: { key: true } })).map((m) => m.key));
+  const { client: c } = await resolveClient();
+  const { start, end } = monthRange(month, new Date(), await propertyTimeZone(c));
+  const property = `properties/${propertyId()}`;
+  const metrics = [
+    ...(have.has("returningUsers") ? [] : returningMetric(await runReport(c, { property, dateRanges: [{ startDate: start, endDate: end }], dimensions: [{ name: "newVsReturning" }], metrics: [{ name: "activeUsers" }] }))),
+    ...(have.has("cumulativeUsers") ? [] : cumulativeMetric(await runReport(c, { property, dateRanges: [{ startDate: GA4_EARLIEST, endDate: end }], metrics: [{ name: "totalUsers" }] }))),
+  ];
+  for (const m of metrics) await prisma.metric.create({ data: { importId: imp.id, month, ...m } });
+  return Object.fromEntries(metrics.map((m) => [m.key, m.value]));
+}
+
 /** Zona waktu properti GA4 (metadata.timeZone respons API) — rentang tanggal GA4 dievaluasi di zona ini. */
 async function propertyTimeZone(c: BetaAnalyticsDataClient): Promise<string> {
   const [res] = await withRetry(
@@ -61,7 +83,7 @@ async function propertyTimeZone(c: BetaAnalyticsDataClient): Promise<string> {
     isRetryableGoogleError,
   );
   const tz = res.metadata?.timeZone;
-  if (!tz) throw new ConnectorError("Respons GA4 tidak memuat zona waktu properti (metadata.timeZone).");
+  if (!tz) throw new ConnectorError("The GA4 response doesn't include the property time zone (metadata.timeZone).");
   return tz;
 }
 
@@ -107,9 +129,9 @@ export async function saveGa4Cities(month: string, client?: BetaAnalyticsDataCli
 export const ga4: Connector = {
   id: "ga4",
   env: [
-    { name: "GA4_PROPERTY_ID", required: true, hint: "Property ID GA4 (angka), dari GA4 → Admin → Property details." },
-    { name: "GOOGLE_APPLICATION_CREDENTIALS", required: false, hint: "Opsi 1 — path file JSON kunci service account (butuh admin GA4 untuk menambahkannya)." },
-    { name: "GOOGLE_OAUTH_CLIENT_ID", required: false, hint: "Opsi 2 — OAuth client (Web application) untuk login akun Google kamu." },
+    { name: "GA4_PROPERTY_ID", required: true, hint: "GA4 Property ID (numeric), from GA4 → Admin → Property details." },
+    { name: "GOOGLE_APPLICATION_CREDENTIALS", required: false, hint: "Option 1 — path to the service account JSON key file (a GA4 admin has to add it)." },
+    { name: "GOOGLE_OAUTH_CLIENT_ID", required: false, hint: "Option 2 — OAuth client (Web application) for signing in with your Google account." },
     { name: "GOOGLE_OAUTH_CLIENT_SECRET", required: false, hint: "Opsi 2 — secret OAuth client." },
   ],
 
@@ -121,11 +143,11 @@ export const ga4: Connector = {
         const key = serviceAccountKey();
         return { configured: !missing.length, missing, account: `Service account ${key.clientEmail}`, oauth };
       }
-      if (oauth.connected) return { configured: !missing.length, missing, account: `Akun Google ${oauth.account ?? ""}`.trim(), oauth };
+      if (oauth.connected) return { configured: !missing.length, missing, account: `Google account ${oauth.account ?? ""}`.trim(), oauth };
       return {
         configured: false,
         missing: missing.length ? missing : [],
-        account: oauth.available ? "Klik “Hubungkan akun Google”, atau isi GOOGLE_APPLICATION_CREDENTIALS." : "Isi GOOGLE_APPLICATION_CREDENTIALS (service account) atau GOOGLE_OAUTH_CLIENT_ID/SECRET (login akun Google).",
+        account: oauth.available ? "Click “Connect Google account”, or set GOOGLE_APPLICATION_CREDENTIALS." : "Set GOOGLE_APPLICATION_CREDENTIALS (service account) or GOOGLE_OAUTH_CLIENT_ID/SECRET (Google sign-in).",
         oauth,
       };
     } catch (e) {
@@ -144,8 +166,8 @@ export const ga4: Connector = {
         isRetryableGoogleError,
       );
       const users = Number(res.rows?.[0]?.metricValues?.[0]?.value ?? 0);
-      const via = auth.mode === "oauth" ? `akun Google ${auth.account ?? ""}` : `service account ${auth.account}`;
-      return { ok: true, message: `Terhubung ke properti ${propertyId()} lewat ${via}. Active users 7 hari terakhir: ${users.toLocaleString("id-ID")}.` };
+      const via = auth.mode === "oauth" ? `Google account ${auth.account ?? ""}` : `service account ${auth.account}`;
+      return { ok: true, message: `Connected to property ${propertyId()} via ${via}. Active users in the last 7 days: ${users.toLocaleString("en-ID")}.` };
     } catch (e) {
       return { ok: false, message: translate(e, auth).message };
     }
@@ -164,7 +186,7 @@ export const ga4: Connector = {
     const byDesc = (metric: string) => [{ metric: { metricName: metric }, desc: true }];
 
     try {
-      const [totals, channels, pages, pageTitles, landing, firstChannel, city] = await Promise.all([
+      const [totals, channels, pages, pageTitles, landing, firstChannel, city, returning, cumulative] = await Promise.all([
         runReport(c, { ...base, metrics: m("activeUsers", "newUsers", "sessions", "screenPageViews", "engagementRate", "userEngagementDuration", "bounceRate") }),
         runReport(c, {
           ...base,
@@ -177,13 +199,15 @@ export const ga4: Connector = {
         runReport(c, { ...base, dimensions: d("landingPage"), metrics: m("sessions", "activeUsers", "newUsers", "userEngagementDuration"), orderBys: byDesc("sessions") }),
         runReport(c, { ...base, dimensions: d("firstUserDefaultChannelGroup"), metrics: m("newUsers"), orderBys: byDesc("newUsers") }),
         runReport(c, { ...base, dimensions: d("city"), metrics: m("activeUsers", "newUsers"), orderBys: byDesc("activeUsers") }),
+        runReport(c, { ...base, dimensions: d("newVsReturning"), metrics: m("activeUsers") }),
+        runReport(c, { property, dateRanges: [{ startDate: GA4_EARLIEST, endDate: end }], metrics: m("totalUsers") }),
       ]);
-      const reports: Ga4MonthReports = { totals, channels, pages, pageTitles, landing, firstChannel, city };
+      const reports: Ga4MonthReports = { totals, channels, pages, pageTitles, landing, firstChannel, city, returning, cumulative };
       await saveGa4Cities(month, c, tz);
-      const via = auth.mode === "oauth" ? `akun ${auth.account ?? "Google"}` : "service account";
-      const datasets = mapGa4Month(reports, month, `API GA4 · properti ${propertyId()} · ${via} · ${start} s/d ${end}`);
-      if (partial) for (const ds of datasets) ds.warnings.push(`Bulan berjalan — data sampai ${end}.`);
-      if (tz !== WIB) for (const ds of datasets) ds.warnings.push(`Zona waktu properti GA4 = ${tz} (bukan WIB): batas bulan & hari mengikuti zona properti.`);
+      const via = auth.mode === "oauth" ? `account ${auth.account ?? "Google"}` : "service account";
+      const datasets = mapGa4Month(reports, month, `API GA4 · property ${propertyId()} · ${via} · ${start} to ${end}`);
+      if (partial) for (const ds of datasets) ds.warnings.push(`Current month — data through ${end}.`);
+      if (tz !== WIB) for (const ds of datasets) ds.warnings.push(`GA4 property time zone = ${tz} (not WIB): month & day boundaries follow the property's zone.`);
       return datasets;
     } catch (e) {
       throw translate(e, auth);

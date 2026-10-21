@@ -12,14 +12,14 @@ export const dynamic = "force-dynamic";
 
 /** Data log yang ditarik dari Google Sheets, urut per channel. */
 const LOG_SOURCES: { key: DatasetKey; channel: string; data: string; file: string }[] = [
-  { key: "news_log", channel: "News", data: "Artikel (published + in review)", file: LOG_FILES.news.label },
-  { key: "social_log", channel: "Social", data: "Konten published", file: LOG_FILES.social.label },
+  { key: "news_log", channel: "News", data: "Articles (published + in review)", file: LOG_FILES.news.label },
+  { key: "social_log", channel: "Social", data: "Published content", file: LOG_FILES.social.label },
   { key: "social_review", channel: "Social", data: "In review", file: TRACKER_FILES.social.label },
   { key: "yt_log", channel: "YouTube", data: "Video published", file: `${TRACKER_FILES.youtube.label} · tab Summary` },
   { key: "yt_review", channel: "YouTube", data: "In review", file: `${TRACKER_FILES.youtube.label} · tab Tracker (Gantt)` },
 ];
 
-const fmtTime = (d: Date) => d.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" });
+const fmtTime = (d: Date) => d.toLocaleString("en-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" });
 const shortName = (fileName: string) => fileName.replace(/^Google Sheets · /, "");
 
 function FileLink({ name, url }: { name: string; url: string | null }) {
@@ -42,23 +42,23 @@ export default async function LogsPage({ searchParams }: PageProps<"/logs">) {
   const find = (m: string, key: DatasetKey) => imports.find((i) => i.month === m && i.source === key);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="flex flex-col gap-6">
       <PageHeader
-        title="Sumber Logs"
-        description="File Google Sheets yang ditarik connector Sheets sebagai log, per bulan. Klik nama file untuk membukanya."
+        title="Source Logs"
+        description="Google Sheets files pulled by the Sheets connector as logs, per month. Click a file name to open it."
         month={month}
         months={months}
       />
 
-      <Section title={`Dipakai untuk ${monthLabel(month)}`} subtitle="In review = snapshot akhir bulan: diserahkan bulan ini, belum tayang per akhir bulan">
+      <Section title={`Used for ${monthLabel(month)}`} subtitle="In review = end-of-month snapshot: submitted this month, not yet published by month end">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Channel</TableHead>
               <TableHead>Data</TableHead>
               <TableHead>File</TableHead>
-              <TableHead className="text-right">Jumlah</TableHead>
-              <TableHead>Terakhir sync</TableHead>
+              <TableHead className="text-right">Count</TableHead>
+              <TableHead>Last sync</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -70,7 +70,7 @@ export default async function LogsPage({ searchParams }: PageProps<"/logs">) {
                   <TableCell className="font-medium">{s.channel}</TableCell>
                   <TableCell>{s.data}</TableCell>
                   <TableCell className="max-w-md whitespace-normal">
-                    {imp ? <FileLink name={imp.fileName} url={imp.fileUrl} /> : <span className="text-muted-foreground">Belum ada · dicari: {s.file}</span>}
+                    {imp ? <FileLink name={imp.fileName} url={imp.fileUrl} /> : <span className="text-muted-foreground">None yet · looking for: {s.file}</span>}
                     {imp?.note && <p className="mt-1 text-xs whitespace-pre-line text-muted-foreground">{imp.note}</p>}
                   </TableCell>
                   <TableCell className="num text-right">{count ?? "—"}</TableCell>
@@ -82,11 +82,11 @@ export default async function LogsPage({ searchParams }: PageProps<"/logs">) {
         </Table>
       </Section>
 
-      <Section title="6 bulan terakhir" subtitle="File yang tersimpan per bulan; “—” = belum di-sync atau file tidak ditemukan">
+      <Section title="Last 6 months" subtitle="Files stored per month; “—” = not synced yet or file not found">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Bulan</TableHead>
+              <TableHead>Month</TableHead>
               {LOG_SOURCES.map((s) => (
                 <TableHead key={s.key}>
                   {s.channel} · {s.data}

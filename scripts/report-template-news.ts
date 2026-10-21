@@ -100,7 +100,7 @@ const ANCHORS: Record<string, string> = {
   [`'${ES}'!A20`]: "KEY FINDINGS",
   [`'${ES}'!A24`]: "CONTENT BREAKDOWN",
   [`'${ES}'!A40`]: "Content Type",
-  [`'${ES}'!H58`]: "Monthly Quota",
+  [`'${ES}'!H55`]: "Monthly Quota",
   [`'${AP}'!A5`]: "No.",
   [`'${PL}'!A9`]: "No.",
   [`'${AR}'!A9`]: "No.",
@@ -208,12 +208,14 @@ async function main() {
     rowPx(MG, 22, 22, 40),
     ...colPx(MG, [200, 430, 425, 8, 8, 8, 8]),
   ]);
-  // ── 01 Executive Summary, tahap 1: kategori 13 → NEWS_CATEGORY_SLOTS baris (disisipkan DI DALAM rentang pie chart
-  // supaya rentangnya ikut melebar); temuan r16 dilebarkan A:L
+  // ── 01 Executive Summary, tahap 1: kategori 13 → NEWS_CATEGORY_SLOTS baris (disisipkan / dihapus DI DALAM rentang
+  // pie chart supaya rentangnya ikut menyesuaikan); temuan r16 dilebarkan A:L
   const extraCats = NEWS_CATEGORY_SLOTS - 13;
+  const dropCats: Req[] =
+    extraCats < 0 ? [{ deleteDimension: { range: { sheetId: sid(ES), dimension: "ROWS", startIndex: 50 + extraCats, endIndex: 50 } } }] : [];
   await batch([
-    ...insert(ES, 50, extraCats),
-    ...Array.from({ length: extraCats }, (_, i) => [merge(ES, 50 + i, 7, 9), merge(ES, 50 + i, 10, 12)]).flat(),
+    ...(extraCats > 0 ? insert(ES, 50, extraCats) : dropCats),
+    ...Array.from({ length: Math.max(extraCats, 0) }, (_, i) => [merge(ES, 50 + i, 7, 9), merge(ES, 50 + i, 10, 12)]).flat(),
     { unmergeCells: { range: range(ES, 16, 0, 12) } },
     merge(ES, 16, 0, 12),
   ]);

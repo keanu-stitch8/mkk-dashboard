@@ -46,9 +46,9 @@ export function SyncControls({ currentMonth, defaultMonth, configured }: { curre
   if (!configured.length) {
     return (
       <p className="text-sm text-muted-foreground">
-        Belum ada connector API yang dikonfigurasi. Isi kredensial di <code>.env.local</code> lalu cek di{" "}
+        No API connectors configured yet. Add credentials to <code>.env.local</code>, then check{" "}
         <a href="/settings/connectors" className="font-medium text-primary hover:underline">
-          Pengaturan → Connectors
+          Settings → Connectors
         </a>
         .
       </p>
@@ -57,22 +57,22 @@ export function SyncControls({ currentMonth, defaultMonth, configured }: { curre
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">Connector aktif: {configured.map(connectorLabel).join(", ")}. Sync menggantikan data bulan & sumber yang sama (termasuk hasil import CSV).</p>
+      <p className="text-xs text-muted-foreground">Active connectors: {configured.map(connectorLabel).join(", ")}. A sync replaces data for the same month & source (including CSV imports).</p>
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => run("now", { month: currentMonth })} disabled={!!busy}>
-          {busy === "now" ? <Loader2 className="animate-spin" /> : <RefreshCw />} Sync bulan ini ({monthLabel(currentMonth)})
+          {busy === "now" ? <Loader2 className="animate-spin" /> : <RefreshCw />} Sync this month ({monthLabel(currentMonth)})
         </Button>
         <div className="flex items-center gap-1">
-          <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-40" aria-label="Bulan yang di-sync ulang" />
+          <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-40" aria-label="Month to re-sync" />
           <Button variant="outline" onClick={() => run("month", { month })} disabled={!!busy || !month}>
             {busy === "month" ? <Loader2 className="animate-spin" /> : <RefreshCw />} Sync ulang
           </Button>
         </div>
         <Button variant="outline" onClick={() => run("backfill", { backfill: 6 })} disabled={!!busy}>
-          {busy === "backfill" ? <Loader2 className="animate-spin" /> : <History />} Backfill 6 bulan
+          {busy === "backfill" ? <Loader2 className="animate-spin" /> : <History />} Backfill 6 months
         </Button>
       </div>
-      {busy && <p className="text-xs text-muted-foreground">Mengambil data dari API… (bisa 10–60 detik per bulan)</p>}
+      {busy && <p className="text-xs text-muted-foreground">Fetching data from the APIs… (can take 10–60 seconds per month)</p>}
       {error && (
         <Alert variant="destructive">
           <CircleX />
@@ -86,7 +86,7 @@ export function SyncControls({ currentMonth, defaultMonth, configured }: { curre
               <div className="flex items-center gap-2 font-medium">
                 {r.ok ? <CircleCheck className="size-4 text-success" /> : <CircleX className="size-4 text-danger" />}
                 {connectorLabel(r.connector)} · {monthLabel(r.month)}
-                {r.ok && <span className="num font-normal text-muted-foreground">— {r.rows.toLocaleString("id-ID")} baris</span>}
+                {r.ok && <span className="num font-normal text-muted-foreground">— {r.rows.toLocaleString("en-ID")} rows</span>}
               </div>
               {r.error && <p className="mt-1 text-xs text-danger">{r.error}</p>}
               {r.detail.length > 0 && <p className="mt-1 text-xs text-muted-foreground">{r.detail.join(" · ")}</p>}
@@ -112,14 +112,14 @@ export function SyncMonthButton({ month, disabled }: { month: string; disabled?:
     if (json.error) setMsg(json.error);
     else {
       const failed = (json.results ?? []).filter((r) => !r.ok);
-      setMsg(failed.length ? `${failed.length} connector gagal — lihat Pengaturan → Connectors` : "Sync selesai");
+      setMsg(failed.length ? `${failed.length} connector(s) failed — see Settings → Connectors` : "Sync complete");
       router.refresh();
     }
   };
   return (
     <div className="flex items-center gap-2">
       {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
-      <Button variant="outline" onClick={run} disabled={busy || disabled} title={disabled ? "Belum ada connector API yang dikonfigurasi" : undefined}>
+      <Button variant="outline" onClick={run} disabled={busy || disabled} title={disabled ? "No API connectors configured yet" : undefined}>
         {busy ? <Loader2 className="animate-spin" /> : <RefreshCw />} Sync {monthLabel(month)}
       </Button>
     </div>

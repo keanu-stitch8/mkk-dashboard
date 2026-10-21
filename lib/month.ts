@@ -1,8 +1,8 @@
 // Helper bulan "YYYY-MM".
 
 const MONTH_NAMES = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 export function isMonth(s: unknown): s is string {
@@ -14,6 +14,9 @@ export function monthLabel(month: string, short = false): string {
   const name = MONTH_NAMES[m - 1] ?? month;
   return short ? `${name.slice(0, 3)} ${String(y).slice(2)}` : `${name} ${y}`;
 }
+
+/** Bulan launching; grafik tren tidak menampilkan bulan sebelumnya. */
+export const LAUNCH_MONTH = "2026-06";
 
 export function addMonths(month: string, delta: number): string {
   const [y, m] = month.split("-").map(Number);

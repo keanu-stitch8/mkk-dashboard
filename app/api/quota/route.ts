@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const { month, values } = (await req.json()) as { month?: string; values?: Record<string, number | null> };
-  if (!(month === "default" || isMonth(month)) || !values) return Response.json({ error: "Data tidak valid." }, { status: 400 });
+  if (!(month === "default" || isMonth(month)) || !values) return Response.json({ error: "Invalid data." }, { status: 400 });
   const allowed = new Set(QUOTA_DEFAULTS.map((q) => q.key));
   for (const [key, value] of Object.entries(values)) {
     if (!allowed.has(key)) continue;

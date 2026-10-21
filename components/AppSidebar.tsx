@@ -2,89 +2,48 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ChartNoAxesCombined, Globe, LayoutDashboard, Newspaper, MessagesSquare, Upload, FileText, Cable, FileSpreadsheet } from "lucide-react";
-import { SiYoutube } from "./icons";
+import { ChevronRight } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { NAV_GROUPS } from "@/components/app-nav";
+import { MkkLogo } from "@/components/MkkLogo";
 
-type NavItem = { href: string; label: string; icon: React.ComponentType; sub?: { href: string; label: string }[] };
-
-const CHANNELS: NavItem[] = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/website", label: "Website", icon: Globe },
-  { href: "/news", label: "News", icon: Newspaper, sub: [{ href: "/news/logs", label: "Publishing Log" }] },
-  { href: "/youtube", label: "YouTube", icon: SiYoutube, sub: [{ href: "/youtube/logs", label: "Publishing Log" }] },
-  { href: "/social", label: "Social Media", icon: MessagesSquare, sub: [{ href: "/social/logs", label: "Publishing Log" }] },
-];
-
-const TOOLS: NavItem[] = [
-  { href: "/import", label: "Import Data", icon: Upload },
-  { href: "/report", label: "Report / PDF", icon: FileText },
-  { href: "/settings/connectors", label: "Connectors API", icon: Cable },
-  { href: "/logs", label: "Sumber Logs", icon: FileSpreadsheet },
-];
-
-export function AppSidebar() {
+// Layout sidebar mengikuti shadcnstore dashboard template (variant inset, offcanvas, grup + sub-menu yang bisa dilipat lewat panah).
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const params = useSearchParams();
   const { setOpenMobile } = useSidebar();
   const m = params.get("m");
   const withMonth = (href: string) => (m ? `${href}?m=${m}` : href);
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
-
-  const renderItems = (items: NavItem[]) =>
-    items.map((item) => (
-      <SidebarMenuItem key={item.href}>
-        <SidebarMenuButton asChild isActive={isActive(item.href) && !item.sub?.some((s) => pathname.startsWith(s.href))} tooltip={item.label}>
-          <Link href={withMonth(item.href)} onClick={() => setOpenMobile(false)}>
-            <item.icon />
-            <span>{item.label}</span>
-          </Link>
-        </SidebarMenuButton>
-        {item.sub && (
-          <SidebarMenuSub>
-            {item.sub.map((s) => (
-              <SidebarMenuSubItem key={s.href}>
-                <SidebarMenuSubButton asChild isActive={pathname === s.href}>
-                  <Link href={withMonth(s.href)} onClick={() => setOpenMobile(false)}>
-                    <span>{s.label}</span>
-                  </Link>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            ))}
-          </SidebarMenuSub>
-        )}
-      </SidebarMenuItem>
-    ));
+  const close = () => setOpenMobile(false);
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={withMonth("/")}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <ChartNoAxesCombined className="size-4" />
+              <Link href={withMonth("/")} onClick={close}>
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-white">
+                  <MkkLogo className="size-6" />
                 </div>
-                <div className="grid flex-1 text-left leading-tight">
-                  <span className="truncate font-semibold">MKK Analytics</span>
-                  <span className="truncate text-xs text-muted-foreground">Main ke Kudus</span>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">MKK Analytics</span>
+                  <span className="truncate text-xs">Main ke Kudus</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -92,23 +51,57 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Channel</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>{renderItems(CHANNELS)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Data</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>{renderItems(TOOLS)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarMenu>
+              {group.items.map((item) =>
+                item.items?.length ? (
+                  <Collapsible key={item.title} asChild defaultOpen={pathname.startsWith(item.url)} className="group/collapsible">
+                    <SidebarMenuItem>
+                      {/* teks → halaman utama channel; panah (SidebarMenuAction) → lipat/buka sub-menu */}
+                      <SidebarMenuButton asChild tooltip={item.title} isActive={pathname === item.url}>
+                        <Link href={withMonth(item.url)} onClick={close}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuAction className="cursor-pointer transition-transform duration-200 data-[state=open]:rotate-90">
+                          <ChevronRight />
+                          <span className="sr-only">Buka/tutup {item.title}</span>
+                        </SidebarMenuAction>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.items.map((sub) => (
+                            <SidebarMenuSubItem key={sub.url}>
+                              <SidebarMenuSubButton asChild isActive={pathname === sub.url}>
+                                <Link href={withMonth(sub.url)} onClick={close}>
+                                  <span>{sub.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild tooltip={item.title} isActive={item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)}>
+                      <Link href={withMonth(item.url)} onClick={close}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ),
+              )}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
-      <SidebarFooter>
-        <p className="px-2 text-[11px] leading-snug text-muted-foreground group-data-[collapsible=icon]:hidden">Laporan bulanan Website · News · YouTube · Social</p>
-      </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   );
 }

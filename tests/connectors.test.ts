@@ -85,8 +85,8 @@ describe("helper connector", () => {
     const now = new Date("2026-10-16T03:00:00Z");
     expect(monthRange("2026-09", now)).toEqual({ start: "2026-09-01", end: "2026-09-30", partial: false });
     expect(monthRange("2026-10", now)).toEqual({ start: "2026-10-01", end: "2026-10-16", partial: true });
-    expect(() => monthRange("2026-11", now)).toThrow(/belum dimulai/);
-    expect(() => monthRange("2026-9", now)).toThrow(/Format bulan/);
+    expect(() => monthRange("2026-11", now)).toThrow(/hasn't started yet/);
+    expect(() => monthRange("2026-9", now)).toThrow(/Invalid month format/);
   });
 
   it("enkripsi AES-256-GCM: round-trip & menolak data yang diubah", () => {
@@ -99,20 +99,20 @@ describe("helper connector", () => {
     // ubah satu karakter di tengah ciphertext (selalu berbeda dari aslinya, apa pun hasil IV acak)
     const i = Math.floor(enc.length / 2);
     const tampered = enc.slice(0, i) + (enc[i] === "A" ? "B" : "A") + enc.slice(i + 1);
-    expect(() => decrypt(tampered)).toThrow(/didekripsi/);
+    expect(() => decrypt(tampered)).toThrow(/can't be decrypted/);
   });
 
-  it("error Google diterjemahkan ke Bahasa Indonesia", () => {
+  it("error Google diterjemahkan ke pesan yang bisa ditindaklanjuti", () => {
     const sa = "dashboard@proj.iam.gserviceaccount.com";
     expect(googleErrorMessage({ code: 7, message: "User does not have sufficient permissions for this property." }, { api: "ga4", serviceAccount: sa, propertyId: "123" })).toMatch(
-      /Service account belum ditambahkan ke properti GA4 123.*dashboard@proj/,
+      /The service account hasn't been added to GA4 property 123.*dashboard@proj/,
     );
     expect(
       googleErrorMessage({ code: 7, message: "Google Analytics Data API has not been used in project 42 before or it is disabled." }, { api: "ga4" }),
-    ).toMatch(/belum diaktifkan/);
+    ).toMatch(/isn't enabled/);
     expect(googleErrorMessage({ code: 5, message: "Property not found" }, { api: "ga4", propertyId: "G-ABC" })).toMatch(/Measurement ID/);
-    expect(googleErrorMessage({ code: 8, message: "Exhausted property tokens" }, { api: "ga4" })).toMatch(/Kuota/);
-    expect(googleErrorMessage({ code: "ENOTFOUND", message: "getaddrinfo ENOTFOUND" }, { api: "ga4" })).toMatch(/koneksi internet/);
+    expect(googleErrorMessage({ code: 8, message: "Exhausted property tokens" }, { api: "ga4" })).toMatch(/quota/);
+    expect(googleErrorMessage({ code: "ENOTFOUND", message: "getaddrinfo ENOTFOUND" }, { api: "ga4" })).toMatch(/internet connection/);
   });
 });
 
@@ -147,10 +147,10 @@ describe("OAuth Google", () => {
   it("pesan error mode OAuth berbeda dari service account", () => {
     const denied = { code: 7, message: "User does not have sufficient permissions for this property." };
     expect(googleErrorMessage(denied, { api: "ga4", authMode: "oauth", account: "riski@example.com", propertyId: "123" })).toMatch(
-      /Akun Google riski@example.com tidak punya akses ke properti GA4 123/,
+      /Google account riski@example.com has no access to GA4 property 123/,
     );
-    expect(googleErrorMessage({ message: "invalid_grant: Token has been expired or revoked." }, { api: "ga4", authMode: "oauth" })).toMatch(/Hubungkan akun Google/);
-    expect(googleErrorMessage({ status: 401, message: "invalid_client" }, { api: "ga4", authMode: "oauth" })).toMatch(/OAuth client ditolak/);
+    expect(googleErrorMessage({ message: "invalid_grant: Token has been expired or revoked." }, { api: "ga4", authMode: "oauth" })).toMatch(/Connect Google account/);
+    expect(googleErrorMessage({ status: 401, message: "invalid_client" }, { api: "ga4", authMode: "oauth" })).toMatch(/Google rejected the OAuth client/);
   });
 });
 
@@ -445,16 +445,16 @@ describe("Meta connector: Graph API client & error", () => {
     expect(GRAPH_VERSION).toBe("v26.0");
   });
 
-  it("error diterjemahkan ke Bahasa Indonesia", async () => {
+  it("error diterjemahkan ke pesan yang bisa ditindaklanjuti", async () => {
     const { metaErrorMessage } = await import("../lib/connectors/meta/errors");
-    expect(metaErrorMessage(await graphError(190, "Error validating access token: Session has expired", 463))).toMatch(/kedaluwarsa.*Generate token baru/);
-    expect(metaErrorMessage(await graphError(190, "Invalid OAuth access token."))).toMatch(/META_ACCESS_TOKEN tidak valid/);
-    expect(metaErrorMessage(await graphError(10, "(#10) Application does not have permission for this action"), { pageId: "123" })).toMatch(/Izin token Meta kurang untuk Page 123.*instagram_manage_insights.*di-assign/);
-    expect(metaErrorMessage(await graphError(200, "(#200) Requires pages_read_engagement permission"))).toMatch(/Izin token Meta kurang/);
-    expect(metaErrorMessage(await graphError(803, "(#803) Some of the aliases you requested do not exist: abc"), { pageId: "abc" })).toMatch(/ID Page abc tidak ditemukan/);
-    expect(metaErrorMessage(await graphError(100, "Unsupported get request. Object with ID '99' does not exist", 33), { igUserId: "99" })).toMatch(/akun IG 99 tidak ditemukan.*META_IG_USER_ID/);
+    expect(metaErrorMessage(await graphError(190, "Error validating access token: Session has expired", 463))).toMatch(/expired.*Generate a new token/);
+    expect(metaErrorMessage(await graphError(190, "Invalid OAuth access token."))).toMatch(/META_ACCESS_TOKEN is invalid/);
+    expect(metaErrorMessage(await graphError(10, "(#10) Application does not have permission for this action"), { pageId: "123" })).toMatch(/The Meta token lacks permissions for Page 123.*instagram_manage_insights.*assigned/);
+    expect(metaErrorMessage(await graphError(200, "(#200) Requires pages_read_engagement permission"))).toMatch(/The Meta token lacks permissions/);
+    expect(metaErrorMessage(await graphError(803, "(#803) Some of the aliases you requested do not exist: abc"), { pageId: "abc" })).toMatch(/ID Page abc wasn't found/);
+    expect(metaErrorMessage(await graphError(100, "Unsupported get request. Object with ID '99' does not exist", 33), { igUserId: "99" })).toMatch(/IG account 99 wasn't found.*META_IG_USER_ID/);
     expect(metaErrorMessage(await graphError(4, "(#4) Application request limit reached"))).toMatch(/rate limit/);
-    expect(metaErrorMessage(new TypeError("fetch failed"))).toMatch(/koneksi internet/);
+    expect(metaErrorMessage(new TypeError("fetch failed"))).toMatch(/internet connection/);
   });
 
   it("retry hanya untuk rate limit / error sementara / 5xx / jaringan", async () => {

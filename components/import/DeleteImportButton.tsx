@@ -25,7 +25,7 @@ export function DeleteImportButton({ id }: { id: string }) {
   return (
     <Button variant={confirm ? "destructive" : "ghost"} size="xs" onClick={run} disabled={busy}>
       <Trash2 />
-      {busy ? "…" : confirm ? "Yakin hapus?" : "Hapus"}
+      {busy ? "…" : confirm ? "Delete for sure?" : "Delete"}
     </Button>
   );
 }

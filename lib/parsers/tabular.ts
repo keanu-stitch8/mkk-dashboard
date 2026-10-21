@@ -190,12 +190,12 @@ export function readTables(file: InputFile): { tables: RawTable[]; errors: strin
       return { tables: readCsv(file.name, file.data), errors };
     }
     if (lower.endsWith(".pdf")) {
-      errors.push(`${file.name}: file PDF tidak didukung — export ulang sebagai CSV (GA4: Share → Download file → CSV).`);
+      errors.push(`${file.name}: PDF files aren't supported — re-export as CSV (GA4: Share → Download file → CSV).`);
       return { tables: [], errors };
     }
-    errors.push(`${file.name}: format file tidak dikenali (gunakan .csv, .xlsx, atau .zip).`);
+    errors.push(`${file.name}: unrecognized file format (use .csv, .xlsx, or .zip).`);
   } catch (e) {
-    errors.push(`${file.name}: gagal dibaca (${(e as Error).message}).`);
+    errors.push(`${file.name}: failed to read (${(e as Error).message}).`);
   }
   return { tables: [], errors };
 }

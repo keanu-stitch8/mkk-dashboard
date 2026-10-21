@@ -28,7 +28,7 @@ export interface NewsNarrativeInput {
   publishedListed: number;
 }
 
-import { changeWithCause, count, monthOnly, n, plural, shareOf } from "./narrative-utils";
+import { changeWithCause, count, dec, monthOnly, n, plural, shareOf } from "./narrative-utils";
 
 /**
  * Temuan News. Pembuka = delivered vs kuota & bulan lalu, lalu yang masih in review (published bisa turun walau
@@ -58,7 +58,7 @@ export function newsFindings(i: NewsNarrativeInput): string[] {
   const bestType = types.length > 1 ? [...types].filter((t) => t.perContent != null).sort((x, y) => y.perContent! - x.perContent!)[0] : undefined;
   if (mainType && listed) {
     const share = `${mainType.label} made up ${shareOf(mainType.count / listed, "the output")} (${plural(mainType.count, "article")})`;
-    const perArticle = (t: { perContent: number | null }) => `the most views per article (${t.perContent!.toFixed(1)})`;
+    const perArticle = (t: { perContent: number | null }) => `the most views per article (${dec(t.perContent!)})`;
     out.push(
       !bestType ? `${share}.` : bestType.label === mainType.label ? `${share} and drew ${perArticle(bestType)}.` : `${share}, while ${bestType.label} drew ${perArticle(bestType)}.`,
     );

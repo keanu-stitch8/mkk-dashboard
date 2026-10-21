@@ -21,9 +21,9 @@ export async function resolveGoogleAuth(connector: GoogleOAuthConnector, scopes:
   if (oauth) return { auth: oauth.client, info: { mode: "oauth", account: oauth.email } };
   throw new ConnectorError(
     connector === "youtube"
-      ? "YouTube belum terhubung. Klik “Hubungkan akun Google” di kartu YouTube dan login dengan akun pemilik channel."
+      ? "YouTube isn't connected. Click “Connect Google account” on the YouTube card and sign in with the channel owner's account."
       : connector === "sheets"
-        ? "Google Sheets belum terhubung. Klik “Hubungkan akun Google” di kartu Google Sheets dan login dengan akun yang bisa membuka spreadsheet log."
-        : `Belum ada kredensial ${label}: isi GOOGLE_APPLICATION_CREDENTIALS (service account), atau klik “Hubungkan akun Google” di kartu ${label}.`,
+        ? "Google Sheets isn't connected. Click “Connect Google account” on the Google Sheets card and sign in with an account that can open the log spreadsheets."
+        : `No ${label} credentials yet: set GOOGLE_APPLICATION_CREDENTIALS (service account), or click “Connect Google account” on the ${label} card.`,
   );
 }

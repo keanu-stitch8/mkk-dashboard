@@ -71,7 +71,7 @@ async function resolveIds(tok: string): Promise<Ids> {
     page = await graphGet<PageInfo>(`/${pageId}`, tok, { fields: "id,name,username,access_token,instagram_business_account{id,username}" });
     if (!page.access_token && facebookActive()) {
       throw new ConnectorError(
-        `Token tidak mendapat page access token untuk Page ${page.name ?? pageId}. Assign Page ke system user dengan akses penuh (Business Settings → System users → Assign assets → Pages → "Manage Page"), lalu generate ulang token dengan izin pages_show_list.`,
+        `The token didn't get a page access token for Page ${page.name ?? pageId}. Assign the Page to the system user with full access (Business Settings → System users → Assign assets → Pages → "Manage Page"), then regenerate the token with the pages_show_list permission.`,
       );
     }
   }
@@ -127,7 +127,7 @@ async function snapshotRecentMedia(tok: string, igUserId: string, known: Map<str
     if (rows.length) await prisma.igMediaSnapshot.createMany({ data: rows });
   } catch (e) {
     if (e instanceof GraphError && e.code === 190) throw e;
-    warnings.push(`Instagram: snapshot metrik per post gagal disimpan (${e instanceof GraphError ? metaErrorMessage(e) : (e as Error).message}). Data bulan ini tetap tersimpan.`);
+    warnings.push(`Instagram: failed to save the per-post metrics snapshot (${e instanceof GraphError ? metaErrorMessage(e) : (e as Error).message}). This month's data was still saved.`);
   }
 }
 
@@ -230,31 +230,31 @@ async function fetchInstagram(tok: string, igUserId: string, month: string, w: R
     await collectStories(tok, igUserId);
   } catch (e) {
     if (e instanceof GraphError && e.code === 190) throw e;
-    warnings.push(`Instagram: Story aktif tidak bisa disimpan (${metaErrorMessage(e)}). Data post tetap tersimpan.`);
+    warnings.push(`Instagram: active Stories couldn't be saved (${metaErrorMessage(e)}). Post data was still saved.`);
   }
   // /media urut terbaru dulu; berhenti saat sudah melewati awal bulan.
   const all = await graphPaginate<IgMedia>(`/${igUserId}/media`, tok, { fields: IG_MEDIA_FIELDS, limit: 50 }, (m) => graphTime(m.timestamp) / 1000 < w.since - 86400);
   const media = all.filter((m) => inMonth(m.timestamp, month));
   const username = media[0]?.username ?? all[0]?.username;
-  const source = `API Meta Graph ${GRAPH_VERSION} · Instagram${username ? ` @${username}` : ""} · ${w.start} s/d ${w.end}`;
+  const source = `API Meta Graph ${GRAPH_VERSION} · Instagram${username ? ` @${username}` : ""} · ${w.start} to ${w.end}`;
   if (!media.length) {
     // Dataset kosong tidak disimpan; jangan tambahkan metrik akun supaya data lama (import CSV) tidak tertimpa.
-    warnings.push(`Instagram: tidak ada post di ${month} — data lama tidak diubah.`);
+    warnings.push(`Instagram: no posts in ${month} — existing data unchanged.`);
     await snapshotRecentMedia(tok, igUserId, new Map(), warnings);
     return mapInstagram([], new Map(), month, source);
   }
 
   const { insights, rejected, unavailable } = await mediaInsights(tok, media);
   await snapshotRecentMedia(tok, igUserId, insights, warnings);
-  for (const [m, n] of rejected) warnings.push(`Instagram: metrik "${m}" ditolak Meta untuk ${n} post — dilewati.`);
-  if (unavailable) warnings.push(`Instagram: insight ${unavailable} post tidak tersedia (dipublish sebelum akun menjadi akun bisnis).`);
+  for (const [m, n] of rejected) warnings.push(`Instagram: Meta rejected metric "${m}" for ${n} posts — skipped.`);
+  if (unavailable) warnings.push(`Instagram: insights unavailable for ${unavailable} posts (published before the account became a business account).`);
 
   const account = await igAccountInsights(tok, igUserId, w, warnings);
   try {
     await saveIgTypes(tok, igUserId, month);
   } catch (e) {
     if (e instanceof GraphError && e.code === 190) throw e;
-    warnings.push(`Instagram: insight per jenis konten tidak bisa diambil (${metaErrorMessage(e)}). Data lain tetap tersimpan.`);
+    warnings.push(`Instagram: couldn't fetch insights by content type (${metaErrorMessage(e)}). Other data was still saved.`);
   }
   return mapInstagram(media, insights, month, source, account);
 }
@@ -282,16 +282,21 @@ async function igAccountInsights(tok: string, igUserId: string, w: ReturnType<ty
     Object.assign(out, unique.values);
     unique.rejected.forEach((r) => rejected.add(r));
     if (until < w.until) {
-      warnings.push(`Instagram: reach & accounts engaged akun hanya mencakup 30 hari pertama — Meta membatasi maks. 30 hari per request dan reach unik tidak bisa dijumlah. Views & interactions tetap sebulan penuh.`);
+      warnings.push(`Instagram: account reach & accounts engaged only cover the first 30 days — Meta caps requests at 30 days and unique reach can't be summed. Views & interactions still cover the full month.`);
     }
-    if (rejected.size) warnings.push(`Instagram: metrik akun ${[...rejected].join(", ")} ditolak Meta — dilewati.`);
+    if (rejected.size) warnings.push(`Instagram: Meta rejected account metrics ${[...rejected].join(", ")} — skipped.`);
+    // total followers hanya tersedia "saat ini" → disimpan saat sync bulan berjalan; bulan lalu dihitung mundur
+    if (w.partial) {
+      const ig = await graphGet<{ followers_count?: number }>(`/${igUserId}`, tok, { fields: "followers_count" });
+      if (ig.followers_count != null) out.followersNow = ig.followers_count;
+    }
     const follows = await igFollows(tok, igUserId, w);
     if (follows) return { ...out, follows: follows.follows, unfollows: follows.unfollows };
-    warnings.push("Instagram: follows akun tidak tersedia dari Meta (follows_and_unfollows hanya ada untuk akun ≥ 100 followers).");
+    warnings.push("Instagram: Meta doesn't provide account follows (follows_and_unfollows is only available for accounts with ≥ 100 followers).");
     return out;
   } catch (e) {
     if (e instanceof GraphError && e.code === 190) throw e;
-    warnings.push(`Instagram: insight akun tidak bisa diambil (${metaErrorMessage(e)}). Data per post tetap tersimpan.`);
+    warnings.push(`Instagram: couldn't fetch account insights (${metaErrorMessage(e)}). Per-post data was still saved.`);
     return {};
   }
 }
@@ -325,9 +330,9 @@ async function fetchFacebook(ids: Ids, month: string, w: ReturnType<typeof month
     for (const r of res.rejected) rejected.set(r, (rejected.get(r) ?? 0) + 1);
   });
   // Sejumlah metrik Page dicabut Meta 15 Jun 2026 — jangan gagalkan sync, cukup beri tahu.
-  for (const [m, n] of rejected) warnings.push(`Facebook: metrik "${m}" ditolak Meta untuk ${n} post (kemungkinan sudah dicabut) — dilewati.`);
+  for (const [m, n] of rejected) warnings.push(`Facebook: Meta rejected metric "${m}" for ${n} posts (probably deprecated) — skipped.`);
   const account = (page.username ?? page.name)?.toLowerCase() ?? null;
-  return mapFacebook(posts, insights, month, `API Meta Graph ${GRAPH_VERSION} · Facebook ${page.name ?? page.id} · ${w.start} s/d ${w.end}`, account);
+  return mapFacebook(posts, insights, month, `API Meta Graph ${GRAPH_VERSION} · Facebook ${page.name ?? page.id} · ${w.start} to ${w.end}`, account);
 }
 
 async function grantedPermissions(tok: string): Promise<Set<string> | null> {
@@ -342,23 +347,23 @@ async function grantedPermissions(tok: string): Promise<Set<string> | null> {
 export const meta: Connector = {
   id: "meta",
   env: [
-    { name: "META_ACCESS_TOKEN", required: true, hint: "Token system user (Business Settings → System users → Generate new token)." },
-    { name: "META_PAGE_ID", required: false, hint: "ID Page Facebook Main ke Kudus — untuk post Facebook & mencari akun IG otomatis." },
-    { name: "META_IG_USER_ID", required: false, hint: "Opsional — ID akun Instagram bisnis (otomatis dari Page jika kosong)." },
-    { name: "META_APP_SECRET", required: false, hint: "Opsional — wajib jika app Meta mengaktifkan “Require App Secret”." },
+    { name: "META_ACCESS_TOKEN", required: true, hint: "System user token (Business Settings → System users → Generate new token)." },
+    { name: "META_PAGE_ID", required: false, hint: "Main ke Kudus Facebook Page ID — for Facebook posts & auto-discovering the IG account." },
+    { name: "META_IG_USER_ID", required: false, hint: "Optional — Instagram business account ID (taken from the Page when empty)." },
+    { name: "META_APP_SECRET", required: false, hint: "Optional — required if the Meta app enables “Require App Secret”." },
   ],
 
   async status(): Promise<ConnectorStatus> {
     const missing: string[] = [];
     if (!token()) missing.push("META_ACCESS_TOKEN");
     if (!env("META_PAGE_ID") && !env("META_IG_USER_ID")) missing.push("META_PAGE_ID");
-    const parts = [env("META_PAGE_ID") && `Page ${env("META_PAGE_ID")}`, env("META_IG_USER_ID") ? `IG ${env("META_IG_USER_ID")}` : env("META_PAGE_ID") && "akun IG dicari otomatis dari Page"].filter(Boolean);
+    const parts = [env("META_PAGE_ID") && `Page ${env("META_PAGE_ID")}`, env("META_IG_USER_ID") ? `IG ${env("META_IG_USER_ID")}` : env("META_PAGE_ID") && "IG account auto-discovered from the Page"].filter(Boolean);
     return { configured: !missing.length, missing, account: parts.length ? `${parts.join(" · ")} · Graph API ${GRAPH_VERSION}` : undefined };
   },
 
   async testConnection(): Promise<TestResult> {
     const tok = token();
-    if (!tok) return { ok: false, message: "META_ACCESS_TOKEN belum diisi di .env.local (atau .env)." };
+    if (!tok) return { ok: false, message: "META_ACCESS_TOKEN isn't set in .env.local (or .env)." };
     let ids: Ids | undefined;
     try {
       const me = await graphGet<{ id: string; name?: string }>("/me", tok, { fields: "id,name" });
@@ -368,29 +373,29 @@ export const meta: Connector = {
       const granted = await grantedPermissions(tok);
       const need = [...(ids.page && facebookActive() ? REQUIRED_PERMS.facebook : []), ...(ids.igUserId ? REQUIRED_PERMS.instagram : [])];
       const missingPerms = granted ? need.filter((p) => !granted.has(p)) : [];
-      if (missingPerms.length) return { ok: false, message: `${lines[0]} Izin token kurang: ${missingPerms.join(", ")}. Generate ulang token system user dengan izin ${META_PERMISSIONS.join(", ")}.` };
+      if (missingPerms.length) return { ok: false, message: `${lines[0]} Missing token permissions: ${missingPerms.join(", ")}. Regenerate the system user token with the ${META_PERMISSIONS.join(", ")} permissions.` };
       const optional = granted ? META_PERMISSIONS.filter((p) => !need.includes(p) && !granted.has(p)) : [];
 
       if (ids.page && !facebookActive()) {
-        lines.push(`Page Facebook: ${ids.page.name ?? ids.page.id} (post Facebook tidak ditarik — hanya ${ACTIVE_SOCIAL_PLATFORMS.join(", ")} yang dihitung).`);
+        lines.push(`Facebook Page: ${ids.page.name ?? ids.page.id} (Facebook posts aren't pulled — only ${ACTIVE_SOCIAL_PLATFORMS.join(", ")} is counted).`);
       } else if (ids.page) {
         // cek insight post dengan page access token
         const posts = await graphGet<Paged<FbPost>>(`/${ids.page.id}/posts`, ids.pageToken!, { fields: "id,created_time", limit: 1 });
         const last = posts.data?.[0];
         if (last) await graphInsights(last.id, ids.pageToken!, FB_POST_METRICS);
-        lines.push(`Page Facebook: ${ids.page.name ?? ids.page.id}${last ? ` (post terakhir ${wibDateTime(last.created_time).date})` : " (belum ada post)"}.`);
+        lines.push(`Facebook Page: ${ids.page.name ?? ids.page.id}${last ? ` (last post ${wibDateTime(last.created_time).date})` : " (no posts yet)"}.`);
       }
       if (ids.igUserId) {
         const ig = await graphGet<{ id: string; username?: string; followers_count?: number; media_count?: number }>(`/${ids.igUserId}`, tok, { fields: "id,username,followers_count,media_count" });
         const media = await graphGet<Paged<IgMedia>>(`/${ids.igUserId}/media`, tok, { fields: IG_MEDIA_FIELDS, limit: 1 });
         if (media.data?.[0]) await graphInsights(media.data[0].id, tok, igMetricsFor(media.data[0]));
         lines.push(
-          `Instagram: @${ig.username ?? ig.id} · ${Number(ig.followers_count ?? 0).toLocaleString("id-ID")} followers · ${Number(ig.media_count ?? 0).toLocaleString("id-ID")} post${env("META_IG_USER_ID") ? "" : ` (ID ${ig.id} dari Page)`}.`,
+          `Instagram: @${ig.username ?? ig.id} · ${Number(ig.followers_count ?? 0).toLocaleString("en-ID")} followers · ${Number(ig.media_count ?? 0).toLocaleString("en-ID")} posts${env("META_IG_USER_ID") ? "" : ` (ID ${ig.id} from the Page)`}.`,
         );
       } else {
-        lines.push("Instagram: Page ini belum terhubung ke akun Instagram bisnis — isi META_IG_USER_ID atau hubungkan IG ke Page.");
+        lines.push("Instagram: this Page isn't linked to an Instagram business account — set META_IG_USER_ID or link IG to the Page.");
       }
-      if (optional.length) lines.push(`Catatan: izin ${optional.join(", ")} belum diberikan; jika sync gagal karena izin, tambahkan.`);
+      if (optional.length) lines.push(`Note: the ${optional.join(", ")} permissions haven't been granted; add them if a sync fails on permissions.`);
       return { ok: true, message: lines.join(" ") };
     } catch (e) {
       return { ok: false, message: translate(e, ids).message };
@@ -399,7 +404,7 @@ export const meta: Connector = {
 
   async fetchMonth(month: string) {
     const tok = token();
-    if (!tok) throw new ConnectorError("META_ACCESS_TOKEN belum diisi di .env.local (atau .env).");
+    if (!tok) throw new ConnectorError("META_ACCESS_TOKEN isn't set in .env.local (or .env).");
     let ids: Ids | undefined;
     try {
       const w = monthWindow(month);
@@ -407,9 +412,9 @@ export const meta: Connector = {
       const datasets: Dataset[] = [];
       const warnings: string[] = [];
       if (ids.igUserId) datasets.push(await fetchInstagram(tok, ids.igUserId, month, w, warnings));
-      else warnings.push("Instagram dilewati: akun IG tidak ditemukan (isi META_IG_USER_ID atau hubungkan IG ke Page).");
+      else warnings.push("Instagram skipped: IG account not found (set META_IG_USER_ID or link IG to the Page).");
       if (ids.page && facebookActive()) datasets.push(await fetchFacebook(ids, month, w, warnings));
-      if (w.partial) warnings.push(`Bulan berjalan — data sampai ${w.end}. Metrik Meta bersifat lifetime & bisa terlambat ±48 jam; sync ulang setelah awal bulan depan.`);
+      if (w.partial) warnings.push(`Current month — data through ${w.end}. Meta metrics are lifetime & can lag ~48 hours; re-sync after the start of next month.`);
       for (const d of datasets) d.warnings.push(...warnings.filter((x) => !x.startsWith(d.key === "meta_instagram" ? "Facebook:" : "Instagram:")));
       return datasets;
     } catch (e) {

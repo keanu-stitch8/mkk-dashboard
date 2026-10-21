@@ -2,9 +2,12 @@
 // ditulis analis: angka dibulatkan bila wajar ("almost half"), tahun tidak diulang, judul dipendekkan, dan perubahan
 // besar disertai penyebabnya dari data.
 
-export const n = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 0 });
-/** Persen dengan pembulatan biasa (17.95 → "18.0%"; toFixed saja memberi "17.9%" karena galat floating point). */
-export const pct = (v: number, d = 1) => `${(Math.round(v * 100 * 10 ** d + 1e-9) / 10 ** d).toFixed(d)}%`;
+// angka gaya Indonesia dengan teks English (sama dengan dashboard, locale en-ID): 1.353 · 18,0% · 7,4
+export const n = (v: number) => v.toLocaleString("en-ID", { maximumFractionDigits: 0 });
+/** Desimal tetap d digit: 7.36 → "7,4". */
+export const dec = (v: number, d = 1) => v.toLocaleString("en-ID", { minimumFractionDigits: d, maximumFractionDigits: d });
+/** Persen dengan pembulatan biasa (17.95 → "18,0%"; toFixed saja memberi "17,9%" karena galat floating point). */
+export const pct = (v: number, d = 1) => `${dec(Math.round(v * 100 * 10 ** d + 1e-9) / 10 ** d, d)}%`;
 export const plural = (v: number, one: string, many = `${one}s`) => `${n(v)} ${v === 1 ? one : many}`;
 export const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? ""));
 

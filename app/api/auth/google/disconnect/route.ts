@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const { connector } = (await req.json().catch(() => ({}))) as { connector?: string };
-  if (!connector || !isGoogleOAuthConnector(connector)) return Response.json({ error: "Connector tidak dikenal." }, { status: 400 });
+  if (!connector || !isGoogleOAuthConnector(connector)) return Response.json({ error: "Unknown connector." }, { status: 400 });
   const res = await disconnect(connector);
   return Response.json({ ok: true, ...res });
 }

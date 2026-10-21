@@ -55,7 +55,7 @@ function mergeDatasets(list: Dataset[]): Dataset[] {
     } else {
       const keep = ds.priority > prev.priority || (ds.priority === prev.priority && ds.rows.length > prev.rows.length) ? ds : prev;
       const drop = keep === ds ? prev : ds;
-      keep.warnings = [...keep.warnings, `${drop.file} juga berisi ${DATASETS[ds.key].label}; yang dipakai: ${keep.file}.`];
+      keep.warnings = [...keep.warnings, `${drop.file} also contains ${DATASETS[ds.key].label}; using: ${keep.file}.`];
       byKey.set(ds.key, keep);
     }
   }
@@ -70,7 +70,7 @@ export function parseFiles(files: InputFile[], group: SourceGroup = "auto"): Par
     result.errors.push(...errors);
     for (const table of tables) {
       if (table.sheet && SKIP_SHEET.test(table.sheet)) {
-        result.skipped.push({ file: table.file, sheet: table.sheet, reason: "Sheet ringkasan/referensi — dilewati." });
+        result.skipped.push({ file: table.file, sheet: table.sheet, reason: "Summary/reference sheet — skipped." });
         continue;
       }
       if (table.rows.length === 0) continue;
@@ -80,7 +80,7 @@ export function parseFiles(files: InputFile[], group: SourceGroup = "auto"): Par
         continue;
       }
       if (!ds || ds.length === 0) {
-        result.skipped.push({ file: table.file, sheet: table.sheet, reason: "Header tidak dikenali." });
+        result.skipped.push({ file: table.file, sheet: table.sheet, reason: "Headers not recognized." });
         continue;
       }
       for (const d of ds) {
@@ -88,7 +88,7 @@ export function parseFiles(files: InputFile[], group: SourceGroup = "auto"): Par
           result.skipped.push({
             file: table.file,
             sheet: table.sheet,
-            reason: `Terdeteksi sebagai ${DATASETS[d.key].label}, bukan sumber yang dipilih.`,
+            reason: `Detected as ${DATASETS[d.key].label}, not the selected source.`,
           });
           continue;
         }
@@ -102,14 +102,14 @@ export function parseFiles(files: InputFile[], group: SourceGroup = "auto"): Par
     if (d.rowDated && !d.month) d.month = null;
   }
   if (files.length && !result.datasets.length && !result.errors.length) {
-    result.errors.push("Tidak ada tabel yang dikenali. Cek apakah file sesuai jenis sumber yang dipilih.");
+    result.errors.push("No recognized tables. Check that the files match the selected source type.");
   }
   return result;
 }
 
 function mismatchWarning(ds: Dataset, month: string): string {
   const range = ds.range ? `${fmtDay(ds.range.start)}–${ds.range.end ? fmtDay(ds.range.end) : "?"}` : monthLabel(ds.month!);
-  const msg = `Data di file ini untuk periode ${range} (${monthLabel(ds.month!)}), tapi akan disimpan ke ${monthLabel(month)}. Pastikan bulan yang dipilih sudah benar.`;
+  const msg = `This file's data covers ${range} (${monthLabel(ds.month!)}), but it will be saved to ${monthLabel(month)}. Make sure the selected month is correct.`;
   return msg;
 }
 
@@ -130,13 +130,13 @@ export function applyMonth(ds: Dataset, month: string): Dataset {
     const dropped = rows.length - inMonth.length;
     if (dropped) {
       const months = [...new Set(rows.filter((r) => r._date && toMonth(r._date) !== month).map((r) => toMonth(r._date!)!))].sort();
-      warnings.push(`${dropped} baris di luar ${monthLabel(month)} diabaikan (${months.map((m) => monthLabel(m)).join(", ")}).`);
+      warnings.push(`${dropped} rows outside ${monthLabel(month)} ignored (${months.map((m) => monthLabel(m)).join(", ")}).`);
     }
     rows = inMonth;
   } else if (ds.month && ds.month !== month) {
     warnings.push(mismatchWarning(ds, month));
   }
-  if (ds.rowDated && rows.length === 0) warnings.push(`Tidak ada baris untuk ${monthLabel(month)} — dataset ini tidak akan disimpan.`);
+  if (ds.rowDated && rows.length === 0) warnings.push(`No rows for ${monthLabel(month)} — this dataset won't be saved.`);
   const out = { ...ds, rows, warnings };
   return ds.key === "yt_table" ? applyPublishCohort(out, month) : out;
 }

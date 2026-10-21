@@ -45,14 +45,14 @@ const TOKEN = /\{\{\s*(#?[\w.-]+)\s*\}\}/g;
 const EXACT = /^\{\{\s*(#?[\w.-]+)\s*\}\}$/;
 const keysIn = (text: string) => [...text.matchAll(TOKEN)].map((m) => m[1]);
 const a1 = (row: number, col: number) => `${String.fromCharCode(65 + col)}${row + 1}`;
-const fmt = (v: Cell) => (v == null ? "" : typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : v);
+const fmt = (v: Cell) => (v == null ? "" : typeof v === "number" ? v.toLocaleString("en-ID", { maximumFractionDigits: 2 }) : v);
 
 export function planFill(grids: SheetGrid[], data: ReportData): Plan {
   const plan: Plan = { inserts: [], merges: [], writes: [], warnings: [], autoHeight: [], pageBreaks: [], hidden: [], openEnd: [] };
 
   for (const g of grids) {
     let offset = 0; // baris yang sudah disisipkan di atas baris ini
-    const unknown = (r: number, col: number, key: string) => plan.warnings.push(`${g.title}!${a1(r, col)}: penanda "${key}" tidak dikenal`);
+    const unknown = (r: number, col: number, key: string) => plan.warnings.push(`${g.title}!${a1(r, col)}: unknown placeholder "${key}"`);
 
     /** Cari nilai penanda; `rec` = baris tabel untuk penanda {{#…}}. */
     const lookup = (key: string, rec: Record<string, Cell> | null): { ok: boolean; value: Cell } => {
@@ -109,10 +109,10 @@ export function planFill(grids: SheetGrid[], data: ReportData): Plan {
 
       // baris contoh tabel
       const name = tables[0];
-      if (tables.length > 1) plan.warnings.push(`${g.title}!${a1(r, 0)}: lebih dari satu tabel di satu baris (${tables.join(", ")}) — hanya "${name}" dipakai`);
+      if (tables.length > 1) plan.warnings.push(`${g.title}!${a1(r, 0)}: more than one table in a row (${tables.join(", ")}) — only "${name}" is used`);
       const records = data.tables[name];
       if (!records) {
-        plan.warnings.push(`${g.title}!${a1(r, 0)}: tabel "${name}" tidak dikenal`);
+        plan.warnings.push(`${g.title}!${a1(r, 0)}: unknown table "${name}"`);
         return;
       }
       if (!records.length) {

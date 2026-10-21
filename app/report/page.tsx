@@ -28,7 +28,7 @@ function MetricTable({ rows, month }: { rows: Row[]; month: string }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Metrik</TableHead>
+          <TableHead>Metric</TableHead>
           <TableHead className="text-right">{monthLabel(month, true)}</TableHead>
           <TableHead className="text-right">{monthLabel(prevMonth(month), true)}</TableHead>
           <TableHead className="text-right">MoM</TableHead>
@@ -56,7 +56,7 @@ function ReportSection({ title, children, empty }: { title: string; children: Re
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent>{empty ? <p className="text-sm text-muted-foreground">Belum ada data untuk bulan ini.</p> : children}</CardContent>
+      <CardContent>{empty ? <p className="text-sm text-muted-foreground">No data for this month yet.</p> : children}</CardContent>
     </Card>
   );
 }
@@ -92,14 +92,14 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
       latest: latest ? { url: latest.url, pdfUrl: latest.pdfUrl, status: latest.status, createdAt: latest.createdAt.toISOString(), error: latest.error, warnings: latest.warnings } : null,
     };
   });
-  const quotaLabel = (q: typeof qn) => `Kuota tercapai (${q.achievedLabel.toLowerCase()} ${q.available ? fmtNum(q.achieved) : "—"}/${fmtNum(q.target)} ${q.unit})`;
+  const quotaLabel = (q: typeof qn) => `Quota achieved (${q.achievedLabel.toLowerCase()} ${q.available ? fmtNum(q.achieved) : "—"}/${fmtNum(q.target)} ${q.unit})`;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <div className="flex flex-col gap-6">
       <div className="no-print flex flex-wrap items-center justify-between gap-2">
         <Button variant="ghost" size="sm" asChild>
           <Link href={`/?m=${month}`}>
-            <ArrowLeft /> Kembali ke dashboard
+            <ArrowLeft /> Back to dashboard
           </Link>
         </Button>
         <div className="flex items-center gap-2">
@@ -109,17 +109,17 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
       </div>
 
       <section className="no-print space-y-2">
-        <h2 className="text-sm font-medium">Laporan Google Sheets untuk client</h2>
+        <h2 className="text-sm font-medium">Google Sheets report for the client</h2>
         <ReportGenerator month={month} locked={!!lock} rows={reportRows} />
       </section>
 
       <header className="border-b pb-4">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Main ke Kudus · Laporan bulanan</p>
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Main ke Kudus · Monthly report</p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">{monthLabel(month)}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Website, News, YouTube & Social Media · dibandingkan dengan {monthLabel(prevMonth(month))}</p>
+        <p className="mt-1 text-sm text-muted-foreground">Website, News, Social Media & YouTube · compared with {monthLabel(prevMonth(month))}</p>
       </header>
 
-      <ReportSection title="Ringkasan lintas channel">
+      <ReportSection title="Cross-channel summary">
         <MetricTable
           month={month}
           rows={[
@@ -128,12 +128,12 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
             ["Website users", kpi.websiteUsers, cmp.websiteUsers?.[1], fmtNum],
             ["YouTube views", kpi.youtubeViews, cmp.youtubeViews?.[1], fmtNum],
             [`News — ${quotaLabel(qn)}`, qn.available ? qn.rate : null, pqn?.available ? pqn.rate : null, (v) => fmtPct(v), { rate: true }],
-            [`YouTube — ${quotaLabel(qy)}`, qy.available ? qy.rate : null, pqy?.available ? pqy.rate : null, (v) => fmtPct(v), { rate: true }],
             [`Social — ${quotaLabel(qs)}`, qs.available ? qs.rate : null, pqs?.available ? pqs.rate : null, (v) => fmtPct(v), { rate: true }],
+            [`YouTube — ${quotaLabel(qy)}`, qy.available ? qy.rate : null, pqy?.available ? pqy.rate : null, (v) => fmtPct(v), { rate: true }],
           ]}
         />
         <p className="mt-2 text-xs text-muted-foreground">
-          Reach/impressions = impressions Google Search + impressions YouTube + reach sosmed. Engagement = interaksi sosmed + engaged sessions website. MoM gabungan hanya ditampilkan jika semua komponennya punya data di kedua bulan.
+          Reach/impressions = Google Search impressions + YouTube impressions + social reach. Engagement = social interactions + website engaged sessions. Combined MoM is only shown when every component has data in both months.
         </p>
       </ReportSection>
 
@@ -154,12 +154,12 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
         />
         {w.sourceBreakdown.length > 0 && (
           <p className="mt-3 text-sm text-muted-foreground">
-            <b className="font-medium text-foreground">Sumber traffic:</b> {w.sourceBreakdown.slice(0, 4).map((x) => `${x.label} ${fmtPct(x.share)}`).join(" · ")}
+            <b className="font-medium text-foreground">Traffic sources:</b> {w.sourceBreakdown.slice(0, 4).map((x) => `${x.label} ${fmtPct(x.share)}`).join(" · ")}
           </p>
         )}
         {w.topQueries.length > 0 && (
           <p className="mt-1 text-sm text-muted-foreground">
-            <b className="font-medium text-foreground">Top query:</b> {w.topQueries.slice(0, 5).map((q) => `${q.query} (${fmtNum(q.clicks)})`).join(" · ")}
+            <b className="font-medium text-foreground">Top queries:</b> {w.topQueries.slice(0, 5).map((q) => `${q.query} (${fmtNum(q.clicks)})`).join(" · ")}
           </p>
         )}
       </ReportSection>
@@ -169,11 +169,11 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
           month={month}
           rows={[
             [quotaLabel(qn), qn.rate, pqn?.rate, (v) => fmtPct(v), { rate: true }],
-            ["Artikel published", n.published, pn?.published, fmtNum],
-            ["Artikel in review", n.inReview, pn?.inReview, fmtNum, { down: true }],
+            ["Articles published", n.published, pn?.published, fmtNum],
+            ["Articles in review", n.inReview, pn?.inReview, fmtNum, { down: true }],
             ["Delivered (publish + review)", n.achievement, pn?.achievement, (v) => fmtPct(v), { rate: true }],
             ["Total views", n.totalViews, pn?.totalViews, fmtNum],
-            ["Views per artikel", n.viewsPerArticle, pn?.viewsPerArticle, fmtNum],
+            ["Views per article", n.viewsPerArticle, pn?.viewsPerArticle, fmtNum],
           ]}
         />
         {n.topArticles.length > 0 && (
@@ -187,13 +187,45 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
         )}
       </ReportSection>
 
+      <ReportSection title="Social media" empty={!s.hasData}>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Platform: {s.platforms.map((x) => PLATFORM_LABEL[x] ?? x).join(", ") || DASH}
+          {sc ? ` · MoM for ${sc.platforms.map((x) => PLATFORM_LABEL[x] ?? x).join(", ")}` : prev.social.hasData ? " · MoM not calculated (last month used a different platform)" : ""}
+        </p>
+        <MetricTable
+          month={month}
+          rows={[
+            [quotaLabel(qs), qs.available ? qs.rate : null, pqs?.available ? pqs.rate : null, (v) => fmtPct(v), { rate: true }],
+            ["Posts published (total)", s.postsPublished, sc?.prev.posts, fmtNum],
+            ["Active publishing days", s.activeDays, null, fmtNum],
+            ["Total reach", s.reach, sc?.prev.reach, fmtNum],
+            ["Total views", s.views, sc?.prev.views, fmtNum],
+            ["Total interactions", s.interactions, sc?.prev.interactions, fmtNum],
+            ["Engagement rate", s.engagementRate, sc?.prev.engagementRate, (v) => fmtPct(v, 2), { rate: true }],
+          ]}
+        />
+        {s.byType && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            <b className="font-medium text-foreground">Views during {monthLabel(month)} by content type:</b>{" "}
+            {s.byType.rows.map((r) => `${r.label} ${fmtNum(r.views)} (${fmtPct(r.share)})`).join(" · ")}
+            <span className="block text-xs">Per-period account insights — includes older posts still being watched; doesn&apos;t change on re-sync.</span>
+          </p>
+        )}
+        {s.byFormat.length > 0 && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            <b className="font-medium text-foreground">By format (reach/post, lifetime{s.postsAsOf ? ` as of ${fmtDate(dateIn(s.postsAsOf, WIB))}` : ""}):</b>{" "}
+            {s.byFormat.map((f) => `${PLATFORM_LABEL[f.platform] ?? f.platform} ${FORMAT_LABEL[f.format] ?? f.format} ${fmtNum(f.avgReach)}`).join(" · ")}
+          </p>
+        )}
+      </ReportSection>
+
       <ReportSection title="YouTube" empty={!y.hasData}>
-        <p className="mb-2 text-xs text-muted-foreground">Video yang dipublish {monthLabel(month)}, performa selama {monthLabel(month)}.</p>
+        <p className="mb-2 text-xs text-muted-foreground">Videos published in {monthLabel(month)}, performance during {monthLabel(month)}.</p>
         <MetricTable
           month={month}
           rows={[
             ["Views", y.views, py?.views, fmtNum],
-            ["Watch time (jam)", y.watchHours, py?.watchHours, (v) => fmtNum(v, 1)],
+            ["Watch time (hours)", y.watchHours, py?.watchHours, (v) => fmtNum(v, 1)],
             ["Subscribers net", y.subsNet, py?.subsNet, fmtNum],
             ["Impressions", y.impressions, py?.impressions, fmtNum],
             ["Impressions CTR", y.ctr, py?.ctr, (v) => fmtPct(v, 2), { rate: true }],
@@ -203,46 +235,14 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
         />
         {y.topVideos[0] && (
           <p className="mt-3 text-sm text-muted-foreground">
-            <b className="font-medium text-foreground">Top video:</b> {truncate(y.topVideos[0].title, 80)} — {fmtNum(y.topVideos[0].views)} views ({fmtPct(y.topVideos[0].shareOfViews)} dari total)
-          </p>
-        )}
-      </ReportSection>
-
-      <ReportSection title="Social media" empty={!s.hasData}>
-        <p className="mb-2 text-xs text-muted-foreground">
-          Platform: {s.platforms.map((x) => PLATFORM_LABEL[x] ?? x).join(", ") || DASH}
-          {sc ? ` · MoM untuk ${sc.platforms.map((x) => PLATFORM_LABEL[x] ?? x).join(", ")}` : prev.social.hasData ? " · MoM tidak dihitung (platform bulan lalu berbeda)" : ""}
-        </p>
-        <MetricTable
-          month={month}
-          rows={[
-            [quotaLabel(qs), qs.available ? qs.rate : null, pqs?.available ? pqs.rate : null, (v) => fmtPct(v), { rate: true }],
-            ["Posts published (total)", s.postsPublished, sc?.prev.posts, fmtNum],
-            ["Hari aktif publish", s.activeDays, null, fmtNum],
-            ["Total reach", s.reach, sc?.prev.reach, fmtNum],
-            ["Total views", s.views, sc?.prev.views, fmtNum],
-            ["Total interactions", s.interactions, sc?.prev.interactions, fmtNum],
-            ["Engagement rate", s.engagementRate, sc?.prev.engagementRate, (v) => fmtPct(v, 2), { rate: true }],
-          ]}
-        />
-        {s.byType && (
-          <p className="mt-3 text-sm text-muted-foreground">
-            <b className="font-medium text-foreground">Views selama {monthLabel(month)} per jenis konten:</b>{" "}
-            {s.byType.rows.map((r) => `${r.label} ${fmtNum(r.views)} (${fmtPct(r.share)})`).join(" · ")}
-            <span className="block text-xs">Insight akun per periode — termasuk post lama yang masih ditonton; tidak berubah saat sync ulang.</span>
-          </p>
-        )}
-        {s.byFormat.length > 0 && (
-          <p className="mt-3 text-sm text-muted-foreground">
-            <b className="font-medium text-foreground">Per format (reach/post, lifetime{s.postsAsOf ? ` per ${fmtDate(dateIn(s.postsAsOf, WIB))}` : ""}):</b>{" "}
-            {s.byFormat.map((f) => `${PLATFORM_LABEL[f.platform] ?? f.platform} ${FORMAT_LABEL[f.format] ?? f.format} ${fmtNum(f.avgReach)}`).join(" · ")}
+            <b className="font-medium text-foreground">Top video:</b> {truncate(y.topVideos[0].title, 80)} — {fmtNum(y.topVideos[0].views)} views ({fmtPct(y.topVideos[0].shareOfViews)} of total)
           </p>
         )}
       </ReportSection>
 
       <div className="print-break" />
-      <Recommendations items={recs} note={`Rekomendasi otomatis untuk ${monthLabel(month)}`} />
-      <p className="pb-6 text-center text-xs text-muted-foreground">Dibuat dari dashboard MKK Analytics · {new Date().toLocaleDateString("id-ID", { dateStyle: "long" })}</p>
+      <Recommendations items={recs} note={`Automatic recommendations for ${monthLabel(month)}`} />
+      <p className="pb-6 text-center text-xs text-muted-foreground">Generated from the MKK Analytics dashboard · {new Date().toLocaleDateString("en-ID", { dateStyle: "long" })}</p>
     </div>
   );
 }

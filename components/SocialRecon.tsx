@@ -17,7 +17,7 @@ type Post = Recon["notInLog"][number];
 type Log = Recon["logNotOnIg"][number];
 
 function PostLink({ p }: { p: Post }) {
-  const text = truncate(p.caption, 70) || "(tanpa caption)";
+  const text = truncate(p.caption, 70) || "(no caption)";
   return p.permalink ? (
     <a href={p.permalink} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline">
       {text}
@@ -34,7 +34,7 @@ function LogTitle({ l }: { l: Log }) {
       {truncate(t, 70) || l.url}
     </a>
   ) : (
-    <>{truncate(t, 70) || "(tanpa judul)"}</>
+    <>{truncate(t, 70) || "(untitled)"}</>
   );
 }
 
@@ -66,15 +66,15 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
   const issues = r.formatMismatch.length + r.notInLog.length + r.logNotOnIg.length + r.duplicates.length;
   return (
     <Section
-      title="Cek Publishing Log vs Instagram"
-      subtitle={`Baris log berplatform Instagram (tanpa Stories) dibanding post dari Meta API${r.missingUrl ? ` · ${fmtNum(r.missingUrl)} baris log tanpa URL dicocokkan lewat judul + tanggal` : ""}`}
-      action={issues ? <StatusBadge tone="warn">{fmtNum(issues)} perlu dicek</StatusBadge> : <StatusBadge tone="good">Cocok</StatusBadge>}
+      title="Publishing Log vs Instagram check"
+      subtitle={`Log rows with platform Instagram (excluding Stories) compared with posts from the Meta API${r.missingUrl ? ` · ${fmtNum(r.missingUrl)} log rows without a URL matched by title + date` : ""}`}
+      action={issues ? <StatusBadge tone="warn">{fmtNum(issues)} to review</StatusBadge> : <StatusBadge tone="good">Matched</StatusBadge>}
     >
       <div className="flex flex-col gap-3">
         <DataTable
           rows={r.byFormat}
           columns={[
-            { header: "Format di IG", cell: (x) => label(x.format) },
+            { header: "Format on IG", cell: (x) => label(x.format) },
             {
               header: "Log",
               align: "right",
@@ -87,11 +87,11 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
             },
             { header: "API", align: "right", cell: (x) => fmtNum(x.api) },
             {
-              header: "Selisih",
+              header: "Diff",
               align: "right",
               cell: (x) =>
                 x.diff === 0 ? (
-                  <CircleCheck className="ml-auto size-4 text-success" aria-label="cocok" />
+                  <CircleCheck className="ml-auto size-4 text-success" aria-label="matched" />
                 ) : (
                   <span className="font-medium text-warning">{x.diff > 0 ? `+${fmtNum(x.diff)}` : fmtNum(x.diff)}</span>
                 ),
@@ -104,19 +104,19 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
             <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <div>
               <p>
-                <span className="font-medium">Story:</span> {fmtNum(stories.log)} tercatat di log · {fmtNum(stories.ig)} tayang di Instagram
-                {stories.share != null && <span className="text-muted-foreground"> ({fmtPct(stories.share)} tercatat)</span>}
+                <span className="font-medium">Story:</span> {fmtNum(stories.log)} recorded in the log · {fmtNum(stories.ig)} posted on Instagram
+                {stories.share != null && <span className="text-muted-foreground"> ({fmtPct(stories.share)} recorded)</span>}
               </p>
               <p className="text-xs text-muted-foreground">
-                Hanya info, bukan KPI — Story di Instagram termasuk repost & tiap frame. Kuota Story tetap dari Publishing Log.
-                {stories.since && ` Story sebelum ${fmtDate(stories.since)} belum tercatat (API hanya menyimpan Story yang masih aktif) — import CSV Story Business Suite untuk melengkapi.`}
+                Info only, not a KPI — Instagram Stories include reposts & every frame. The Story quota still comes from the Publishing Log.
+                {stories.since && ` Stories before ${fmtDate(stories.since)} aren't recorded (the API only keeps active Stories) — import the Business Suite Story CSV to fill the gap.`}
               </p>
             </div>
           </div>
         )}
 
         {r.formatMismatch.length > 0 && (
-          <Group tone="warn" title={`${fmtNum(r.formatMismatch.length)} kemungkinan format salah di log`} hint="Judul & tanggal mirip, tapi format di log berbeda dengan yang tayang di Instagram. Perbaiki kolom format di Publishing Log.">
+          <Group tone="warn" title={`${fmtNum(r.formatMismatch.length)} possible wrong formats in the log`} hint="Title & date are similar, but the format in the log differs from what was posted on Instagram. Fix the format column in the Publishing Log.">
             {r.formatMismatch.map((x) => (
               <Row key={x.log.id} date={x.post.date}>
                 <PostLink p={x.post} /> — log: <b>{label(x.log.format)}</b>, IG: <b>{label(x.post.format)}</b>
@@ -125,7 +125,7 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
           </Group>
         )}
         {r.notInLog.length > 0 && (
-          <Group tone="warn" title={`${fmtNum(r.notInLog.length)} post Instagram tidak tercatat di log`} hint="Tetap dihitung ke performa, tapi tidak ke kuota. Tambahkan ke Publishing Log.">
+          <Group tone="warn" title={`${fmtNum(r.notInLog.length)} Instagram posts missing from the log`} hint="Still counted toward performance, but not toward the quota. Add them to the Publishing Log.">
             {r.notInLog.map((p) => (
               <Row key={p.id} date={p.date}>
                 <PostLink p={p} /> <span className="text-muted-foreground">· {label(p.format)}</span>
@@ -134,7 +134,7 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
           </Group>
         )}
         {r.logNotOnIg.length > 0 && (
-          <Group tone="warn" title={`${fmtNum(r.logNotOnIg.length)} baris log (platform Instagram) tidak ditemukan di Instagram`} hint="Belum/tidak jadi diposting, sudah dihapus, tanggal meleset >3 hari, atau platform di log salah. Tetap dihitung ke kuota.">
+          <Group tone="warn" title={`${fmtNum(r.logNotOnIg.length)} log rows (platform Instagram) not found on Instagram`} hint="Not posted (yet), deleted, date off by >3 days, or wrong platform in the log. Still counted toward the quota.">
             {r.logNotOnIg.map((l) => (
               <Row key={l.id} date={l.date}>
                 <LogTitle l={l} /> <span className="text-muted-foreground">· {label(l.format)}</span>
@@ -143,7 +143,7 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
           </Group>
         )}
         {r.duplicates.length > 0 && (
-          <Group tone="warn" title={`${fmtNum(r.duplicates.reduce((a, g) => a + g.length, 0))} baris log kembar (${fmtNum(r.duplicates.length)} judul)`} hint="Tanggal, format & judul sama persis. Jika memang konten berbeda, bedakan judulnya; jika duplikat, hapus — kuota ikut terhitung dobel.">
+          <Group tone="warn" title={`${fmtNum(r.duplicates.reduce((a, g) => a + g.length, 0))} duplicate log rows (${fmtNum(r.duplicates.length)} titles)`} hint="Identical date, format & title. If they really are different pieces of content, give them distinct titles; if they're duplicates, delete them — otherwise the quota is double-counted.">
             {r.duplicates.map((g) => (
               <Row key={g[0].id} date={g[0].date}>
                 <b>{fmtNum(g.length)}×</b> <LogTitle l={g[0]} /> <span className="text-muted-foreground">· {label(g[0].format)} · {platforms(g[0].platform)}</span>
@@ -152,7 +152,7 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
           </Group>
         )}
         {r.videoAsReels.length > 0 && (
-          <Group tone="info" title={`${fmtNum(r.videoAsReels.length)} Video di log tayang sebagai Reels di Instagram`} hint="Wajar — Instagram menampilkan semua video sebagai Reels. Dashboard tetap memakai format dari log (Video), terpisah dari Reels.">
+          <Group tone="info" title={`${fmtNum(r.videoAsReels.length)} log Videos posted as Reels on Instagram`} hint="Expected — Instagram shows every video as a Reel. The dashboard keeps the log format (Video), separate from Reels.">
             {r.videoAsReels.map((x) => (
               <Row key={x.log.id} date={x.log.date}>
                 <LogTitle l={x.log} /> → <PostLink p={x.post} />
@@ -161,7 +161,7 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
           </Group>
         )}
         {r.offInstagram.length > 0 && (
-          <Group tone="info" title={`${fmtNum(r.offInstagram.length)} konten di log tidak diposting ke Instagram`} hint="Tidak bisa dicek lewat API Instagram. Tetap dihitung ke kuota.">
+          <Group tone="info" title={`${fmtNum(r.offInstagram.length)} log items not posted to Instagram`} hint="Can't be checked through the Instagram API. Still counted toward the quota.">
             {r.offInstagram.map((l) => (
               <Row key={l.id} date={l.date}>
                 <LogTitle l={l} /> <span className="text-muted-foreground">· {label(l.format)} · {platforms(l.platform)}</span>

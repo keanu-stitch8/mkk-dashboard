@@ -36,16 +36,19 @@ describe("seri produksi YouTube", () => {
 });
 
 describe("tipe & kategori", () => {
-  it("recap dari judul menang atas format; Editorial Feature Video = Editorial Feature", () => {
-    expect(videoType("X (Recap)", "Editorial Feature")).toBe("Recap");
-    expect(videoType("Della Citra Ayu", "Editorial Feature Video")).toBe("Editorial Feature");
-    expect(videoType("Coming soon", "Teaser")).toBe("Teaser");
+  it("recap dari judul menang atas format; Teaser / kategori Hero = Hero Video", () => {
+    expect(videoType("X (Recap)", "Editorial Feature")).toBe("Event Recap");
+    expect(videoType("Della Citra Ayu", "Editorial Feature Video")).toBe("Editorial Feature Video");
+    expect(videoType("Kudus Sports Tourism Teaser", "Teaser", "Hero")).toBe("Hero Video");
   });
-  it("kategori tak dikenal → Other", () => {
-    const s = ytCategorySlots(["Event", "venue", "Kuliner", null]);
+  it("kategori taksonomi (Venue = Arena); Hero bukan kategori; tak dikenal → peringatan, tanpa Other", () => {
+    const warnings: string[] = [];
+    const s = ytCategorySlots(["Event", "venue", "Kuliner", "Hero", "Baru", null], warnings);
     expect(s.find((x) => x.name === "Event")!.count).toBe(1);
-    expect(s.find((x) => x.name === "Venue")!.count).toBe(1);
-    expect(s.find((x) => x.name === "Other")!.count).toBe(2);
+    expect(s.find((x) => x.name === "Arena")!.count).toBe(1);
+    expect(s.find((x) => x.name === "Culinary")!.count).toBe(1);
+    expect(s.some((x) => x.name === "Other")).toBe(false);
+    expect(warnings).toHaveLength(2); // "Baru" + kosong; Hero tanpa peringatan
   });
 });
 
@@ -82,10 +85,10 @@ describe("youtubeFindings", () => {
     expect(out).toEqual([
       "All 4 planned videos were delivered, including 1 recap.",
       "The Q3 2026 series now has 8 of its 13 videos out, with 5 still to be released.",
-      'Views fell from 2,453 to 732. August was lifted by one video, "Klub Sepak Bola Putri Kudus", with 2,237 views.',
+      'Views fell from 2.453 to 732. August was lifted by one video, "Klub Sepak Bola Putri Kudus", with 2.237 views.',
       'The next most watched was "Sapphire Boutique Hotel" with 190 views.',
       '"MARKASS Sport Center" went live on 25 September, so it had only 6 days to collect views for this report.',
-      '"Muhammad Daffa Nugraha" (1.4%) and "MARKASS Sport Center" (3.4%) were rarely clicked when shown. Their titles or thumbnails may need work.',
+      '"Muhammad Daffa Nugraha" (1,4%) and "MARKASS Sport Center" (3,4%) were rarely clicked when shown. Their titles or thumbnails may need work.',
       "Viewers watched about 32% of each video on average (1 min 44 sec per view).",
       'The videos brought in 5 new subscribers, 4 of them from "Sapphire Boutique Hotel".',
     ]);

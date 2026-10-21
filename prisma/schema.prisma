@@ -231,6 +231,8 @@ model YtLog {
   videoId  String?
   format   String?
   category String?
+  /// nama Video Editor dari tab Tracker (Gantt), dicocokkan lewat nama video
+  editor   String?
   status   String // publish | review | draft | lainnya
   import   Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
 

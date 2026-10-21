@@ -54,28 +54,28 @@ interface Ctx {
 export function metaErrorMessage(e: unknown, ctx: Ctx = {}): string {
   if (!(e instanceof GraphError)) {
     const m = String((e as Error)?.message ?? e);
-    if (/fetch failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|getaddrinfo|network/i.test(m)) return "Tidak bisa terhubung ke server Meta (graph.facebook.com). Cek koneksi internet lalu coba lagi.";
-    return `Gagal mengambil data dari Meta Graph API: ${m}`;
+    if (/fetch failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|getaddrinfo|network/i.test(m)) return "Can't reach the Meta server (graph.facebook.com). Check your internet connection and try again.";
+    return `Failed to fetch data from the Meta Graph API: ${m}`;
   }
   const { code, subcode, message } = e;
-  const ids = [ctx.pageId && `Page ${ctx.pageId}`, ctx.igUserId && `akun IG ${ctx.igUserId}`].filter(Boolean).join(" / ") || "Page / akun IG";
+  const ids = [ctx.pageId && `Page ${ctx.pageId}`, ctx.igUserId && `IG account ${ctx.igUserId}`].filter(Boolean).join(" / ") || "Page / IG account";
 
   if (code === 190 || code === 102) {
-    if (subcode === 463) return "META_ACCESS_TOKEN sudah kedaluwarsa. Generate token baru di Business Settings → Users → System users → Generate new token (pilih Token expiration: Never).";
-    if (subcode === 460) return "META_ACCESS_TOKEN tidak berlaku lagi karena password / sesi akun berubah. Generate token baru dari system user.";
-    return "META_ACCESS_TOKEN tidak valid, kedaluwarsa, atau sudah dicabut. Generate ulang token system user di Business Settings → Users → System users, lalu isi ulang di .env.local.";
+    if (subcode === 463) return "META_ACCESS_TOKEN has expired. Generate a new token in Business Settings → Users → System users → Generate new token (choose Token expiration: Never).";
+    if (subcode === 460) return "META_ACCESS_TOKEN is no longer valid because the account password / session changed. Generate a new token from the system user.";
+    return "META_ACCESS_TOKEN is invalid, expired, or revoked. Regenerate the system user token in Business Settings → Users → System users, then update .env.local.";
   }
   if (code === 803 || (code === 100 && subcode === 33)) {
-    return `ID ${ids} tidak ditemukan atau tidak bisa diakses token ini. Cek META_PAGE_ID / META_IG_USER_ID, dan pastikan Page & akun Instagram sudah di-assign ke system user (Business Settings → System users → Assign assets).`;
+    return `ID ${ids} wasn't found or isn't accessible with this token. Check META_PAGE_ID / META_IG_USER_ID, and make sure the Page & Instagram account are assigned to the system user (Business Settings → System users → Assign assets).`;
   }
   if (code === 10 || code === 3 || (code !== undefined && code >= 200 && code <= 299)) {
-    return `Izin token Meta kurang untuk ${ids}. Generate ulang token system user dengan izin: ${META_PERMISSIONS.join(", ")} — dan pastikan Page & akun Instagram sudah di-assign ke system user (akses penuh / "Manage" untuk Page).`;
+    return `The Meta token lacks permissions for ${ids}. Regenerate the system user token with: ${META_PERMISSIONS.join(", ")} — and make sure the Page & Instagram account are assigned to the system user (full access / "Manage" for the Page).`;
   }
-  if (code === 368) return "Akun / app sementara diblokir Meta karena aktivitas mencurigakan. Tunggu beberapa saat lalu coba lagi.";
+  if (code === 368) return "Meta temporarily blocked the account / app for suspicious activity. Wait a while and try again.";
   if (code === 4 || code === 17 || code === 32 || code === 613 || code === 341 || (code !== undefined && code >= 80001 && code <= 80014)) {
-    return "Batas rate limit Meta Graph API tercapai. Coba lagi beberapa menit lagi (rate limit dihitung per jam).";
+    return "Meta Graph API rate limit reached. Try again in a few minutes (the limit is counted per hour).";
   }
-  if (code === 1 || code === 2 || (e.status !== undefined && e.status >= 500)) return "Server Meta sedang bermasalah. Coba lagi nanti.";
+  if (code === 1 || code === 2 || (e.status !== undefined && e.status >= 500)) return "Meta's servers are having problems. Try again later.";
   if (code === 100) return `Permintaan ditolak Meta Graph API: ${message}`;
-  return `Gagal mengambil data dari Meta Graph API: ${message}${code !== undefined ? ` (kode ${code}${subcode ? `/${subcode}` : ""})` : ""}`;
+  return `Failed to fetch data from the Meta Graph API: ${message}${code !== undefined ? ` (code ${code}${subcode ? `/${subcode}` : ""})` : ""}`;
 }

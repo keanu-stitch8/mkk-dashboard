@@ -23,7 +23,7 @@ export function monthFromRange(table: RawTable, warnings: string[]): string | nu
   const fullEnd = table.endDate ? Number(table.endDate.slice(8, 10)) === lastDay(endMonth ?? month) : true;
   if ((endMonth && endMonth !== month) || !fullStart || !fullEnd) {
     warnings.push(
-      `Rentang tanggal file ${table.startDate} s/d ${table.endDate ?? "?"} bukan satu bulan penuh — data dianggap milik ${monthLabel(month)}.`,
+      `The file's date range ${table.startDate} to ${table.endDate ?? "?"} isn't a full month — data is attributed to ${monthLabel(month)}.`,
     );
   }
   return month;
@@ -78,6 +78,7 @@ export function normalizeStatus(v: Cell): string {
   if (/^(publish|published|terbit|tayang|live|posted|done|selesai|upload|uploaded|sudah (publish|tayang|upload))/.test(s)) return "publish";
   if (/(review|revisi|revision|editing|approval|menunggu|in progress|proses)/.test(s)) return "review";
   if (/^(draft|ide|idea|planning|plan|rencana|todo|to do|belum)/.test(s)) return "draft";
+  if (/^(cancel|batal|dibatalkan|drop)/.test(s)) return "canceled";
   return s;
 }
 

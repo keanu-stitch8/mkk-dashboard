@@ -16,23 +16,23 @@ export function MonthSelect({ month, months }: { month: string; months: string[]
 
   return (
     <div className="flex items-center gap-1">
-      <Button variant="outline" size="icon" onClick={() => go(addMonths(month, -1))} aria-label="Bulan sebelumnya">
+      <Button variant="outline" size="icon" onClick={() => go(addMonths(month, -1))} aria-label="Previous month">
         <ChevronLeft />
       </Button>
       <Select value={month} onValueChange={go}>
-        <SelectTrigger className="w-44" aria-label="Pilih bulan">
+        <SelectTrigger className="w-44" aria-label="Select month">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {options.map((m) => (
             <SelectItem key={m} value={m}>
               {monthLabel(m)}
-              {!months.includes(m) && <span className="text-muted-foreground"> · kosong</span>}
+              {!months.includes(m) && <span className="text-muted-foreground"> · empty</span>}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      <Button variant="outline" size="icon" onClick={() => go(addMonths(month, 1))} disabled={options[0] === month} aria-label="Bulan berikutnya">
+      <Button variant="outline" size="icon" onClick={() => go(addMonths(month, 1))} disabled={options[0] === month} aria-label="Next month">
         <ChevronRight />
       </Button>
     </div>

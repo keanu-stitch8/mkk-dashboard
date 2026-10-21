@@ -16,7 +16,7 @@ import { currentMonth, lastMonths, monthLabel } from "@/lib/month";
 
 export const dynamic = "force-dynamic";
 
-const fmtTime = (d: Date | null | undefined) => (d ? d.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }) : "—");
+const fmtTime = (d: Date | null | undefined) => (d ? d.toLocaleString("en-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }) : "—");
 
 export default async function ConnectorsPage({ searchParams }: PageProps<"/settings/connectors">) {
   const sp = await searchParams;
@@ -32,20 +32,20 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
   const configured = CONNECTORS.filter((_, i) => statuses[i]?.configured).map((c) => c.id);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="flex flex-col gap-6">
       <header>
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Pengaturan</p>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Settings</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Connectors API</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tarik data langsung dari API tanpa upload CSV. Hasilnya disimpan ke tabel yang sama dengan import CSV; import CSV tetap bisa dipakai sebagai fallback.
-          Kredensial diisi di <code>.env.local</code> — lihat README → Setup Connector.
+          Pull data straight from the APIs without uploading CSVs. Results are stored in the same tables as CSV imports; CSV imports still work as a fallback.
+          Credentials go in <code>.env.local</code> — see README → Connector Setup.
         </p>
       </header>
 
       {connected && (
         <Alert className="border-success/30 bg-success-soft">
           <CircleCheck className="text-success" />
-          <AlertDescription>{connected} Klik “Test koneksi” untuk memastikan akses ke data.</AlertDescription>
+          <AlertDescription>{connected} Click “Test connection” to confirm data access.</AlertDescription>
         </Alert>
       )}
       {oauthError && (
@@ -55,7 +55,7 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
         </Alert>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
         {CONNECTORS.map((info, i) => {
           const st = statuses[i];
           const connector = REGISTRY[info.id];
@@ -69,23 +69,23 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
                 <CardAction>
                   {state === "ready" && (
                     <Badge variant="outline" className="border-transparent bg-success-soft text-success">
-                      <CircleCheck /> Terkonfigurasi
+                      <CircleCheck /> Configured
                     </Badge>
                   )}
                   {state === "missing" && (
                     <Badge variant="outline" className="border-transparent bg-warning-soft text-warning">
-                      <CircleDashed /> Belum dikonfigurasi
+                      <CircleDashed /> Not configured
                     </Badge>
                   )}
                   {state === "soon" && (
                     <Badge variant="secondary">
-                      <Clock /> Tahap berikutnya
+                      <Clock /> Coming next
                     </Badge>
                   )}
                 </CardAction>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                <p className="text-xs text-muted-foreground">Mengisi: {info.fills}</p>
+                <p className="text-xs text-muted-foreground">Provides: {info.fills}</p>
                 {connector && (
                   <ul className="space-y-1 text-xs">
                     {connector.env.map((v) => {
@@ -105,7 +105,7 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
                 {st?.oauth && (
                   <div className="rounded-md border border-dashed p-2.5">
                     {process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() && !OAUTH_ONLY.includes(info.id as never) ? (
-                      <p className="text-xs text-muted-foreground">Service account sedang dipakai (didahulukan). Kosongkan GOOGLE_APPLICATION_CREDENTIALS untuk memakai akun Google.</p>
+                      <p className="text-xs text-muted-foreground">A service account is in use (takes precedence). Clear GOOGLE_APPLICATION_CREDENTIALS to use a Google account.</p>
                     ) : (
                       <GoogleConnectButton connector={info.id} connected={st.oauth.connected} account={st.oauth.account} available={!!st.oauth.available} />
                     )}
@@ -114,14 +114,14 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
                 <div className="flex flex-wrap items-start justify-between gap-2 border-t pt-3">
                   {connector ? <TestConnectionButton connector={info.id} disabled={!st?.configured} /> : <span />}
                   <div className="text-right text-xs text-muted-foreground">
-                    Terakhir sync:{" "}
+                    Last sync:{" "}
                     {last ? (
                       <>
                         {fmtTime(last.finishedAt ?? last.startedAt)} · {monthLabel(last.month)}{" "}
-                        <span className={last.status === "success" ? "text-success" : "text-danger"}>{last.status === "success" ? "berhasil" : "gagal"}</span>
+                        <span className={last.status === "success" ? "text-success" : "text-danger"}>{last.status === "success" ? "succeeded" : "failed"}</span>
                       </>
                     ) : (
-                      "belum pernah"
+                      "never"
                     )}
                   </div>
                 </div>
@@ -131,13 +131,13 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
         })}
       </div>
 
-      <Section title="Sync data" subtitle="Ambil data dari semua connector yang sudah dikonfigurasi">
+      <Section title="Sync data" subtitle="Fetch data from every configured connector">
         <SyncControls currentMonth={currentMonth()} defaultMonth={lastFullMonth()} configured={configured} />
       </Section>
 
       <Section
-        title="Kunci bulan"
-        subtitle="Bulan terkunci tidak di-sync ulang oleh GA4, GSC, YouTube & Meta, supaya angka laporan tidak berubah (metrik lifetime per post terus bertambah). Publishing Log tetap bisa di-sync. Cron mengunci bulan lalu otomatis setelah sync tanggal 3."
+        title="Month locks"
+        subtitle="Locked months aren't re-synced by GA4, GSC, YouTube & Meta, so report numbers don't change (lifetime per-post metrics keep growing). Publishing Logs can still be synced. The cron job locks last month automatically after the sync on the 3rd."
       >
         <Table>
           <TableBody>
@@ -147,7 +147,7 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
                 <TableRow key={m}>
                   <TableCell className="whitespace-nowrap">{monthLabel(m)}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {lock ? `🔒 Dikunci ${fmtTime(lock.lockedAt)}${lock.note ? ` · ${lock.note}` : ""}` : m >= currentMonth() ? "Bulan berjalan" : "Belum dikunci"}
+                    {lock ? `🔒 Locked ${fmtTime(lock.lockedAt)}${lock.note ? ` · ${lock.note}` : ""}` : m >= currentMonth() ? "Current month" : "Not locked"}
                   </TableCell>
                   <TableCell className="text-right">
                     <MonthLockButton month={m} locked={!!lock} disabled={!lock && m >= currentMonth()} />
@@ -159,19 +159,19 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
         </Table>
       </Section>
 
-      <Section title="Riwayat sync" subtitle="50 sync terakhir">
+      <Section title="Sync history" subtitle="Last 50 syncs">
         {logs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Belum ada sync.</p>
+          <p className="text-sm text-muted-foreground">No syncs yet.</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Waktu</TableHead>
+                <TableHead>Time</TableHead>
                 <TableHead>Connector</TableHead>
-                <TableHead>Bulan</TableHead>
+                <TableHead>Month</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Baris</TableHead>
-                <TableHead>Keterangan</TableHead>
+                <TableHead className="text-right">Rows</TableHead>
+                <TableHead>Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -181,12 +181,12 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
                   <TableCell className="whitespace-nowrap">{connectorLabel(l.connector)}</TableCell>
                   <TableCell className="whitespace-nowrap">{monthLabel(l.month)}</TableCell>
                   <TableCell>
-                    {l.status === "success" && <Badge className="border-transparent bg-success-soft text-success" variant="outline">Berhasil</Badge>}
-                    {l.status === "error" && <Badge className="border-transparent bg-danger-soft text-danger" variant="outline">Gagal</Badge>}
-                    {l.status === "running" && <Badge variant="secondary">Berjalan</Badge>}
+                    {l.status === "success" && <Badge className="border-transparent bg-success-soft text-success" variant="outline">Succeeded</Badge>}
+                    {l.status === "error" && <Badge className="border-transparent bg-danger-soft text-danger" variant="outline">Failed</Badge>}
+                    {l.status === "running" && <Badge variant="secondary">Running</Badge>}
                     {l.trigger !== "manual" && <span className="ml-1 text-xs text-muted-foreground">({l.trigger})</span>}
                   </TableCell>
-                  <TableCell className="num text-right">{l.rows.toLocaleString("id-ID")}</TableCell>
+                  <TableCell className="num text-right">{l.rows.toLocaleString("en-ID")}</TableCell>
                   <TableCell className="max-w-md text-xs whitespace-normal">
                     {l.error ? <span className="text-danger">{l.error}</span> : <span className="text-muted-foreground">{l.detail?.split("\n").join(" · ")}</span>}
                   </TableCell>

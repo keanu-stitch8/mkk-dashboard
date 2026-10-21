@@ -36,7 +36,7 @@ export function redirectUri(origin?: string): string {
 
 function client(origin?: string): OAuth2Client {
   if (!oauthClientConfigured()) {
-    throw new ConnectorError("GOOGLE_OAUTH_CLIENT_ID dan GOOGLE_OAUTH_CLIENT_SECRET belum diisi di .env.local (OAuth client tipe Web application di Google Cloud).");
+    throw new ConnectorError("GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET aren't set in .env.local (a Web application OAuth client in Google Cloud).");
   }
   return new OAuth2Client({
     clientId: process.env.GOOGLE_OAUTH_CLIENT_ID!.trim(),
@@ -67,12 +67,12 @@ export async function completeOAuth(connector: GoogleOAuthConnector, code: strin
   const c = client(origin);
   const { tokens } = await c.getToken(code);
   if (!tokens.refresh_token) {
-    throw new ConnectorError("Google tidak mengirim refresh token. Cabut akses aplikasi di https://myaccount.google.com/permissions lalu hubungkan ulang.");
+    throw new ConnectorError("Google didn't send a refresh token. Revoke the app's access at https://myaccount.google.com/permissions and reconnect.");
   }
   const granted = (tokens.scope ?? "").split(/\s+/);
   const missing = GOOGLE_SCOPES[connector].filter((s) => !granted.includes(s));
   if (missing.length) {
-    throw new ConnectorError("Izin yang dibutuhkan tidak dicentang di halaman consent Google. Hubungkan ulang dan centang semua izin yang diminta.");
+    throw new ConnectorError("The required permissions weren't ticked on Google's consent screen. Reconnect and tick every requested permission.");
   }
   let email: string | undefined;
   if (tokens.id_token) {

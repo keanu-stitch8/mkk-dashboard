@@ -108,7 +108,7 @@ export async function applyRowStyles(c: ReportClients, id: string, spec: RowStyl
   const autoRows: Req[] = [];
   for (const [title, roles] of Object.entries(spec)) {
     const sh = sheets.get(title);
-    if (!sh) throw new Error(`Sheet "${title}" tidak ada`);
+    if (!sh) throw new Error(`Sheet "${title}" doesn't exist`);
     const sheetId = sh.properties!.sheetId!;
     const merges = sh.merges ?? [];
     const rowsData = sh.data?.[0]?.rowData ?? [];
@@ -185,7 +185,7 @@ export async function assertAnchors(c: ReportClients, id: string, anchors: Recor
   const bad = ranges.filter((a, i) => (r.data.valueRanges?.[i]?.values?.[0]?.[0] ?? "").trim() !== anchors[a]);
   if (bad.length)
     throw new Error(
-      `Layout template berubah, patch dibatalkan. Sesuaikan posisi di script:\n${bad.map((a) => `  ${a}: diharapkan "${anchors[a]}", isi "${r.data.valueRanges?.[ranges.indexOf(a)]?.values?.[0]?.[0] ?? ""}"`).join("\n")}`,
+      `Template layout changed, patch aborted. Adjust the positions in the script:\n${bad.map((a) => `  ${a}: expected "${anchors[a]}", found "${r.data.valueRanges?.[ranges.indexOf(a)]?.values?.[0]?.[0] ?? ""}"`).join("\n")}`,
     );
 }
 
@@ -262,7 +262,7 @@ export async function ensureReviewRow(c: ReportClients, id: string, sheet: strin
   const [at, next] = (r.data.valueRanges ?? []).map((v) => String(v.values?.[0]?.[0] ?? "").trim());
   if (next === "Unpublished" && (at === "In review" || at === "")) return;
   if (at !== "Unpublished" || next !== "Monthly Quota")
-    throw new Error(`Layout template berubah, baris In review tidak disisipkan: ${sheet}!H${unpublishedRow} = "${at}", H${unpublishedRow + 1} = "${next}".`);
+    throw new Error(`Template layout changed, In review row not inserted: ${sheet}!H${unpublishedRow} = "${at}", H${unpublishedRow + 1} = "${next}".`);
   const meta = await c.sheets.spreadsheets.get({ spreadsheetId: id, fields: "sheets(properties(sheetId,title))" });
   const sheetId = meta.data.sheets!.find((s) => s.properties!.title === sheet)!.properties!.sheetId!;
   const row0 = unpublishedRow - 1;

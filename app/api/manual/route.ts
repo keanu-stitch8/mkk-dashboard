@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as { month?: string; channel?: Channel; values?: Record<string, number | null> };
   const { month, channel, values } = body;
   if (!isMonth(month) || !channel || !(channel in MANUAL_FIELDS) || !values) {
-    return Response.json({ error: "Data tidak valid." }, { status: 400 });
+    return Response.json({ error: "Invalid data." }, { status: 400 });
   }
   const allowed = new Set(MANUAL_FIELDS[channel].map((f) => f.key));
   for (const [key, value] of Object.entries(values)) {

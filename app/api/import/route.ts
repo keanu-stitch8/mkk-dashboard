@@ -25,18 +25,18 @@ export async function POST(req: Request) {
     if (typeof entry === "string") continue;
     files.push({ name: entry.name, data: new Uint8Array(await entry.arrayBuffer()) });
   }
-  if (!files.length) return Response.json({ error: "Pilih minimal satu file." }, { status: 400 });
+  if (!files.length) return Response.json({ error: "Select at least one file." }, { status: 400 });
 
   const parsed = parseFiles(files, group);
   const month = isMonth(monthRaw) ? monthRaw : suggestedMonth(parsed);
 
   if (action === "commit") {
-    if (!month) return Response.json({ error: "Pilih bulan (YYYY-MM)." }, { status: 400 });
+    if (!month) return Response.json({ error: "Select a month (YYYY-MM)." }, { status: 400 });
     const keys = String(form.get("keys") ?? "")
       .split(",")
       .filter(Boolean);
     const selected = parsed.datasets.filter((d) => !keys.length || keys.includes(d.key));
-    if (!selected.length) return Response.json({ error: "Tidak ada dataset untuk disimpan." }, { status: 400 });
+    if (!selected.length) return Response.json({ error: "No datasets to save." }, { status: 400 });
     const results = [];
     for (const ds of selected) results.push({ ...(await commitDataset(prisma, ds, month)), label: DATASETS[ds.key].label });
     return Response.json({ month, results });

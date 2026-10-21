@@ -2,11 +2,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { ArrowDown, ArrowRight, ArrowUp, Info, TriangleAlert, Upload } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, CircleCheckBig, CircleX, Info, Loader, Minus, TrendingDown, TrendingUp, TriangleAlert, Upload } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -40,25 +40,28 @@ function deltaTone(cur: number, prev: number, goodWhenUp: boolean, neutral = fal
   return { d, flat, up: d.abs > 0, good };
 }
 
-/** Badge MoM: panah + teks + warna (warna tidak pernah jadi satu-satunya penanda). */
-export function DeltaBadge({ cur, prev, kind = "count", goodWhenUp = true, neutral = false, partial = false, emptyText = "Belum ada data bulan lalu" }: { cur: number | null | undefined; prev: number | null | undefined; kind?: DeltaKind; goodWhenUp?: boolean; neutral?: boolean; partial?: boolean; emptyText?: string }) {
+/** Warna badge tren gaya template (halaman Users): hijau = baik, merah = buruk, netral = outline biasa. */
+function toneBadge(good: boolean | null) {
+  return good == null ? "" : good ? "border-success/30 bg-success/10 text-success" : "border-destructive/30 bg-destructive/10 text-destructive";
+}
+
+/** Badge MoM: ikon tren + teks + warna (warna tidak pernah jadi satu-satunya penanda). */
+export function DeltaBadge({ cur, prev, kind = "count", goodWhenUp = true, neutral = false, partial = false, emptyText = "No data for last month yet" }: { cur: number | null | undefined; prev: number | null | undefined; kind?: DeltaKind; goodWhenUp?: boolean; neutral?: boolean; partial?: boolean; emptyText?: string }) {
   if (cur == null || prev == null || !delta(cur, prev)) return <span className="text-xs text-muted-foreground">{emptyText}</span>;
   const { d, flat, up, good } = deltaTone(cur, prev, goodWhenUp, neutral);
-  const Icon = flat ? ArrowRight : up ? ArrowUp : ArrowDown;
+  const Icon = flat ? Minus : up ? TrendingUp : TrendingDown;
   return (
     <span className="inline-flex items-center gap-1.5 text-xs">
-      <Badge
-        variant="outline"
-        className={cn("num gap-0.5 border-transparent", good == null ? "bg-muted text-muted-foreground" : good ? "bg-success-soft text-success" : "bg-danger-soft text-danger")}
-      >
+      <Badge variant="outline" className={cn("num", toneBadge(good))}>
         <Icon aria-hidden />
         {kind === "rate" ? fmtDeltaPp(cur, prev) : fmtDeltaPct(d)}
       </Badge>
-      <span className="text-muted-foreground">vs bulan lalu{partial ? "*" : ""}</span>
+      <span className="text-muted-foreground">vs last month{partial ? "*" : ""}</span>
     </span>
   );
 }
 
+/** Kartu KPI gaya shadcnstore template (section-cards): label, angka, badge tren di pojok, footer tren + catatan. */
 export function KpiCard({
   label,
   value,
@@ -70,7 +73,7 @@ export function KpiCard({
   note,
   hint,
   partial,
-  emptyText,
+  emptyText = "No data for last month yet",
 }: {
   label: string;
   value: string;
@@ -84,10 +87,15 @@ export function KpiCard({
   partial?: boolean;
   emptyText?: string;
 }) {
+  const t = cur != null && prev != null && delta(cur, prev) ? deltaTone(cur, prev, goodWhenUp, neutral) : null;
+  const Trend = !t || t.flat ? Minus : t.up ? TrendingUp : TrendingDown;
+  const change = t ? (kind === "rate" ? fmtDeltaPp(cur, prev) : fmtDeltaPct(t.d)) : null;
+  const headline = !t ? emptyText : t.flat ? "Flat vs last month" : `${t.up ? "Up" : "Down"} ${change?.replace(/^[+−-]/, "")} vs last month`;
   return (
-    <Card size="sm" className="avoid-break">
+    // naik (dan memang baik) → gradien hijau menggantikan gradien primary dari KpiGrid
+    <Card className={cn("avoid-break", t?.up && t.good && "from-success/10!")}>
       <CardHeader>
-        <CardDescription className="flex items-center gap-1 text-xs font-medium">
+        <CardDescription className="flex items-center gap-1">
           {label}
           {hint && (
             <Tooltip>
@@ -100,21 +108,44 @@ export function KpiCard({
             </Tooltip>
           )}
         </CardDescription>
-        <CardTitle className="num text-2xl font-semibold tracking-tight">{value}</CardTitle>
+        {/* ukuran seperti metrics-overview template dashboard-2: tanpa @container, angka tetap text-2xl */}
+        <CardTitle className="text-2xl font-semibold tabular-nums">{value}</CardTitle>
+        {change && (
+          <CardAction>
+            <Badge variant="outline" className={toneBadge(t ? t.good : null)}>
+              <Trend className="size-4" />
+              {change}
+            </Badge>
+          </CardAction>
+        )}
       </CardHeader>
       {(cur !== undefined || note) && (
-        <CardContent className="flex flex-col gap-1.5">
-          {cur !== undefined && <DeltaBadge cur={cur} prev={prev} kind={kind} goodWhenUp={goodWhenUp} neutral={neutral} partial={partial} emptyText={emptyText} />}
-          {note && <div className="text-xs text-muted-foreground">{note}</div>}
-        </CardContent>
+        <CardFooter className="flex-col items-start gap-1.5 border-t-0 bg-transparent pt-0 text-sm">
+          {cur !== undefined && (
+            <div className="line-clamp-1 flex gap-2 font-medium">
+              {headline}
+              {t && partial ? "*" : ""} {t && <Trend className="size-4" />}
+            </div>
+          )}
+          {note && <div className="text-muted-foreground">{note}</div>}
+        </CardFooter>
       )}
     </Card>
   );
 }
 
 export function KpiGrid({ children, cols = 6 }: { children: ReactNode; cols?: 4 | 6 }) {
-  // cols=4 → 2 baris x 4 kartu (halaman channel), cols=6 → 1 baris (overview)
-  return <div className={cn("grid grid-cols-2 gap-3", cols === 6 ? "md:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-4")}>{children}</div>;
+  // gradien kartu dari template section-cards; cols=6 → 3 kolom (overview), cols=4 → 4 kolom
+  return (
+    <div
+      className={cn(
+        "grid gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs sm:grid-cols-2 dark:*:data-[slot=card]:bg-card",
+        cols === 6 ? "xl:grid-cols-3" : "xl:grid-cols-4",
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function EmptyState({ channel, month, source }: { channel: string; month: string; source?: string }) {
@@ -126,12 +157,12 @@ export function EmptyState({ channel, month, source }: { channel: string; month:
         </div>
         <div>
           <p className="font-medium">
-            Belum ada data {channel} untuk {monthLabel(month)}
+            No {channel} data for {monthLabel(month)} yet
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">Import file {source ?? channel} untuk bulan ini supaya metriknya muncul.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Import the {source ?? channel} files for this month to see its metrics.</p>
         </div>
         <Button asChild>
-          <Link href={`/import?m=${month}`}>Import di sini</Link>
+          <Link href={`/import?m=${month}`}>Import here</Link>
         </Button>
       </CardContent>
     </Card>
@@ -177,15 +208,15 @@ function DeltaInline({ cur, prev, kind = "count", goodWhenUp = true, neutral = f
 /** Tabel perbandingan bulan ini vs bulan lalu. */
 export function CompareTable({ month, rows, hasPrev, footnote }: { month: string; rows: CompareRow[]; hasPrev: boolean; footnote?: ReactNode }) {
   return (
-    <Section title="Bulan ini vs bulan lalu" subtitle={`${monthLabel(month)} dibandingkan ${monthLabel(prevMonth(month))}`}>
-      {!hasPrev && <p className="mb-3 text-xs text-muted-foreground">Belum ada data {monthLabel(prevMonth(month))} — kolom bulan lalu kosong.</p>}
+    <Section title="This month vs last month" subtitle={`${monthLabel(month)} compared with ${monthLabel(prevMonth(month))}`}>
+      {!hasPrev && <p className="mb-3 text-xs text-muted-foreground">No data for {monthLabel(prevMonth(month))} yet — the last-month column is empty.</p>}
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Metrik</TableHead>
+            <TableHead>Metric</TableHead>
             <TableHead className="text-right">{monthLabel(month, true)}</TableHead>
             <TableHead className="text-right">{monthLabel(prevMonth(month), true)}</TableHead>
-            <TableHead className="text-right">Perubahan</TableHead>
+            <TableHead className="text-right">Change</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -213,44 +244,43 @@ export interface Column<T> {
   className?: string;
 }
 
-export function DataTable<T>({ rows, columns, empty = "Tidak ada data.", maxRows }: { rows: T[]; columns: Column<T>[]; empty?: string; maxRows?: number }) {
+export function DataTable<T>({ rows, columns, empty = "No data.", maxRows }: { rows: T[]; columns: Column<T>[]; empty?: string; maxRows?: number }) {
   const shown = maxRows ? rows.slice(0, maxRows) : rows;
   if (!rows.length) return <p className="py-4 text-sm text-muted-foreground">{empty}</p>;
+  // gaya tabel shadcnstore template: border bersudut, header bg-muted
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {columns.map((c, i) => (
-            <TableHead key={i} className={cn(c.align === "right" && "text-right")}>
-              {c.header}
-            </TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {shown.map((row, ri) => (
-          <TableRow key={ri}>
-            {columns.map((c, ci) => (
-              <TableCell key={ci} className={cn("align-top whitespace-normal", c.align === "right" && "num text-right whitespace-nowrap", c.className)}>
-                {c.cell(row, ri)}
-              </TableCell>
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader className="sticky top-0 z-10 bg-muted">
+          <TableRow>
+            {columns.map((c, i) => (
+              <TableHead key={i} className={cn(c.align === "right" && "text-right")}>
+                {c.header}
+              </TableHead>
             ))}
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {shown.map((row, ri) => (
+            <TableRow key={ri}>
+              {columns.map((c, ci) => (
+                <TableCell key={ci} className={cn("align-top whitespace-normal", c.align === "right" && "num text-right whitespace-nowrap", c.className)}>
+                  {c.cell(row, ri)}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
+/** Badge status gaya template (kolom Status data-table): outline abu + ikon (centang hijau / loader / silang). */
 export function StatusBadge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "good" | "bad" | "warn" }) {
-  const cls = {
-    neutral: "",
-    good: "border-transparent bg-success-soft text-success",
-    bad: "border-transparent bg-danger-soft text-danger",
-    warn: "border-transparent bg-warning-soft text-warning",
-  }[tone];
   return (
-    <Badge variant={tone === "neutral" ? "secondary" : "outline"} className={cls}>
+    <Badge variant="outline" className="px-1.5 text-muted-foreground">
+      {tone === "good" ? <CircleCheckBig className="text-success" /> : tone === "warn" ? <Loader /> : tone === "bad" ? <CircleX className="text-destructive" /> : null}
       {children}
     </Badge>
   );
@@ -265,10 +295,10 @@ export function StatusBadge({ children, tone = "neutral" }: { children: ReactNod
  * dipisah celah 2px; angka & legend selalu ditampilkan di sebelahnya.
  */
 export function QuotaBar({ q }: { q: QuotaSummary }) {
-  if (!q.segments.length || !q.available) return <QuotaProgress value={q.available ? q.rate : null} label={`Kuota ${q.label}`} />;
+  if (!q.segments.length || !q.available) return <QuotaProgress value={q.available ? q.rate : null} label={`${q.label} quota`} />;
   const scale = Math.max(q.target, q.achieved) || 1;
   return (
-    <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-muted" role="img" aria-label={q.segments.map((s) => `${s.label} ${s.count}`).join(", ") + ` dari kuota ${q.target}`}>
+    <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-muted" role="img" aria-label={q.segments.map((s) => `${s.label} ${s.count}`).join(", ") + ` of ${q.target} quota`}>
       {q.segments
         .filter((s) => s.count > 0)
         .map((s) => (
@@ -299,7 +329,7 @@ export function QuotaHero({ q, prev, month, className }: { q: QuotaSummary; prev
   return (
     <Card className={cn("avoid-break", className)}>
       <CardHeader>
-        <CardDescription className="text-xs font-medium">Kuota tercapai · {monthLabel(month)}</CardDescription>
+        <CardDescription className="text-xs font-medium">Quota achieved · {monthLabel(month)}</CardDescription>
         <CardTitle className="num text-4xl font-semibold tracking-tight">{q.available ? fmtPct(q.rate) : DASH}</CardTitle>
         <CardAction>
           <DeltaBadge cur={q.available ? q.rate : null} prev={prev?.available ? prev.rate : null} kind="rate" />
@@ -316,7 +346,7 @@ export function QuotaHero({ q, prev, month, className }: { q: QuotaSummary; prev
           <QuotaBar q={q} />
           {q.segments.length > 0 && q.available && <SegmentLegend q={q} />}
           <p className="mt-1.5 text-xs text-muted-foreground">
-            {!q.available ? "Belum ada data untuk dinilai." : remaining > 0 ? `Kurang ${fmtNum(remaining)} ${q.unit} untuk mencapai kuota.` : "Kuota tercapai."}
+            {!q.available ? "No data to evaluate yet." : remaining > 0 ? `${fmtNum(remaining)} more ${q.unit} needed to hit the quota.` : "Quota achieved."}
           </p>
         </div>
         {q.breakdown.length > 0 && (
@@ -361,14 +391,15 @@ export function QuotaHero({ q, prev, month, className }: { q: QuotaSummary; prev
 /** Versi ringkas untuk Overview. */
 export function QuotaMini({ q, prev, href }: { q: QuotaSummary; prev: QuotaSummary | null; href: string }) {
   return (
-    <Card size="sm" className="avoid-break">
+    // ukuran seperti section-cards template dashboard: @container → angka text-3xl di kartu ≥ 250px
+    <Card className="@container/card avoid-break">
       <CardHeader>
-        <CardDescription className="text-xs font-medium">
+        <CardDescription>
           <Link href={href} className="hover:text-foreground hover:underline">
-            Kuota {q.label}
+            {q.label} quota
           </Link>
         </CardDescription>
-        <CardTitle className="num text-2xl font-semibold tracking-tight">
+        <CardTitle className="num text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
           {q.available ? `${fmtNum(q.achieved)}/${fmtNum(q.target)}` : DASH}
           <span className="ml-2 text-sm font-normal text-muted-foreground">{q.available ? fmtPct(q.rate) : ""}</span>
         </CardTitle>

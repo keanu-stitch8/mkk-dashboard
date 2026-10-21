@@ -21,7 +21,7 @@ describe("planFill", () => {
     const plan = planFill([grid([["{{users}}", "Period: {{period}} · {{users}} users"]])], { values: { users: 1839, period: "1–30 September 2026" }, tables: {} });
     expect(plan.writes).toEqual([
       { sheetTitle: "01 Summary", row: 0, col: 0, value: 1839 },
-      { sheetTitle: "01 Summary", row: 0, col: 1, value: "Period: 1–30 September 2026 · 1,839 users" },
+      { sheetTitle: "01 Summary", row: 0, col: 1, value: "Period: 1–30 September 2026 · 1.839 users" },
     ]);
     expect(plan.inserts).toEqual([]);
   });
@@ -56,9 +56,9 @@ describe("planFill", () => {
   });
 
   it("penanda tak dikenal dibiarkan + peringatan; tone ikut di write", () => {
-    const plan = planFill([grid([["{{nope}}", "{{kpi.views.change}}"]])], { values: { "kpi.views.change": "↑ +2.6% vs last month" }, tables: {}, tones: { "kpi.views.change": "good" } });
-    expect(plan.writes).toEqual([{ sheetTitle: "01 Summary", row: 0, col: 1, value: "↑ +2.6% vs last month", tone: "good" }]);
-    expect(plan.warnings).toEqual(['01 Summary!A1: penanda "nope" tidak dikenal']);
+    const plan = planFill([grid([["{{nope}}", "{{kpi.views.change}}"]])], { values: { "kpi.views.change": "↑ +2,6% vs last month" }, tables: {}, tones: { "kpi.views.change": "good" } });
+    expect(plan.writes).toEqual([{ sheetTitle: "01 Summary", row: 0, col: 1, value: "↑ +2,6% vs last month", tone: "good" }]);
+    expect(plan.warnings).toEqual(['01 Summary!A1: unknown placeholder "nope"']);
   });
 
   it("{{pagebreak}} dikosongkan + dicatat setelah sisipan tabel; autoHeight untuk tabel yang diminta", () => {

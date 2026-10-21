@@ -10,12 +10,12 @@ import { WIB, dateIn } from "../tz";
  * `tz` = zona hari laporan API (default WIB; YouTube & GSC = Pacific, GA4 = zona properti).
  */
 export function monthRange(month: string, today = new Date(), tz = WIB): { start: string; end: string; partial: boolean } {
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new ConnectorError(`Format bulan tidak valid: "${month}" (pakai YYYY-MM).`);
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new ConnectorError(`Invalid month format: "${month}" (use YYYY-MM).`);
   const [y, m] = month.split("-").map(Number);
   const start = `${month}-01`;
   const last = `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, "0")}`;
   const todayLocal = dateIn(today, tz);
-  if (start > todayLocal) throw new ConnectorError(`${month} belum dimulai — tidak ada data untuk ditarik.`);
+  if (start > todayLocal) throw new ConnectorError(`${month} hasn't started yet — no data to pull.`);
   return last > todayLocal ? { start, end: todayLocal, partial: true } : { start, end: last, partial: false };
 }
 
@@ -46,15 +46,15 @@ export const num = (v: string | number | null | undefined): number => {
 /** Baca JSON kunci service account dari GOOGLE_APPLICATION_CREDENTIALS. */
 export function serviceAccountKey(): { path: string; clientEmail: string; projectId?: string } {
   const p = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
-  if (!p) throw new ConnectorError("GOOGLE_APPLICATION_CREDENTIALS belum diisi di .env.local (path ke file JSON kunci service account).");
+  if (!p) throw new ConnectorError("GOOGLE_APPLICATION_CREDENTIALS isn't set in .env.local (path to the service account JSON key file).");
   const path = resolve(p);
-  if (!existsSync(path)) throw new ConnectorError(`File kunci service account tidak ditemukan: ${path}`);
+  if (!existsSync(path)) throw new ConnectorError(`Service account key file not found: ${path}`);
   try {
     const json = JSON.parse(readFileSync(path, "utf8")) as { client_email?: string; project_id?: string; type?: string };
-    if (json.type !== "service_account" || !json.client_email) throw new Error("bukan service account");
+    if (json.type !== "service_account" || !json.client_email) throw new Error("not a service account");
     return { path, clientEmail: json.client_email, projectId: json.project_id };
   } catch {
-    throw new ConnectorError(`File ${path} bukan kunci JSON service account yang valid. Download ulang dari Google Cloud → IAM → Service Accounts → Keys.`);
+    throw new ConnectorError(`File ${path} isn't a valid service account JSON key. Download it again from Google Cloud → IAM → Service Accounts → Keys.`);
   }
 }
 

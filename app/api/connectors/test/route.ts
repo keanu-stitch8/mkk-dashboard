@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const c = getConnector(connector ?? "");
     const status = await c.status();
     if (!status.configured) {
-      return Response.json({ ok: false, message: status.missing.length ? `Belum diisi di .env.local: ${status.missing.join(", ")}.` : (status.account ?? "Kredensial belum lengkap.") });
+      return Response.json({ ok: false, message: status.missing.length ? `Missing in .env.local: ${status.missing.join(", ")}.` : (status.account ?? "Credentials are incomplete.") });
     }
     return Response.json(await c.testConnection());
   } catch (e) {

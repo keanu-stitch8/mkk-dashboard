@@ -14,9 +14,9 @@ export async function POST(req: Request) {
   const configured = await configuredConnectors();
   const ids = (body.connectors?.length ? body.connectors.filter((c): c is ConnectorId => known.has(c as ConnectorId)) : configured).filter((c) => configured.includes(c));
   if (!ids.length) {
-    return Response.json({ error: "Belum ada connector yang dikonfigurasi. Isi kredensial di .env.local lalu cek di Pengaturan → Connectors." }, { status: 400 });
+    return Response.json({ error: "No connectors configured yet. Add credentials to .env.local, then check Settings → Connectors." }, { status: 400 });
   }
-  if (body.month && !isMonth(body.month)) return Response.json({ error: "Format bulan harus YYYY-MM." }, { status: 400 });
+  if (body.month && !isMonth(body.month)) return Response.json({ error: "Month must be in YYYY-MM format." }, { status: 400 });
   const backfill = Math.min(Math.max(Number(body.backfill) || 0, 0), 24);
   const months = backfill ? backfillMonths(backfill) : [body.month ?? currentMonth()];
   const results = await syncMany(ids, months, "manual", body.force === true);

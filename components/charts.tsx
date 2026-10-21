@@ -1,27 +1,21 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, XAxis, YAxis } from "recharts";
-import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { fmtCompact, fmtDuration, fmtNum, fmtPct } from "@/lib/format";
+import { useId } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { fmtDuration, fmtNum, fmtPct } from "@/lib/format";
 
 export type ValueFormat = "num" | "pct" | "hours" | "dur" | "dec";
 
-/** Palet kategorikal tervalidasi, dipakai berurutan (tidak pernah diacak). */
-const SERIES_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)"];
+/** Seri pertama = primary (seperti template); seri berikutnya dari gradasi chart preset Orange, diberi jarak supaya beda. */
+const SERIES_COLORS = ["var(--primary)", "var(--chart-4)", "var(--chart-2)", "var(--chart-5)"];
 
 export function formatValue(v: number | null | undefined, f: ValueFormat): string {
   if (f === "pct") return fmtPct(v);
-  if (f === "hours") return `${fmtNum(v, 1)} jam`;
+  if (f === "hours") return `${fmtNum(v, 1)} hrs`;
   if (f === "dur") return fmtDuration(v);
   if (f === "dec") return fmtNum(v, 1);
   return fmtNum(v);
-}
-
-function tick(v: number, f: ValueFormat): string {
-  if (f === "pct") return fmtPct(v, 0);
-  if (f === "dur") return fmtDuration(v);
-  if (f === "hours") return fmtNum(v, v < 10 ? 1 : 0);
-  return fmtCompact(v);
 }
 
 export interface SeriesDef {
@@ -43,7 +37,7 @@ function buildConfig(series: SeriesDef[]): ChartConfig {
 function tooltip(format: ValueFormat, config: ChartConfig) {
   return (
     <ChartTooltip
-      cursor={{ fill: "var(--muted)", stroke: "var(--border)" }}
+      cursor={false}
       content={
         <ChartTooltipContent
           indicator="dot"
@@ -60,13 +54,16 @@ function tooltip(format: ValueFormat, config: ChartConfig) {
   );
 }
 
-/** Grafik tren (garis atau kolom). Satu sumbu Y; ≥2 series → legend. */
+/**
+ * Grafik tren gaya shadcnstore template (chart-area-interactive): area "natural" dengan gradien,
+ * grid horizontal, tanpa sumbu Y, tooltip dot. Garis referensi (kuota) = putus-putus tanpa isi.
+ */
 export function TrendChart({
   data,
   series,
   format = "num",
   type = "line",
-  height = 220,
+  height = 250,
 }: {
   data: Record<string, string | number | null>[];
   series: SeriesDef[];
@@ -74,61 +71,69 @@ export function TrendChart({
   type?: "line" | "bar";
   height?: number;
 }) {
+  const uid = useId().replace(/:/g, "");
   const config = buildConfig(series);
   const hasValue = data.some((d) => series.some((s) => d[s.key] != null));
   if (!hasValue) {
     return (
       <div className="flex items-center justify-center rounded-lg bg-muted/40 text-xs text-muted-foreground" style={{ height }}>
-        Belum ada data di rentang ini.
+        No data in this range yet.
       </div>
     );
   }
   const axes = (
     <>
       <CartesianGrid vertical={false} />
-      <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={8} />
-      <YAxis tickLine={false} axisLine={false} width={44} tickFormatter={(v: number) => tick(v, format)} />
+      <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
       {tooltip(format, config)}
-      {series.length > 1 && <ChartLegend content={<ChartLegendContent />} itemSorter={(item) => series.findIndex((s) => s.key === item.dataKey)} />}
     </>
   );
 
   return (
     <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
       {type === "bar" ? (
-        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2}>
+        <BarChart data={data} barGap={2}>
           {axes}
           {series.map((s) => (
-            <Bar key={s.key} dataKey={s.key} fill={`var(--color-${s.key})`} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+            <Bar key={s.key} dataKey={s.key} fill={`var(--color-${s.key})`} radius={4} isAnimationActive={false} />
           ))}
         </BarChart>
       ) : (
-        <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <AreaChart data={data}>
+          <defs>
+            {series
+              .filter((s) => !s.reference)
+              .map((s, i) => (
+                <linearGradient key={s.key} id={`fill-${uid}-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={`var(--color-${s.key})`} stopOpacity={i === 0 ? 1.0 : 0.8} />
+                  <stop offset="95%" stopColor={`var(--color-${s.key})`} stopOpacity={0.1} />
+                </linearGradient>
+              ))}
+          </defs>
           {axes}
           {series.map((s) => (
-            <Line
+            <Area
               key={s.key}
-              type="monotone"
               dataKey={s.key}
+              // template memakai "natural"; "monotone" sama halusnya tapi tidak melewati nilai data (tidak turun di bawah 0)
+              type="monotone"
+              fill={s.reference ? "none" : `url(#fill-${uid}-${s.key})`}
               stroke={`var(--color-${s.key})`}
-              strokeWidth={s.reference ? 1.5 : 2}
               strokeDasharray={s.reference ? "6 4" : undefined}
-              dot={s.reference ? false : { r: 4, strokeWidth: 2, stroke: "var(--card)", fill: `var(--color-${s.key})` }}
-              activeDot={s.reference ? false : { r: 5, strokeWidth: 2, stroke: "var(--card)" }}
               connectNulls={false}
               isAnimationActive={false}
             />
           ))}
-        </LineChart>
+        </AreaChart>
       )}
     </ChartContainer>
   );
 }
 
 /** Bar horizontal untuk breakdown (sumber traffic, kategori, format). */
-export function BreakdownBars({ data, format = "num", name = "Nilai" }: { data: { label: string; value: number | null }[]; format?: ValueFormat; name?: string }) {
-  if (!data.length) return <p className="py-4 text-sm text-muted-foreground">Tidak ada data.</p>;
-  const config: ChartConfig = { value: { label: name, color: "var(--chart-1)" } };
+export function BreakdownBars({ data, format = "num", name = "Value" }: { data: { label: string; value: number | null }[]; format?: ValueFormat; name?: string }) {
+  if (!data.length) return <p className="py-4 text-sm text-muted-foreground">No data.</p>;
+  const config: ChartConfig = { value: { label: name, color: "var(--primary)" } };
   return (
     <ChartContainer config={config} className="aspect-auto w-full" style={{ height: Math.max(120, data.length * 34 + 8) }}>
       <BarChart data={data} layout="vertical" margin={{ top: 0, right: 56, bottom: 0, left: 0 }}>

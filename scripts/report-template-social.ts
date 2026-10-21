@@ -46,7 +46,7 @@ const CARDS: [string, number, number, [string, string] | null][] = [
   ["active_days", 9, 9, null],
 ];
 const FORMAT_SLOTS = 4;
-const CATEGORY_SLOTS = 9; // 8 kategori Ref + Other (SOC_CATEGORY_SLOTS)
+const CATEGORY_SLOTS = 8; // 8 pilar konten (SOC_CATEGORY_SLOTS, tanpa Other — baris Other dihapus 2026-10-21)
 
 const TEXT: Record<string, Record<string, string | string[]>> = {
   [ES]: {
@@ -73,11 +73,11 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     ...Object.fromEntries(Array.from({ length: FORMAT_SLOTS }, (_, i) => [`A${41 + i}`, [`{{fmt.${i + 1}.name}}`, "", `{{fmt.${i + 1}.count}}`, `{{fmt.${i + 1}.share}}`]])),
     A45: ["Published Total", "", "{{formats.total}}", "100.0%"],
     ...Object.fromEntries(Array.from({ length: CATEGORY_SLOTS }, (_, i) => [`H${41 + i}`, [`{{cat.${i + 1}.name}}`, "", `{{cat.${i + 1}.count}}`, `{{cat.${i + 1}.share}}`]])),
-    // In review r50 disisipkan 2026-10-20 (ensureReviewRow): delivered = published + in review, sama dengan News
-    H50: ["In review", "", "{{cat.review}}", "{{cat.review_share}}"],
-    H51: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
-    H52: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
-    A55: "Account figures (views, reach, interactions, follows) cover all Instagram activity during {{period}}, including Stories and older posts. Post figures are lifetime totals for the posts published this month.",
+    // In review disisipkan 2026-10-20 (ensureReviewRow): delivered = published + in review, sama dengan News
+    H49: ["In review", "", "{{cat.review}}", "{{cat.review_share}}"],
+    H50: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
+    H51: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
+    A54: "Account figures (views, reach, interactions, follows) cover all Instagram activity during {{period}}, including Stories and older posts. Post figures are lifetime totals for the posts published this month.",
   },
   [PP]: {
     A1: "INSTAGRAM POST PERFORMANCE",
@@ -134,7 +134,7 @@ const ANCHORS: Record<string, string> = {
   [`'${ES}'!A20`]: "KEY FINDINGS",
   [`'${ES}'!A24`]: "CONTENT BREAKDOWN",
   [`'${ES}'!A40`]: "Format",
-  [`'${ES}'!H52`]: "Monthly Quota",
+  [`'${ES}'!H51`]: "Monthly Quota",
   [`'${PP}'!A5`]: "No.",
   [`'${PL}'!A9`]: "No.",
   [`'${MG}'!A5`]: "Metric",

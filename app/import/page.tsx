@@ -41,42 +41,42 @@ export default async function ImportPage({ searchParams }: PageProps<"/import">)
   for (const i of imports) byMonth.set(i.month, [...(byMonth.get(i.month) ?? []), i]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Import data"
-        description="Upload export bulanan. Import ulang untuk bulan & sumber yang sama akan menggantikan data lama."
+        description="Upload monthly exports. Re-importing the same month & source replaces the existing data."
         month={month}
         months={months}
       />
 
       <Section
-        title="Sync dari API"
-        subtitle="Tarik data langsung dari GA4 / Search Console / YouTube / Meta tanpa upload file"
+        title="Sync from APIs"
+        subtitle="Pull data straight from GA4 / Search Console / YouTube / Meta without uploading files"
         action={
           <a href="/settings/connectors" className="text-xs font-medium text-primary hover:underline">
-            Pengaturan connector →
+            Connector settings →
           </a>
         }
       >
         <SyncControls currentMonth={currentMonth()} defaultMonth={month} configured={configured} />
       </Section>
 
-      <Section title="Upload file" subtitle="Pilih bulan dan jenis sumber, upload, cek preview, lalu simpan.">
+      <Section title="Upload files" subtitle="Pick the month and source type, upload, check the preview, then save.">
         <ImportForm defaultMonth={month} />
       </Section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title={`Input manual · ${monthLabel(month)}`} subtitle="Fallback jika file export tidak tersedia">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title={`Manual input · ${monthLabel(month)}`} subtitle="Fallback when export files aren't available">
           <ManualForm month={month} values={manual} />
         </Section>
-        <Section title="Kuota bulanan" subtitle="Dipakai untuk achievement & rekomendasi">
+        <Section title="Monthly quotas" subtitle="Used for achievement & recommendations">
           <QuotaForm month={month} rows={quotaRows} />
         </Section>
       </div>
 
-      <Section title="Riwayat import" subtitle={`${imports.length} dataset tersimpan`}>
+      <Section title="Import history" subtitle={`${imports.length} dataset(s) stored`}>
         {imports.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Belum ada data. Upload file di atas atau jalankan `npm run seed`.</p>
+          <p className="text-sm text-muted-foreground">No data yet. Upload files above or run `npm run seed`.</p>
         ) : (
           <div className="space-y-4">
             {[...byMonth.entries()].map(([m, list]) => (
@@ -95,8 +95,8 @@ export default async function ImportPage({ searchParams }: PageProps<"/import">)
                           <TableCell className="max-w-xs truncate text-xs text-muted-foreground" title={i.fileName}>
                             {i.fileName}
                           </TableCell>
-                          <TableCell className="num text-right text-xs text-muted-foreground">{i.rowCount.toLocaleString("id-ID")} baris</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{i.createdAt.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</TableCell>
+                          <TableCell className="num text-right text-xs text-muted-foreground">{i.rowCount.toLocaleString("en-ID")} rows</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{i.createdAt.toLocaleString("en-ID", { dateStyle: "medium", timeStyle: "short" })}</TableCell>
                           <TableCell className="text-right">
                             <DeleteImportButton id={i.id} />
                           </TableCell>

@@ -73,12 +73,13 @@ const TEXT: Record<string, Record<string, string | string[]>> = {
     H44: "CONTENT CATEGORY",
     A45: ["Content Type", "", "Published", "Share of Published", "", "", "", "Category", "", "Videos", "Share of Quota"],
     ...Object.fromEntries([1, 2, 3].map((i) => [`A${45 + i}`, [`{{type.${i}.name}}`, "", `{{type.${i}.count}}`, `{{type.${i}.share}}`]])),
-    ...Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`H${46 + i}`, [`{{cat.${i + 1}.name}}`, "", `{{cat.${i + 1}.count}}`, `{{cat.${i + 1}.share}}`]])),
-    // In review r57 disisipkan 2026-10-20 (ensureReviewRow): delivered = published + in review, sama dengan News
-    H57: ["In review", "", "{{cat.review}}", "{{cat.review_share}}"],
-    H58: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
-    H59: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
-    A62: "Views, watch time and subscribers come from YouTube Analytics for {{period}}. Each video in the Publishing Log is matched by its video link.",
+    // 8 kategori taksonomi (YT_CATEGORY_SLOTS, tanpa Other) — 3 baris slot dihapus 2026-10-21
+    ...Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`H${46 + i}`, [`{{cat.${i + 1}.name}}`, "", `{{cat.${i + 1}.count}}`, `{{cat.${i + 1}.share}}`]])),
+    // In review disisipkan 2026-10-20 (ensureReviewRow): delivered = published + in review, sama dengan News
+    H54: ["In review", "", "{{cat.review}}", "{{cat.review_share}}"],
+    H55: ["Unpublished", "", "{{cat.unpublished}}", "{{cat.unpublished_share}}"],
+    H56: ["Monthly Quota", "", "{{cat.quota}}", "100.0%"],
+    A59: "Views, watch time and subscribers come from YouTube Analytics for {{period}}. Each video in the Publishing Log is matched by its video link.",
   },
   [VP]: {
     A1: "YOUTUBE VIDEO PERFORMANCE",
@@ -138,7 +139,7 @@ const ANCHORS: Record<string, string> = {
   [`'${ES}'!A20`]: "KEY FINDINGS",
   [`'${ES}'!A29`]: "CONTENT BREAKDOWN",
   [`'${ES}'!A45`]: "Content Type",
-  [`'${ES}'!H59`]: "Monthly Quota",
+  [`'${ES}'!H56`]: "Monthly Quota",
   [`'${VP}'!A5`]: "No.",
   [`'${PL}'!A9`]: "No.",
   [`'${MG}'!A5`]: "Metric",

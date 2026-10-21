@@ -1,9 +1,9 @@
-// Format angka/teks untuk UI (locale id-ID): 1.353 · 88,3% · 1m 44d.
+// Format angka/teks untuk UI: teks English, angka & tanggal gaya Indonesia (locale en-ID): 1.353 · 88,3% · 9 Sept 2026 · 1m 44s.
 
-const nf0 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
-const nf1 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
-const nf2 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 });
-const compact = new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 });
+const nf0 = new Intl.NumberFormat("en-ID", { maximumFractionDigits: 0 });
+const nf1 = new Intl.NumberFormat("en-ID", { maximumFractionDigits: 1 });
+const nf2 = new Intl.NumberFormat("en-ID", { maximumFractionDigits: 2 });
+const compact = new Intl.NumberFormat("en-ID", { notation: "compact", maximumFractionDigits: 1 });
 
 export const DASH = "—";
 
@@ -20,23 +20,23 @@ export function fmtCompact(v: number | null | undefined): string {
 /** Pecahan 0–1 → "88,3%". */
 export function fmtPct(v: number | null | undefined, digits = 1): string {
   if (v == null || !Number.isFinite(v)) return DASH;
-  return `${new Intl.NumberFormat("id-ID", { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(v * 100)}%`;
+  return `${new Intl.NumberFormat("en-ID", { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(v * 100)}%`;
 }
 
-/** Detik → "1m 44d" / "45d" / "1j 2m". */
+/** Detik → "1m 44s" / "45s" / "1h 2m". */
 export function fmtDuration(sec: number | null | undefined): string {
   if (sec == null || !Number.isFinite(sec)) return DASH;
   const s = Math.round(sec);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const d = s % 60;
-  if (h) return `${h}j ${m}m`;
-  if (m) return `${m}m ${String(d).padStart(2, "0")}d`;
-  return `${d}d`;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m ${String(d).padStart(2, "0")}s`;
+  return `${d}s`;
 }
 
-const dateFmt = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-const dayFmt = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", timeZone: "UTC" });
+const dateFmt = new Intl.DateTimeFormat("en-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const dayFmt = new Intl.DateTimeFormat("en-ID", { day: "numeric", month: "short", timeZone: "UTC" });
 
 export function fmtDate(d: string | null | undefined, withYear = true): string {
   if (!d) return DASH;
@@ -58,9 +58,9 @@ export function delta(cur: number | null | undefined, prev: number | null | unde
 /** "+12,5%" / "−3,1%" */
 export function fmtDeltaPct(d: Delta | null): string {
   if (!d) return DASH;
-  if (d.pct == null) return d.abs === 0 ? "0%" : "baru";
+  if (d.pct == null) return d.abs === 0 ? "0%" : "new";
   const v = d.pct * 100;
-  const s = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }).format(Math.abs(v));
+  const s = new Intl.NumberFormat("en-ID", { maximumFractionDigits: 1 }).format(Math.abs(v));
   return `${v > 0 ? "+" : v < 0 ? "−" : ""}${s}%`;
 }
 
@@ -68,7 +68,7 @@ export function fmtDeltaPct(d: Delta | null): string {
 export function fmtDeltaPp(cur: number | null | undefined, prev: number | null | undefined): string {
   if (cur == null || prev == null) return DASH;
   const v = (cur - prev) * 100;
-  const s = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }).format(Math.abs(v));
+  const s = new Intl.NumberFormat("en-ID", { maximumFractionDigits: 1 }).format(Math.abs(v));
   return `${v > 0 ? "+" : v < 0 ? "−" : ""}${s} pp`;
 }
 

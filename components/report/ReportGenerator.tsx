@@ -14,9 +14,9 @@ export interface ReportRow {
   latest: { url: string | null; pdfUrl: string | null; status: string; createdAt: string; error: string | null; warnings: string | null } | null;
 }
 
-const fmtTime = (iso: string) => new Date(iso).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" });
+const fmtTime = (iso: string) => new Date(iso).toLocaleString("en-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" });
 
-/** Tombol "Buat laporan Google Sheets" per channel + link laporan terakhir bulan ini. */
+/** Tombol "Generate Google Sheets report" per channel + link laporan terakhir bulan ini. */
 export function ReportGenerator({ month, locked, rows }: { month: string; locked: boolean; rows: ReportRow[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -31,27 +31,27 @@ export function ReportGenerator({ month, locked, rows }: { month: string; locked
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs text-muted-foreground">
-        Laporan & PDF adalah salinan saat dibuat. Setelah mengedit master template, klik &quot;Buat laporan&quot; lagi supaya perubahannya ikut.
+        Reports & PDFs are snapshots taken when generated. After editing the master template, click &quot;Generate report&quot; again to pick up the changes.
       </p>
-      {!locked && <p className="text-xs text-warning">Bulan ini belum dikunci — angka di laporan masih bisa berubah jika data di-sync ulang.</p>}
+      {!locked && <p className="text-xs text-warning">This month isn&apos;t locked yet — report numbers can still change if the data is re-synced.</p>}
       {rows.map((r) => (
         <div key={r.channel} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
           <div>
-            <p className="font-medium">Laporan {r.title}</p>
+            <p className="font-medium">{r.title} report</p>
             <p className={`text-xs ${r.latest?.status === "error" ? "text-danger" : "text-muted-foreground"}`}>
               {!r.configured
-                ? "Master template belum dikonfigurasi."
+                ? "Master template not configured yet."
                 : !r.latest
-                  ? "Belum pernah dibuat untuk bulan ini."
+                  ? "Not generated for this month yet."
                   : r.latest.status === "success"
-                    ? `Terakhir dibuat ${fmtTime(r.latest.createdAt)}${r.latest.warnings ? " · ada peringatan penanda" : ""}`
-                    : `Gagal (${fmtTime(r.latest.createdAt)}): ${r.latest.error}`}
+                    ? `Last generated ${fmtTime(r.latest.createdAt)}${r.latest.warnings ? " · has placeholder warnings" : ""}`
+                    : `Failed (${fmtTime(r.latest.createdAt)}): ${r.latest.error}`}
             </p>
           </div>
           <div className="flex items-center gap-2">
             {r.templateUrl && (
               <Button variant="ghost" size="sm" asChild>
-                <a href={r.templateUrl} target="_blank" rel="noreferrer" title="Buka master template di Google Sheets">
+                <a href={r.templateUrl} target="_blank" rel="noreferrer" title="Open the master template in Google Sheets">
                   <PencilLine /> Edit template
                 </a>
               </Button>
@@ -59,7 +59,7 @@ export function ReportGenerator({ month, locked, rows }: { month: string; locked
             {r.latest?.status === "success" && r.latest.url && (
               <Button variant="ghost" size="sm" asChild>
                 <a href={r.latest.url} target="_blank" rel="noreferrer">
-                  <ExternalLink /> Buka
+                  <ExternalLink /> Open
                 </a>
               </Button>
             )}
@@ -71,7 +71,7 @@ export function ReportGenerator({ month, locked, rows }: { month: string; locked
               </Button>
             )}
             <Button size="sm" variant="outline" disabled={!r.configured || busy != null} onClick={() => run(r.channel)}>
-              {busy === r.channel ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />} Buat laporan Google Sheets
+              {busy === r.channel ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />} Generate Google Sheets report
             </Button>
           </div>
         </div>

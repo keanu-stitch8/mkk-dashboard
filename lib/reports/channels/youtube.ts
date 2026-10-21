@@ -8,33 +8,35 @@ import { enMonth } from "../month";
 import type { Cell, ReportChannel, ReportData } from "../types";
 import { isRecap, seriesFor, seriesProgress } from "../youtube-series";
 import { sheetDate } from "./news";
+import { categoryLabel, YOUTUBE_FORMATS, YOUTUBE_REPORT_CATEGORIES, youtubeFormat } from "../../taxonomy";
 import { youtubeFindings } from "./youtube-narrative";
 
 /**
  * Baris tetap tabel tipe & kategori di Executive Summary (rentang pie chart menunjuk baris-baris ini, jadi jumlahnya
- * tidak boleh berubah antar bulan). Daftar = Ref laporan YouTube user; kategori di luar daftar → "Other".
+ * tidak boleh berubah antar bulan). Daftar dari lib/taxonomy.ts (tanpa "Other": kategori baru → peringatan saat generate).
  */
-export const YT_TYPES = ["Editorial Feature", "Recap", "Teaser"];
-export const YT_CATEGORIES = ["Accommodation", "Attraction", "Club", "Community", "Culinary", "Event", "Hero", "Profile", "Sport Gears", "Venue"];
-export const YT_CATEGORY_SLOTS = YT_CATEGORIES.length + 1; // + Other
+export const YT_TYPES: readonly string[] = YOUTUBE_FORMATS;
+export const YT_CATEGORIES = YOUTUBE_REPORT_CATEGORIES;
+export const YT_CATEGORY_SLOTS = YT_CATEGORIES.length;
 
 const div = (a: number | null | undefined, b: number | null | undefined) => (a == null || !b ? null : a / b);
 const sumOf = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
 const norm = (s: string) => s.trim().toLowerCase();
 
-/** Tipe konten laporan: judul "recap" → Recap; "Editorial Feature Video" = Editorial Feature; selain Teaser → Editorial Feature. */
-export function videoType(title: string, format: string | null): string {
-  if (isRecap(title, format)) return "Recap";
-  if (norm(format ?? "") === "teaser") return "Teaser";
-  return "Editorial Feature";
-}
+/** Jenis video (taksonomi): Event Recap · Hero Video · Editorial Feature Video. */
+export const videoType = (title: string, format: string | null, category: string | null = null) => youtubeFormat(format, category, isRecap(title, format));
 
-/** Hitung per kategori ke slot tetap; kategori tak dikenal / kosong masuk "Other". */
-export function ytCategorySlots(categories: (string | null)[]): { name: string; count: number }[] {
-  const slots = [...YT_CATEGORIES, "Other"].map((name) => ({ name, count: 0 }));
+/**
+ * Hitung per kategori ke slot tetap. Kategori di luar daftar / kosong → `warnings` (tidak ada slot "Other");
+ * kategori "Hero" = jenis video, bukan kategori → tidak dihitung tanpa peringatan.
+ */
+export function ytCategorySlots(categories: (string | null)[], warnings: string[] = []): { name: string; count: number }[] {
+  const slots = YT_CATEGORIES.map((name) => ({ name, count: 0 }));
   for (const c of categories) {
-    const i = YT_CATEGORIES.findIndex((k) => norm(k) === norm(c ?? ""));
-    slots[i >= 0 ? i : slots.length - 1].count++;
+    const label = categoryLabel(c);
+    const slot = slots.find((s) => s.name === label);
+    if (slot) slot.count++;
+    else if (label || !norm(c ?? "")) warnings.push(`Video category "${c ?? "(empty)"}" has no row in the report — fix the log, or add it to lib/taxonomy.ts and the template.`);
   }
   return slots;
 }
@@ -63,8 +65,9 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     : [];
   const prog = series ? seriesProgress(series, month, seriesLogs) : null;
 
-  const typeRows = YT_TYPES.map((name) => ({ name, count: list.filter((v) => videoType(v.title, v.format) === name).length }));
-  const cats = ytCategorySlots(list.map((v) => v.category));
+  const typeRows = YT_TYPES.map((name) => ({ name, count: list.filter((v) => videoType(v.title, v.format, v.category) === name).length }));
+  const warnings: string[] = [];
+  const cats = ytCategorySlots(list.map((v) => v.category), warnings);
   // delivered = published + in review (Gantt Calendar Timeline, snapshot akhir bulan) — definisi sama dengan News & Social
   const unpublished = Math.max(quota - y.delivered, 0);
   const ranked = [...list].filter((v) => v.m?.views != null).sort((a, b) => b.m!.views - a.m!.views);
@@ -158,9 +161,9 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     values,
     tones: kpi.tones,
     autoHeight: ["findings", "videos", "log"],
-    // kategori "Other" (slot terakhir), In review & Unpublished hanya tampil jika ada isinya (tabel tetap muat di halaman 2)
+    warnings,
+    // In review & Unpublished hanya tampil jika ada isinya (tabel tetap muat di halaman 2)
     hideRows: [
-      ...(cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : []),
       ...(y.inReview === 0 ? ["cat.review"] : []),
       ...(unpublished === 0 ? ["cat.unpublished"] : []),
     ],
@@ -170,8 +173,8 @@ export async function buildYoutube(month: string): Promise<ReportData> {
         no: i + 1,
         date: sheetDate(v.date),
         title: v.title,
-        type: videoType(v.title, v.format),
-        category: v.category ?? "",
+        type: videoType(v.title, v.format, v.category),
+        category: categoryLabel(v.category) ?? "",
         views: v.m?.views ?? null,
         unique: v.m?.uniqueViewers ?? null,
         watch: v.m?.watchHours ?? null,
@@ -186,8 +189,8 @@ export async function buildYoutube(month: string): Promise<ReportData> {
           date: sheetDate(v.date),
           title: v.title,
           url: v.url ?? "",
-          type: videoType(v.title, v.format),
-          category: v.category ?? "",
+          type: videoType(v.title, v.format, v.category),
+          category: categoryLabel(v.category) ?? "",
           production: isRecap(v.title, v.format) ? "Recap (separate production)" : series ? `${series.name} series` : "",
           status: "Published",
         })),

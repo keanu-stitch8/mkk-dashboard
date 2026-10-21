@@ -6,9 +6,9 @@ const ALGO = "aes-256-gcm";
 
 function key(): Buffer {
   const raw = process.env.ENCRYPTION_KEY?.trim();
-  if (!raw) throw new Error("ENCRYPTION_KEY belum diisi di .env.local (buat dengan: openssl rand -base64 32).");
+  if (!raw) throw new Error("ENCRYPTION_KEY isn't set in .env.local (generate one with: openssl rand -base64 32).");
   const buf = /^[0-9a-f]{64}$/i.test(raw) ? Buffer.from(raw, "hex") : Buffer.from(raw, "base64");
-  if (buf.length !== 32) throw new Error("ENCRYPTION_KEY harus 32 byte (base64 44 karakter atau hex 64 karakter).");
+  if (buf.length !== 32) throw new Error("ENCRYPTION_KEY must be 32 bytes (44 base64 characters or 64 hex characters).");
   return buf;
 }
 
@@ -22,12 +22,12 @@ export function encrypt(plain: string): string {
 
 export function decrypt(payload: string): string {
   const [v, iv, tag, data] = payload.split(".");
-  if (v !== "v1" || !iv || !tag || !data) throw new Error("Format kredensial terenkripsi tidak dikenali.");
+  if (v !== "v1" || !iv || !tag || !data) throw new Error("Unrecognized encrypted credential format.");
   const decipher = createDecipheriv(ALGO, key(), Buffer.from(iv, "base64url"));
   decipher.setAuthTag(Buffer.from(tag, "base64url"));
   try {
     return Buffer.concat([decipher.update(Buffer.from(data, "base64url")), decipher.final()]).toString("utf8");
   } catch {
-    throw new Error("Kredensial tidak bisa didekripsi — ENCRYPTION_KEY berubah? Hubungkan ulang connector.");
+    throw new Error("Credentials can't be decrypted — did ENCRYPTION_KEY change? Reconnect the connector.");
   }
 }

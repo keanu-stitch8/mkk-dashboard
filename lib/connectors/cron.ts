@@ -33,9 +33,9 @@ async function snapshotDaily() {
   try {
     const { snapshotIgDaily } = await import("./meta");
     const warnings = await snapshotIgDaily();
-    if (warnings) console.log(`[sync-cron] Snapshot post IG harian disimpan${warnings.length ? ` — ${warnings.join(" ")}` : ""}`);
+    if (warnings) console.log(`[sync-cron] Daily IG post snapshot saved${warnings.length ? ` — ${warnings.join(" ")}` : ""}`);
   } catch (e) {
-    console.error("[sync-cron] Snapshot post IG gagal:", e instanceof Error ? e.message : e);
+    console.error("[sync-cron] IG post snapshot failed:", e instanceof Error ? e.message : e);
   }
 }
 
@@ -47,7 +47,7 @@ async function collectStories(s: NonNullable<(typeof state)["__mkkSyncCron"]>) {
     const n = await syncIgStories();
     if (n != null) console.log(`[sync-cron] Story IG aktif: ${n} disimpan`);
   } catch (e) {
-    console.error("[sync-cron] Story IG gagal:", e instanceof Error ? e.message : e);
+    console.error("[sync-cron] IG Stories failed:", e instanceof Error ? e.message : e);
   }
 }
 
@@ -68,9 +68,9 @@ async function tick() {
     const locked = await isMonthLocked(month);
     const ids = (await configuredConnectors()).filter((id) => !locked || !isLockable(id));
     if (!ids.length) return;
-    console.log(`[sync-cron] Sync ${ids.join(", ")} untuk ${month} …`);
+    console.log(`[sync-cron] Syncing ${ids.join(", ")} for ${month} …`);
     const results = await syncMany(ids, [month], "cron");
-    for (const r of results) console.log(`[sync-cron] ${r.ok ? "✓" : "✗"} ${r.connector} · ${month}${r.ok ? ` — ${r.rows} baris` : ` — ${r.error}`}`);
+    for (const r of results) console.log(`[sync-cron] ${r.ok ? "✓" : "✗"} ${r.connector} · ${month}${r.ok ? ` — ${r.rows} rows` : ` — ${r.error}`}`);
     // semua connector metrik berhasil → bulan final, kunci supaya angka laporan tidak berubah lagi
     const metricResults = results.filter((r) => isLockable(r.connector));
     if (!locked && metricResults.length && metricResults.every((r) => r.ok)) {
@@ -81,11 +81,11 @@ async function tick() {
       const { generateReport, templateId } = await import("../reports/engine/generate");
       for (const ch of REPORT_CHANNELS.filter((c) => templateId(c.id))) {
         const r = await generateReport(ch.id, month, "cron");
-        console.log(`[sync-cron] Laporan ${ch.title} ${month}: ${r.status === "success" ? r.url : r.error}`);
+        console.log(`[sync-cron] ${ch.title} report ${month}: ${r.status === "success" ? r.url : r.error}`);
       }
     }
   } catch (e) {
-    console.error("[sync-cron] gagal:", e instanceof Error ? e.message : e);
+    console.error("[sync-cron] failed:", e instanceof Error ? e.message : e);
   } finally {
     s.running = false;
   }
@@ -100,5 +100,5 @@ export function startSyncCron() {
   // cek pertama setelah server siap
   setTimeout(() => void tick(), 30_000).unref();
   const { slot, month } = cronSlot();
-  console.log(`[sync-cron] aktif — jadwal tiap tanggal ${SYNC_DAY} jam 0${SYNC_HOUR_WIB}.00 WIB (slot terakhir ${slot.toISOString()} → ${month}); snapshot post IG harian; Story IG tiap 6 jam.`);
+  console.log(`[sync-cron] active — runs on day ${SYNC_DAY} at 0${SYNC_HOUR_WIB}:00 WIB (last slot ${slot.toISOString()} → ${month}); daily IG post snapshot; IG Stories every 6 hours.`);
 }

@@ -16,20 +16,20 @@ export async function GET(req: NextRequest) {
   };
 
   if (params.get("error")) {
-    return done("error", params.get("error") === "access_denied" ? "Akses ditolak di halaman consent Google." : `Google mengembalikan error: ${params.get("error")}`);
+    return done("error", params.get("error") === "access_denied" ? "Access was denied on the Google consent screen." : `Google returned an error: ${params.get("error")}`);
   }
   const [connector, nonce] = (params.get("state") ?? "").split(".");
   if (!isGoogleOAuthConnector(connector) || !nonce || nonce !== req.cookies.get("google_oauth_state")?.value) {
-    return done("error", "Sesi login kedaluwarsa atau tidak valid. Klik tombol Hubungkan lagi.");
+    return done("error", "The sign-in session expired or is invalid. Click Connect again.");
   }
   const code = params.get("code");
-  if (!code) return done("error", "Kode otorisasi tidak ada di respons Google.");
+  if (!code) return done("error", "Google's response has no authorization code.");
 
   try {
     const email = await completeOAuth(connector, code, req.nextUrl.origin);
-    return done("connected", `${connectorLabel(connector)} terhubung${email ? ` sebagai ${email}` : ""}.`);
+    return done("connected", `${connectorLabel(connector)} connected${email ? ` as ${email}` : ""}.`);
   } catch (e) {
     const msg = (e as Error).message;
-    return done("error", /redirect_uri_mismatch/i.test(msg) ? "Redirect URI tidak cocok. Daftarkan http://localhost:3000/api/auth/google/callback di OAuth client Google Cloud." : msg);
+    return done("error", /redirect_uri_mismatch/i.test(msg) ? "Redirect URI mismatch. Register http://localhost:3000/api/auth/google/callback on the Google Cloud OAuth client." : msg);
   }
 }

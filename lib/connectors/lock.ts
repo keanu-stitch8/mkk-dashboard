@@ -17,4 +17,4 @@ export async function setMonthLock(month: string, locked: boolean, note?: string
 }
 
 export const lockedError = (month: string) =>
-  `Bulan ${month} sudah dikunci (data final untuk laporan) — tidak di-sync ulang. Buka kunci di Pengaturan → Connectors jika memang perlu menarik ulang.`;
+  `${month} is locked (final data for reports) — not re-synced. Unlock it in Settings → Connectors if you really need to pull it again.`;

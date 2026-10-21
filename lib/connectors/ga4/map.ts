@@ -35,6 +35,22 @@ export interface Ga4MonthReports {
   landing: Ga4Report;
   firstChannel: Ga4Report;
   city: Ga4Report;
+  /** dimensi newVsReturning (activeUsers) → returning users bulan itu */
+  returning?: Ga4Report;
+  /** totalUsers sejak awal data GA4 s/d akhir bulan → pembaca kumulatif */
+  cumulative?: Ga4Report;
+}
+
+/** Returning users (GA4 newVsReturning = "returning") sebagai metrik website "returningUsers". */
+export function returningMetric(report: Ga4Report | undefined) {
+  const row = report ? rowsOf(report).find((r) => r.newVsReturning === "returning") : undefined;
+  return row ? [{ channel: "website" as const, key: "returningUsers", value: num(row.activeUsers) }] : [];
+}
+
+/** Users unik kumulatif (totalUsers sejak awal data s/d akhir bulan) sebagai metrik website "cumulativeUsers". */
+export function cumulativeMetric(report: Ga4Report | undefined) {
+  const row = report ? rowsOf(report)[0] : undefined;
+  return row ? [{ channel: "website" as const, key: "cumulativeUsers", value: num(row.totalUsers) }] : [];
 }
 
 /** Semua dataset GA4 untuk satu bulan. */
@@ -118,6 +134,8 @@ export function mapGa4Month(reports: Ga4MonthReports, month: string, source: str
       metrics: [
         { channel: "website", key: "users", value: num(total.activeUsers) },
         { channel: "website", key: "newUsers", value: num(total.newUsers) },
+        ...returningMetric(reports.returning),
+        ...cumulativeMetric(reports.cumulative),
       ],
       breakdowns: firstChannel,
     }),

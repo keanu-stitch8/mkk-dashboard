@@ -19,7 +19,7 @@ export function TestConnectionButton({ connector, disabled }: { connector: strin
   return (
     <div className="space-y-2">
       <Button variant="outline" size="sm" onClick={run} disabled={busy || disabled}>
-        {busy ? <Loader2 className="animate-spin" /> : <PlugZap />} Test koneksi
+        {busy ? <Loader2 className="animate-spin" /> : <PlugZap />} Test connection
       </Button>
       {result && (
         <p className={`flex gap-1.5 text-xs ${result.ok ? "text-success" : "text-danger"}`}>

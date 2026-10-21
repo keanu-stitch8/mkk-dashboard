@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const connector = req.nextUrl.searchParams.get("connector") ?? "";
   const back = new URL("/settings/connectors", req.url);
   if (!isGoogleOAuthConnector(connector)) {
-    back.searchParams.set("error", "Connector tidak dikenal untuk OAuth Google.");
+    back.searchParams.set("error", "Unknown connector for Google OAuth.");
     return NextResponse.redirect(back);
   }
   try {

@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, Section } from "@/components/blocks";
 import { PublishingLogTable, type LogColumn } from "@/components/PublishingLogTable";
-import { BADGE } from "@/components/log-badges";
+import { categoryLabel, newsFormat } from "@/lib/taxonomy";
 import { prisma } from "@/lib/db";
 import { resolveMonth } from "@/lib/data/summary";
 import { ogImages } from "@/lib/data/page-meta";
@@ -11,9 +11,9 @@ import { monthLabel } from "@/lib/month";
 export const dynamic = "force-dynamic";
 
 const COLUMNS: LogColumn[] = [
+  { key: "type", label: "Format", badge: "format" },
+  { key: "category", label: "Category", badge: "outline" },
   { key: "reporter", label: "Reporter" },
-  { key: "category", label: "Kategori" },
-  { key: "type", label: "Tipe", badges: { features: BADGE.blue, "hard news": BADGE.red, editorial: BADGE.orange } },
 ];
 
 /** Log artikel News per bulan — murni catatan publish, tanpa views/metrics. */
@@ -26,7 +26,7 @@ export default async function NewsLogsPage({ searchParams }: PageProps<"/news/lo
 
   if (!articles.length) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="flex flex-col gap-6">
         <PageHeader title="Publishing Log" month={month} months={months} />
         <EmptyState channel="News" month={month} source="News Content Logs" />
       </div>
@@ -38,10 +38,10 @@ export default async function NewsLogsPage({ searchParams }: PageProps<"/news/lo
   const thumbs = await ogImages(articles.flatMap((a) => (a.url ? [a.url] : [])));
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
-      <PageHeader title="Publishing Log" description={`Semua artikel News di content log ${monthLabel(month)}. Klik judul untuk membuka artikel.`} month={month} months={months} />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Publishing Log" description={`All News articles in the ${monthLabel(month)} content log. Click a title to open the article.`} month={month} months={months} />
 
-      <Section title="Semua artikel" subtitle={`${fmtNum(articles.length)} artikel · ${fmtNum(count("publish"))} published · ${fmtNum(count("review"))} in review`}>
+      <Section title="All articles" subtitle={`${fmtNum(articles.length)} articles · ${fmtNum(count("publish"))} published · ${fmtNum(count("review"))} in review`}>
         <PublishingLogTable
           columns={COLUMNS}
           rows={articles.map((a) => ({
@@ -49,7 +49,7 @@ export default async function NewsLogsPage({ searchParams }: PageProps<"/news/lo
             title: a.title,
             url: a.url,
             status: a.status,
-            fields: { reporter: a.reporter, category: a.category, type: a.type },
+            fields: { reporter: a.reporter, category: categoryLabel(a.category), type: newsFormat(a.type) },
             thumb: a.url ? (thumbs.get(a.url) ?? null) : null,
           }))}
           thumbnails

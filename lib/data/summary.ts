@@ -1,8 +1,9 @@
 // Ringkasan metrik per channel per bulan, dihitung dari tabel detail + total import + input manual.
 import { prisma } from "../db";
-import { addMonths, daysInMonth, lastMonths, prevMonth } from "../month";
+import { addMonths, daysInMonth, lastMonths, LAUNCH_MONTH, prevMonth } from "../month";
 import { getQuotas, type QuotaValue } from "./quota";
 import { ACTIVE_SOCIAL_PLATFORMS, FORMAT_LABEL, OWN_SOCIAL_ACCOUNTS } from "../sources";
+import { categoryLabel, newsFormat, socialFormatKey } from "../taxonomy";
 import { fmtNum, fmtPct } from "../format";
 import { WIB, addDays, dateIn } from "../tz";
 import type { Channel } from "../parsers/types";
@@ -238,12 +239,12 @@ export async function getNewsSummary(month: string) {
     pendingViews,
     zeroViews,
     topArticles: [...publishedList].filter((a) => a.views != null).sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10),
-    byCategory: groupBy(publishedList, (a) => [a.category ?? "(tanpa kategori)"], (a) => a.views),
+    byCategory: groupBy(publishedList, (a) => [categoryLabel(a.category) ?? "(no category)"], (a) => a.views),
     byReporter: groupBy(publishedList, (a) => {
       const p = splitPeople(a.reporter);
-      return p.length ? p : ["(tanpa reporter)"];
+      return p.length ? p : ["(no reporter)"];
     }, (a) => a.views),
-    byType: groupBy(publishedList, (a) => [a.type ?? "(tanpa tipe)"], (a) => a.views),
+    byType: groupBy(publishedList, (a) => [newsFormat(a.type) ?? "(no format)"], (a) => a.views),
     daily,
     activeDays: publishDates.size,
     emptyStreak: longestEmptyStreak(month, publishDates),
@@ -316,7 +317,7 @@ export async function getYoutubeSummary(month: string) {
     videos: enriched,
     topVideos: enriched.slice(0, 10),
     lowCtrVideos: enriched.filter((v) => v.ctr != null && v.ctr < 0.04 && (v.impressions ?? 0) >= 100),
-    byCategory: groupBy(enriched.filter((v) => v.category), (v) => [v.category!], (v) => v.views),
+    byCategory: groupBy(enriched.filter((v) => categoryLabel(v.category)), (v) => [categoryLabel(v.category)!], (v) => v.views),
     daily: daily.map((d) => ({ date: d.date, watchHours: d.watchHours, views: d.views })),
     logs,
   };
@@ -326,7 +327,7 @@ export type YoutubeSummary = Awaited<ReturnType<typeof getYoutubeSummary>>;
 // ───────────────────────────── Social ─────────────────────────────
 
 /** Kategori untuk post Meta yang tidak punya pasangan di publishing log. */
-export const NOT_IN_LOG_LABEL = "(tidak tercatat di Publishing Log)";
+export const NOT_IN_LOG_LABEL = "(not in the Publishing Log)";
 
 const STOPWORDS = new Set(["yang", "dari", "dengan", "untuk", "kudus", "main", "mainkekudus", "kamu", "jangan", "sudah", "dalam", "pada", "juga", "lebih", "hanya", "bukan", "para", "atau", "akan", "this", "the"]);
 const words = (s: string | null | undefined) =>
@@ -504,7 +505,7 @@ async function monthEndSnapshot(month: string) {
 export const IG_TYPES: { type: string; label: string }[] = [
   { type: "REEL", label: "Reels" },
   { type: "CAROUSEL_CONTAINER", label: "Carousel" },
-  { type: "POST", label: "Foto / lainnya" },
+  { type: "POST", label: "Photo / other" },
   { type: "STORY", label: "Story" },
 ];
 
@@ -615,8 +616,9 @@ export async function getSocialSummary(month: string) {
   // Satu baris publishing log = satu konten (walau diposting ke beberapa channel)
   const units = countSource === "log" ? publishedLogs.map((l) => ({ platform: l.platform, format: l.format, date: l.date })) : posts.map((p) => ({ platform: p.platform, format: p.format, date: p.date as string | null }));
   const postsPublished = manual.posts ?? units.length;
+  // Stories/Reels/Feeds/Video selalu tampil (0 jika belum ada) supaya rincian per format konsisten antar bulan
   const publishedByFormat = Object.entries(
-    units.reduce<Record<string, number>>((a, u) => ((a[u.format] = (a[u.format] ?? 0) + 1), a), {}),
+    units.reduce<Record<string, number>>((a, u) => ((a[u.format] = (a[u.format] ?? 0) + 1), a), { story: 0, reels: 0, feeds: 0, video: 0 }),
   )
     .map(([format, count]) => ({ format, count }))
     .sort((a, b) => b.count - a.count);
@@ -654,7 +656,8 @@ export async function getSocialSummary(month: string) {
   };
 
   const byPlatform = aggregate((p) => ({ label: p.platform, platform: p.platform, format: "" }));
-  const byFormat = aggregate((p) => ({ label: `${p.platform}:${p.format}`, platform: p.platform, format: p.format }));
+  // carousel & foto dari Meta = Feed (taksonomi bersama)
+  const byFormat = aggregate((p) => ({ label: `${p.platform}:${socialFormatKey(p.format)}`, platform: p.platform, format: socialFormatKey(p.format) }));
   const byCategory = aggregate((p) => ({ label: p.category ?? NOT_IN_LOG_LABEL, platform: "", format: "" }));
 
   const daily = daysInMonth(month).map((d) => {
@@ -760,8 +763,8 @@ export function contentQuota(b: MonthBundle, channel: QuotaSummary["channel"]): 
     const n = b.news;
     return {
       channel,
-      label: "Artikel",
-      unit: "artikel",
+      label: "News",
+      unit: "articles",
       published: n.published,
       // yang sudah diserahkan = publish + review
       achieved: n.delivered,
@@ -774,16 +777,16 @@ export function contentQuota(b: MonthBundle, channel: QuotaSummary["channel"]): 
       ],
       available: n.hasData,
       breakdown: [],
-      note: n.hasData ? `Published saja: ${fmtNum(n.published)} / ${fmtNum(n.quota.value)} (${fmtPct(n.publishedRate)})` : undefined,
-      source: "Dari News Content Logs (status Publish + Review)",
+      note: n.hasData ? `Published only: ${fmtNum(n.published)} / ${fmtNum(n.quota.value)} (${fmtPct(n.publishedRate)})` : undefined,
+      source: "From News Content Logs (status Publish + Review)",
     };
   }
   if (channel === "youtube") {
     const y = b.youtube;
     return {
       channel,
-      label: "Video YouTube",
-      unit: "video",
+      label: "YouTube",
+      unit: "videos",
       published: y.published,
       // yang sudah diserahkan = publish + Review/Approved di Gantt per akhir bulan
       achieved: y.delivered,
@@ -798,27 +801,27 @@ export function contentQuota(b: MonthBundle, channel: QuotaSummary["channel"]): 
       breakdown: [],
       note: y.hasData
         ? y.hasReview
-          ? `Published saja: ${fmtNum(y.published)} / ${fmtNum(y.quota.value)} (${fmtPct(y.achievement)})`
-          : "Gantt Calendar Timeline belum di-sync bulan ini — in review dianggap 0"
+          ? `Published only: ${fmtNum(y.published)} / ${fmtNum(y.quota.value)} (${fmtPct(y.achievement)})`
+          : "The Calendar Timeline Gantt hasn't been synced this month — in review counted as 0"
         : undefined,
-      source: `${y.logs.length ? "Published dari Youtube Calendar Timeline (Summary)" : "Published dari tanggal publish video"} · in review = Review/Approved di Gantt per akhir bulan`,
+      source: `${y.logs.length ? "Published from the Youtube Calendar Timeline (Summary)" : "Published from video publish dates"} · in review = Review/Approved in the Gantt at month end`,
     };
   }
   const s = b.social;
   const q = s.quotaProgress[0];
   const notInLog = s.postsNotInLog.length;
   const notes = [
-    s.hasReview ? `Published saja: ${fmtNum(q.published)} / ${fmtNum(q.quota.value)} (${fmtPct(q.publishedRate)})` : "Tracker Task Progress belum di-sync bulan ini — in review dianggap 0",
+    s.hasReview ? `Published only: ${fmtNum(q.published)} / ${fmtNum(q.quota.value)} (${fmtPct(q.publishedRate)})` : "The Task Progress tracker hasn't been synced this month — in review counted as 0",
     s.countSource === "log"
       ? notInLog
-        ? `${notInLog} post akun MKK tidak tercatat di Publishing Log (tidak dihitung ke kuota)`
+        ? `${notInLog} MKK account posts aren't in the Publishing Log (not counted toward the quota)`
         : null
-      : "Stories tidak ada di export Meta — import Publishing Log untuk angka resmi",
+      : "Stories aren't in the Meta export — import the Publishing Log for official numbers",
   ].filter(Boolean);
   return {
     channel,
-    label: "Post sosmed",
-    unit: "post",
+    label: "Social",
+    unit: "posts",
     published: q.published,
     // yang sudah diserahkan = publish (Publishing Log) + in review (Task Progress, snapshot akhir bulan)
     achieved: q.count,
@@ -832,7 +835,7 @@ export function contentQuota(b: MonthBundle, channel: QuotaSummary["channel"]): 
     available: q.available,
     breakdown: s.publishedByFormat.map((f) => ({ label: FORMAT_LABEL[f.format] ?? f.format, count: f.count, target: null, rate: null })),
     note: notes.join(" · ") || undefined,
-    source: `${s.countSource === "log" ? "Published dari Publishing Log (1 baris = 1 post)" : "Published dari export Meta"} · in review = diserahkan bulan ini, belum tayang per akhir bulan (Task Progress)`,
+    source: `${s.countSource === "log" ? "Published from the Publishing Log (1 row = 1 post)" : "Published from the Meta export"} · in review = submitted this month, not yet published by month end (Task Progress)`,
   };
 }
 
@@ -901,6 +904,57 @@ export function socialKpiSources(cur: SocialSummary, prev: SocialSummary | null)
 }
 
 /** KPI lintas channel untuk Overview. */
+// ───────────────────────────── Audiens (followers) ─────────────────────────────
+
+export interface AudienceTotal {
+  /** total per akhir bulan (bulan berjalan: per tanggal sync terakhir) */
+  value: number | null;
+  /** true = dihitung mundur dari snapshot bulan sesudahnya (estimasi) */
+  estimated: boolean;
+  gained: number | null;
+  lost: number | null;
+}
+
+/**
+ * Total followers/subscriber per akhir bulan. API hanya memberi angka "saat ini", jadi disimpan sebagai snapshot
+ * (metrik *Now) saat sync bulan berjalan; bulan sebelumnya = snapshot − Σ (gained − lost) bulan-bulan sesudahnya.
+ */
+async function audienceTotal(month: string, channel: Channel, keys: { now: string; gained: string; lost: string }, source?: string): Promise<AudienceTotal> {
+  const where = (key: string) => ({ channel, key, ...(source ? { import: { source } } : {}) });
+  const [snap, flows] = await Promise.all([
+    prisma.metric.findFirst({ where: where(keys.now), orderBy: { month: "desc" }, select: { month: true, value: true } }),
+    prisma.metric.findMany({ where: { OR: [where(keys.gained), where(keys.lost)] }, select: { month: true, key: true, value: true } }),
+  ]);
+  const flow = (m: string, key: string) => flows.find((f) => f.month === m && f.key === key)?.value ?? null;
+  const gained = flow(month, keys.gained);
+  const lost = flow(month, keys.lost);
+  if (!snap || month > snap.month) return { value: null, estimated: false, gained, lost };
+  let value: number | null = snap.value;
+  for (let m = snap.month; m > month; m = prevMonth(m)) {
+    const g = flow(m, keys.gained);
+    const l = flow(m, keys.lost);
+    if (g == null || l == null) {
+      value = null;
+      break;
+    }
+    value -= g - l;
+  }
+  return { value, estimated: month !== snap.month, gained, lost };
+}
+
+/** Kartu audiens Overview (semua kumulatif): total pembaca website (users unik GA4 sejak awal data), followers IG, subscriber YT. */
+export async function getAudience(month: string) {
+  const [cumulative, returning, users, instagram, youtube] = await Promise.all([
+    prisma.metric.findFirst({ where: { month, channel: "website", key: "cumulativeUsers" }, select: { value: true } }),
+    prisma.metric.findFirst({ where: { month, channel: "website", key: "returningUsers" }, select: { value: true } }),
+    prisma.metric.findFirst({ where: { month, channel: "website", key: "users" }, select: { value: true } }),
+    audienceTotal(month, "social", { now: "ig_account_followersNow", gained: "ig_account_follows", lost: "ig_account_unfollows" }, "meta_instagram"),
+    audienceTotal(month, "youtube", { now: "subscribersNow", gained: "subsGained", lost: "subsLost" }),
+  ]);
+  return { cumulativeUsers: cumulative?.value ?? null, returningUsers: returning?.value ?? null, websiteUsers: users?.value ?? null, instagram, youtube };
+}
+export type Audience = Awaited<ReturnType<typeof getAudience>>;
+
 export function overviewKpis(b: MonthBundle) {
   const parts = [b.website.gscImpressions, b.youtube.impressions, b.social.reach];
   const engParts = [b.social.interactions, b.website.engagedSessions];
@@ -964,7 +1018,7 @@ export async function resolveMonth(param: string | string[] | undefined): Promis
 }
 
 export async function getTrend(month: string, n = 6) {
-  const months = lastMonths(month, n);
+  const months = lastMonths(month, n).filter((m) => m >= LAUNCH_MONTH);
   const bundles = await Promise.all(months.map((m) => getMonthBundle(m)));
   return bundles.map((b) => ({
     month: b.month,

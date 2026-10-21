@@ -18,7 +18,7 @@ export interface WebsiteNarrativeInput {
   gsc: { clicks: number | null; impressions: number | null; ctr: number | null; position: number | null; prevCtr: number | null };
 }
 
-import { capitalize, list, monthOnly, n, pct, shareOf } from "./narrative-utils";
+import { capitalize, dec, list, monthOnly, n, pct, shareOf } from "./narrative-utils";
 
 /** Data lama menyimpan landing "(not set)" sebagai "/(not set)" (path dinormalisasi) — tampilkan apa adanya. */
 export const landingPath = (path: string) => (/^\/\(.*\)$/.test(path) ? path.slice(1) : path);
@@ -60,7 +60,7 @@ export function websiteFindings(i: WebsiteNarrativeInput): string[] {
           : `${c.label} visits ${c.sessions > c.prevSessions ? "rose" : "fell"} from ${n(c.prevSessions)} to ${n(c.sessions)}.`,
       );
   // 3. kedalaman kunjungan (tidak ada di kartu)
-  if (i.pageviews != null && i.users) out.push(`Each visitor viewed ${(i.pageviews / i.users).toFixed(1)} pages on average, spread over ${n(i.pagePaths)} different pages.`);
+  if (i.pageviews != null && i.users) out.push(`Each visitor viewed ${dec(i.pageviews / i.users)} pages on average, spread over ${n(i.pagePaths)} different pages.`);
   // 4. kota
   const [c1, c2] = i.cities;
   if (c1 && i.users) {
@@ -72,7 +72,7 @@ export function websiteFindings(i: WebsiteNarrativeInput): string[] {
     out.push(
       `The share of Google searchers who clicked through fell from ${pct(g.prevCtr)} to ${pct(g.ctr)}. The titles and descriptions of the most-shown pages are worth reviewing.`,
     );
-  else if (g.clicks != null && g.position != null) out.push(`Google Search sent ${n(g.clicks)} clicks, with pages appearing at an average position of ${g.position.toFixed(1)}.`);
+  else if (g.clicks != null && g.position != null) out.push(`Google Search sent ${n(g.clicks)} clicks, with pages appearing at an average position of ${dec(g.position)}.`);
   // 6. lalu lintas yang dikeluarkan dari peringkat kota
   const x = i.excluded;
   if (x.outsideUsers > 0) {

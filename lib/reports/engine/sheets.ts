@@ -26,9 +26,9 @@ export async function gcall<T>(fn: () => Promise<T>, attempts = 6): Promise<T> {
 
 export async function reportClients() {
   const auth = await authorizedClient("sheets");
-  if (!auth) throw new ReportError("Akun Google belum terhubung. Hubungkan di Pengaturan → Connectors → Google Sheets.");
+  if (!auth) throw new ReportError("No Google account connected. Connect one in Settings → Connectors → Google Sheets.");
   if (!(await grantedScopes("sheets")).includes(DRIVE_FILE_SCOPE))
-    throw new ReportError("Akun Google belum memberi izin membuat file laporan. Hubungkan ulang Google Sheets di Pengaturan → Connectors dan centang semua izin.");
+    throw new ReportError("The Google account hasn't granted permission to create report files. Reconnect Google Sheets in Settings → Connectors and tick every permission.");
   return { auth: auth.client, drive: google.drive({ version: "v3", auth: auth.client as never }), sheets: google.sheets({ version: "v4", auth: auth.client as never }) };
 }
 export type ReportClients = Awaited<ReturnType<typeof reportClients>>;
@@ -39,6 +39,20 @@ export async function copyFile(c: ReportClients, sourceId: string, name: string,
   const parents = folderId ? [folderId] : (src.data.parents ?? undefined);
   const res = await gcall(() => c.drive.files.copy({ fileId: sourceId, requestBody: { name, parents }, fields: "id,webViewLink" }));
   return { id: res.data.id!, url: res.data.webViewLink ?? `https://docs.google.com/spreadsheets/d/${res.data.id}/edit` };
+}
+
+/**
+ * Format laporan sama dengan dashboard: teks English, angka/tanggal gaya Indonesia (1.353,5 · 88,3%) dan zona WIB.
+ * Master template sudah di-set in_ID (21 Okt 2026); tetap di-set ulang pada salinan supaya aman jika template diganti.
+ * Sheets API menerima "in_ID" untuk Indonesia (id_ID / en_ID ditolak).
+ */
+export async function setIndonesianLocale(c: ReportClients, spreadsheetId: string) {
+  await gcall(() =>
+    c.sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: { requests: [{ updateSpreadsheetProperties: { properties: { locale: "in_ID", timeZone: "Asia/Jakarta" }, fields: "locale,timeZone" } }] },
+    }),
+  );
 }
 
 /** Rename — hanya dipakai untuk file buatan app (drive.file menolak file lain). */

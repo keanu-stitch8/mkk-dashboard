@@ -5,7 +5,7 @@ import { reportChannel } from "../channels";
 import { enMonth } from "../month";
 import { planFill } from "./tokens";
 import { exportPdf, uploadPdf } from "./pdf";
-import { applyPlan, copyFile, gcall, readGrids, renameFile, ReportError, reportClients } from "./sheets";
+import { applyPlan, copyFile, gcall, readGrids, renameFile, ReportError, reportClients, setIndonesianLocale } from "./sheets";
 import { WIB, dateIn } from "../../tz";
 
 export const reportName = (title: string, month: string) => `MKK ${title} Monthly Performance Report – ${enMonth(month)}`;
@@ -22,17 +22,19 @@ export async function generateReport(channelId: string, month: string, trigger: 
   let fileId: string | null = null;
   let url: string | null = null;
   try {
-    if (!ch) throw new ReportError(`Laporan "${channelId}" belum tersedia.`);
+    if (!ch) throw new ReportError(`The "${channelId}" report isn't available yet.`);
     const tpl = templateId(ch.id);
-    if (!tpl) throw new ReportError(`${ch.templateEnv} belum diisi di .env.local (ID file master template).`);
+    if (!tpl) throw new ReportError(`${ch.templateEnv} isn't set in .env.local (master template file ID).`);
     const c = await reportClients();
     const data = await ch.build(month);
     const previous = await prisma.generatedReport.findMany({ where: { channel: ch.id, month, status: "success", fileId: { not: null } } });
     const file = await copyFile(c, tpl, reportName(ch.title, month), process.env.REPORT_FOLDER_ID?.trim() || undefined);
     fileId = file.id;
     url = file.url;
+    await setIndonesianLocale(c, file.id);
     const grids = await readGrids(c, file.id);
     const plan = planFill(grids, data);
+    plan.warnings.push(...(data.warnings ?? []));
     await applyPlan(c, file.id, plan, grids);
     // satu PDF berisi semua sheet yang tampil (A4 landscape), disimpan di folder yang sama dengan laporan
     const parents = (await gcall(() => c.drive.files.get({ fileId: file.id, fields: "parents" }))).data.parents ?? undefined;
@@ -45,8 +47,8 @@ export async function generateReport(channelId: string, month: string, trigger: 
       data: { channel: ch.id, month, fileId, url, pdfFileId: pdf.id, pdfUrl: pdf.url, status: "success", trigger, warnings: plan.warnings.length ? plan.warnings.join("\n") : null },
     });
   } catch (e) {
-    const error = e instanceof ReportError ? e.message : `Gagal membuat laporan: ${(e as Error)?.message ?? e}`;
-    if (fileId && ch) await reportClients().then((c) => renameFile(c, fileId!, `${reportName(ch.title, month)} (GAGAL ${today()})`)).catch(() => undefined);
+    const error = e instanceof ReportError ? e.message : `Failed to generate the report: ${(e as Error)?.message ?? e}`;
+    if (fileId && ch) await reportClients().then((c) => renameFile(c, fileId!, `${reportName(ch.title, month)} (FAILED ${today()})`)).catch(() => undefined);
     return prisma.generatedReport.create({ data: { channel: channelId, month, fileId, url, status: "error", trigger, error } });
   }
 }

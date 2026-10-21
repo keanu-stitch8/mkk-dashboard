@@ -16,7 +16,7 @@ const CHANNELS = Object.keys(MANUAL_FIELDS) as Channel[];
 function toInput(v: number | undefined, unit?: string): string {
   if (v == null) return "";
   const n = unit === "percent" ? v * 100 : v;
-  return n.toLocaleString("id-ID", { maximumFractionDigits: 2, useGrouping: false });
+  return n.toLocaleString("en-ID", { maximumFractionDigits: 2, useGrouping: false });
 }
 
 /** Form input manual total bulanan (fallback / override hasil import). */
@@ -42,7 +42,7 @@ export function ManualForm({ month, values }: { month: string; values: Record<st
     setSaving(true);
     const res = await fetch("/api/manual", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ month, channel, values: payload }) });
     setSaving(false);
-    setStatus(res.ok ? "Tersimpan." : "Gagal menyimpan.");
+    setStatus(res.ok ? "Saved." : "Failed to save.");
     setDraft({});
     router.refresh();
   };
@@ -54,13 +54,13 @@ export function ManualForm({ month, values }: { month: string; values: Record<st
           {CHANNELS.map((c) => (
             <TabsTrigger key={c} value={c}>
               {CHANNEL_LABEL[c]}
-              {Object.keys(values[c] ?? {}).length > 0 && <span className="size-1.5 rounded-full bg-primary" aria-label="ada isian manual" />}
+              {Object.keys(values[c] ?? {}).length > 0 && <span className="size-1.5 rounded-full bg-primary" aria-label="has manual values" />}
             </TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
       <p className="text-xs text-muted-foreground">
-        Angka di sini menimpa hasil import untuk {monthLabel(month)}. Kosongkan untuk kembali memakai data import. Format Indonesia: 1.353 atau 88,3.
+        Values here override the imported data for {monthLabel(month)}. Leave blank to fall back to the imported data. Indonesian number format: 1.353 or 88,3.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.map((f) => (
@@ -73,7 +73,7 @@ export function ManualForm({ month, values }: { month: string; values: Record<st
               inputMode="decimal"
               value={valueOf(f.key, f.unit)}
               onChange={(e) => setDraft({ ...draft, [`${channel}.${f.key}`]: e.target.value })}
-              placeholder="dari import"
+              placeholder="from import"
               className="num"
             />
           </div>
@@ -81,7 +81,7 @@ export function ManualForm({ month, values }: { month: string; values: Record<st
       </div>
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving}>
-          Simpan input manual
+          Save manual values
         </Button>
         {status && <span className="text-xs text-muted-foreground">{status}</span>}
       </div>

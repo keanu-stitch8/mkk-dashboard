@@ -14,7 +14,7 @@ export function MonthLockButton({ month, locked, disabled }: { month: string; lo
     setBusy(true);
     setError(null);
     const res = await fetch("/api/connectors/lock", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ month, locked: !locked }) });
-    if (!res.ok) setError(((await res.json()) as { error?: string }).error ?? "Gagal");
+    if (!res.ok) setError(((await res.json()) as { error?: string }).error ?? "Failed");
     setBusy(false);
     router.refresh();
   };
@@ -22,7 +22,7 @@ export function MonthLockButton({ month, locked, disabled }: { month: string; lo
   return (
     <div className="flex flex-col items-end gap-1">
       <Button variant="outline" size="sm" onClick={toggle} disabled={busy || disabled}>
-        {busy ? <Loader2 className="animate-spin" /> : locked ? <LockOpen /> : <Lock />} {locked ? "Buka kunci" : "Kunci"}
+        {busy ? <Loader2 className="animate-spin" /> : locked ? <LockOpen /> : <Lock />} {locked ? "Unlock" : "Lock"}
       </Button>
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>

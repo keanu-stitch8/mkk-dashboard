@@ -16,7 +16,7 @@ export const REGISTRY: Partial<Record<ConnectorId, Connector>> = { ga4, gsc, you
 
 export function getConnector(id: string): Connector {
   const c = REGISTRY[id as ConnectorId];
-  if (!c) throw new ConnectorError(`Connector "${id}" belum tersedia.`);
+  if (!c) throw new ConnectorError(`Connector "${id}" isn't available yet.`);
   return c;
 }
 
@@ -39,7 +39,7 @@ export async function syncConnector(id: ConnectorId, month: string, trigger: "ma
   try {
     const connector = getConnector(id);
     const status = await connector.status();
-    if (!status.configured) throw new ConnectorError(`Connector belum dikonfigurasi: ${status.missing.join(", ") || status.account || "kredensial belum lengkap"}.`);
+    if (!status.configured) throw new ConnectorError(`Connector not configured: ${status.missing.join(", ") || status.account || "credentials incomplete"}.`);
     const datasets = await connector.fetchMonth(month);
     const detail: string[] = [];
     let rows = 0;
@@ -47,7 +47,7 @@ export async function syncConnector(id: ConnectorId, month: string, trigger: "ma
       const res = await commitDataset(prisma, ds, month);
       rows += res.rows;
       const inReview = ds.key.endsWith("_review") ? ds.metrics[0]?.value : undefined;
-      detail.push(`${DATASETS[ds.key].label}: ${inReview != null ? `${inReview} konten` : res.skipped ? "0 baris (tidak disimpan)" : `${res.rows.toLocaleString("id-ID")} baris`}`);
+      detail.push(`${DATASETS[ds.key].label}: ${inReview != null ? `${inReview} items` : res.skipped ? "0 rows (not saved)" : `${res.rows.toLocaleString("en-ID")} rows`}`);
     }
     const warnings = [...new Set(datasets.flatMap((d) => d.warnings))];
     await prisma.syncLog.update({

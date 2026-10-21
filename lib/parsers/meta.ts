@@ -132,18 +132,18 @@ export function detectMeta(table: RawTable): Dataset[] | null {
         month: dominantMonth(stories),
         rows: stories,
         rowDated: true,
-        warnings: ["Story IG (termasuk repost) — hanya info, tidak dihitung ke KPI/kuota. Waktu publish dikonversi dari Pacific Time ke WIB."],
+        warnings: ["IG Stories (including reposts) — info only, not counted toward KPIs/quota. Publish times converted from Pacific Time to WIB."],
       }),
     );
   }
   for (const [platform, rows] of Object.entries(byPlatform)) {
     if (!rows.length) continue;
-    const warnings: string[] = ["Waktu publish dikonversi dari Pacific Time (zona waktu export Meta) ke WIB."];
+    const warnings: string[] = ["Publish times converted from Pacific Time (the Meta export's time zone) to WIB."];
     if (/insight ig/i.test(table.file) && platform === "facebook") {
-      warnings.push("Nama file menyebut IG, tapi isinya post Facebook (permalink facebook.com) — disimpan sebagai Facebook.");
+      warnings.push("The file name mentions IG, but it contains Facebook posts (facebook.com permalinks) — saved as Facebook.");
     }
     if (m.columns.rcs === undefined && m.columns.saves === undefined) {
-      warnings.push("Kolom Saves tidak ada — interaksi = likes + comments + shares.");
+      warnings.push("No Saves column — interactions = likes + comments + shares.");
     }
     out.push(
       makeDataset(platform === "instagram" ? "meta_instagram" : "meta_facebook", table, m, {

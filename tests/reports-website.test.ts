@@ -28,11 +28,11 @@ describe("website narrative", () => {
     const f = websiteFindings(sep);
     expect(f).toEqual([
       // pembuka: arah + channel penyebab; angka kartu (users, views) tidak diulang
-      "Visits rose 23% from August to 1,839 sessions. The biggest change came from Direct (+505 sessions).",
+      "Visits rose 23% from August to 1.839 sessions. The biggest change came from Direct (+505 sessions).",
       "Direct brought in almost half of all visits (905), followed by Organic Search with 632.",
-      "Each visitor viewed 8.6 pages on average, spread over 431 different pages.",
+      "Each visitor viewed 8,6 pages on average, spread over 431 different pages.",
       "Kudus is the largest audience with 301 users, 36% of the total, followed by Semarang (168).",
-      "The share of Google searchers who clicked through fell from 21.2% to 18.0%. The titles and descriptions of the most-shown pages are worth reviewing.",
+      "The share of Google searchers who clicked through fell from 21,2% to 18,0%. The titles and descriptions of the most-shown pages are worth reviewing.",
       "About a quarter of users (202) came from data centre locations abroad such as Tel Aviv-Yafo, Prineville and Lulea. These are most likely bots, so they are left out of the city ranking, along with 20 users whose city is unknown.",
       "147 visits (8%) had no recorded landing page, which usually happens when someone returns to a tab left open for more than 30 minutes.",
     ]);

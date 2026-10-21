@@ -43,7 +43,7 @@ async function fetchPdf(c: ReportClients, url: string): Promise<Buffer> {
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const type = res.headers.get("content-type") ?? "";
     // 429 = terlalu banyak export dalam waktu singkat → gcall mencoba ulang dengan jeda
-    if (!res.ok || !type.includes("pdf")) throw new Error(`Export PDF gagal (${res.status}${res.status === 429 ? " rate limit" : ""} ${type})`);
+    if (!res.ok || !type.includes("pdf")) throw new Error(`PDF export failed (${res.status}${res.status === 429 ? " rate limit" : ""} ${type})`);
     return Buffer.from(await res.arrayBuffer());
   });
 }

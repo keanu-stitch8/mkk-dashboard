@@ -9,8 +9,11 @@ const YT_REVIEW = /^(review|approved)$/i;
 
 const findRow = (table: RawTable, test: (cells: string[]) => boolean) => table.rows.slice(0, 10).findIndex((r) => test(r.map((c) => str(c))));
 
-/** Tab Summary → baris log YouTube (semua bulan; dipilah per bulan oleh connector lewat `_date`). */
-export function readYtCalendarSummary(table: RawTable): RecordRow[] | null {
+/**
+ * Tab Summary → baris log YouTube (semua bulan; dipilah per bulan oleh connector lewat `_date`).
+ * `editors`: nama video (huruf kecil) → Video Editor dari tab Tracker; Summary sendiri tidak mencatat editor.
+ */
+export function readYtCalendarSummary(table: RawTable, editors?: Map<string, string>): RecordRow[] | null {
   const h = findRow(table, (c) => c.some((x) => /^publish date$/i.test(x)) && c.some((x) => /^video$/i.test(x)) && c.some((x) => /^status$/i.test(x)));
   if (h < 0) return null;
   const header = table.rows[h].map((c) => str(c));
@@ -40,6 +43,7 @@ export function readYtCalendarSummary(table: RawTable): RecordRow[] | null {
         videoId: youtubeId(link),
         format: strOrNull(at(r, format)),
         category: strOrNull(at(r, category)),
+        editor: editors?.get(str(at(r, video)).toLowerCase()) ?? null,
         status: normalizeStatus(at(r, status)),
         _date: date,
       };
@@ -50,6 +54,8 @@ export function readYtCalendarSummary(table: RawTable): RecordRow[] | null {
 
 export interface GanttVideo {
   title: string;
+  /** nama di kolom Task, di sebelah peran "Video Editor" */
+  editor: string | null;
   /** perubahan status tugas Video Editor, urut tanggal */
   timeline: { date: string; status: string }[];
 }
@@ -86,13 +92,14 @@ export function readYtCalendarGantt(table: RawTable): GanttVideo[] | null {
   let title = "";
   for (const r of data) {
     if (str(r[videoCol])) title = str(r[videoCol]);
-    if (!title || !r.some((c) => /^video editor$/i.test(str(c)))) continue;
+    const role = r.findIndex((c) => /^video editor$/i.test(str(c)));
+    if (!title || role < 0) continue;
     const timeline: GanttVideo["timeline"] = [];
     r.forEach((c, i) => {
       const s = str(c).toLowerCase();
       if (dates[i] && s && timeline.at(-1)?.status !== s) timeline.push({ date: dates[i]!, status: s });
     });
-    out.push({ title, timeline });
+    out.push({ title, editor: role > 0 ? strOrNull(r[role - 1]) : null, timeline });
   }
   return out;
 }
@@ -126,11 +133,12 @@ export function ytCalendarLogDataset(rows: RecordRow[], month: string, file: str
     rowDated: true,
     rows: inMonth,
     columns: [
-      { field: "date", header: "Publish Date (Planned Date jika belum tayang)" },
-      { field: "title", header: "Youtube Title (Video jika kosong)" },
+      { field: "date", header: "Publish Date (Planned Date if not yet published)" },
+      { field: "title", header: "Youtube Title (Video if empty)" },
       { field: "url", header: "Youtube URL" },
       { field: "format", header: "Format" },
       { field: "category", header: "Category" },
+      { field: "editor", header: "Tracker · Video Editor" },
       { field: "status", header: "Status" },
     ],
   });

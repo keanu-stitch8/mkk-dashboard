@@ -87,9 +87,9 @@ export function detectYoutube(table: RawTable): Dataset[] | SkipNotice | null {
         if (typeof v === "number") metrics.push({ channel: "youtube", key: k, value: v });
       }
     } else {
-      warnings.push('Baris "Total" tidak ditemukan — total dihitung dari penjumlahan per video.');
+      warnings.push('No "Total" row found — totals are summed per video.');
     }
-    if (m.columns.subsLost === undefined) warnings.push('Kolom "Subscribers lost" tidak ada — net subscriber = subscriber gained.');
+    if (m.columns.subsLost === undefined) warnings.push('No "Subscribers lost" column — net subscribers = subscribers gained.');
     return [makeDataset("yt_table", table, m, { month, rows, metrics, warnings })];
   }
 
@@ -102,7 +102,7 @@ export function detectYoutube(table: RawTable): Dataset[] | SkipNotice | null {
     const header = (table.rows[m.headerRow] ?? []).map((c) => String(c ?? "").trim()).filter(Boolean);
     const metric = header.at(-1) ?? "?";
     return {
-      skip: `Grafik harian YouTube berisi metrik "${metric}", bukan Watch time — dilewati. Untuk grafik watch time harian: di YouTube Studio (Advanced mode) pilih metrik Watch time (hours) pada grafik, lalu export ulang.`,
+      skip: `The YouTube daily chart contains the "${metric}" metric, not Watch time — skipped. For a daily watch-time chart: in YouTube Studio (Advanced mode) pick the Watch time (hours) metric on the chart, then export again.`,
     };
   }
   if (m && (m.columns.watchHours !== undefined || m.columns.views !== undefined) && m.columns.impressions === undefined) {
@@ -153,7 +153,7 @@ export function detectYoutube(table: RawTable): Dataset[] | SkipNotice | null {
       .filter((r) => r.title && !/^\d+$/.test(r.title));
     if (!rows.length) return null;
     const columns = lm.detected.map((d) => ({ field: d.field, header: d.header }));
-    if (lm.columns.url === undefined && rows.some((r) => r.url)) columns.push({ field: "url", header: "(kolom tanpa header berisi link YouTube)" });
+    if (lm.columns.url === undefined && rows.some((r) => r.url)) columns.push({ field: "url", header: "(header-less column containing YouTube links)" });
     const ds = makeDataset("yt_log", table, lm, { month: dominantMonth(rows), rows, rowDated: true, warnings });
     ds.columns = columns;
     return [ds];
@@ -174,13 +174,13 @@ export function applyPublishCohort(ds: Dataset, month: string): Dataset {
   const dropped = ds.rows.filter((r) => !keep.includes(r));
   const counts = new Map<string, number>();
   for (const r of dropped) counts.set(pubMonth(r)!, (counts.get(pubMonth(r)!) ?? 0) + 1);
-  const detail = [...counts.entries()].sort().map(([m, n]) => `${n} video publish ${monthLabel(m)}`).join(", ");
+  const detail = [...counts.entries()].sort().map(([m, n]) => `${n} published in ${monthLabel(m)}`).join(", ");
   const warnings = [
     ...ds.warnings,
-    `${dropped.length} video tidak dihitung (${detail}) — laporan YouTube ${monthLabel(month)} hanya memuat video yang dipublish ${monthLabel(month)}.`,
+    `${dropped.length} videos not counted (${detail}) — the ${monthLabel(month)} YouTube report only includes videos published in ${monthLabel(month)}.`,
   ];
   if (!keep.length) {
-    warnings.push(`Tidak ada video yang dipublish ${monthLabel(month)} di file ini — dataset ini tidak akan disimpan.`);
+    warnings.push(`No videos published in ${monthLabel(month)} in this file — this dataset won't be saved.`);
     return { ...ds, rows: [], metrics: [], warnings };
   }
 
@@ -202,6 +202,6 @@ export function applyPublishCohort(ds: Dataset, month: string): Dataset {
   if (avgViews) metrics.push({ channel: "youtube", key: "avgViewDurationSec", value: sum(withAvg.map((r) => (r.avgViewDurationSec as number) * (r.views as number))) / avgViews });
   else if (views) metrics.push({ channel: "youtube", key: "avgViewDurationSec", value: (watchHours * 3600) / views });
   if (keep.some((r) => typeof r.subsLost === "number")) metrics.push({ channel: "youtube", key: "subsLost", value: total("subsLost") });
-  warnings.push("Total dihitung ulang dari video yang tersisa (unique viewers tidak bisa dijumlah, jadi dikosongkan; avg view duration = rata-rata per video tertimbang views, bisa sedikit beda dari angka Studio). Grafik harian (Totals.csv) masih memuat semua video di file.");
+  warnings.push("Totals recalculated from the remaining videos (unique viewers can't be summed, so it's left empty; avg view duration = per-video average weighted by views, may differ slightly from Studio). The daily chart (Totals.csv) still includes every video in the file.");
   return { ...ds, rows: keep, metrics, warnings };
 }

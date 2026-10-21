@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
+import { ChartCard } from "@/components/ChartCard";
 import { Section, CompareTable, DataTable, EmptyState, KpiCard, KpiGrid, Notice, QuotaHero, StatusBadge } from "@/components/blocks";
-import { BreakdownBars, TrendChart } from "@/components/charts";
+import { BreakdownBars } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
 import { contentQuota, getMonthAndPrev, getTrend, resolveMonth } from "@/lib/data/summary";
 import { generateRecommendations } from "@/lib/recommendations";
@@ -22,7 +23,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
 
   if (!n.hasData) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="flex flex-col gap-6">
         <PageHeader title="News" month={month} months={months} />
         <EmptyState channel="News" month={month} source="News Content Logs" />
       </div>
@@ -32,27 +33,24 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
   const publishedCount = n.articles.filter((a) => a.status === "publish").length;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
-      <PageHeader title="News" description={`Artikel yang dipublish ${monthLabel(month)} · views selama ${monthLabel(month)}`} month={month} months={months} />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="News" description={`Articles published in ${monthLabel(month)} · views during ${monthLabel(month)}`} month={month} months={months} />
 
       {n.viewsSource === "report" && (
-        <Notice>Views per artikel memakai angka dari report News (sheet Article Performance). Import GA4 Pages and screens (CSV) bulan ini untuk mencocokkan langsung dari GA4.</Notice>
+        <Notice>Per-article views use the numbers from the News report (Article Performance sheet). Import this month&apos;s GA4 Pages and screens (CSV) to match directly against GA4.</Notice>
       )}
-      {n.viewsSource === null && <Notice tone="warn">Belum ada data views (GA4 Pages and screens) untuk {monthLabel(month)} — views artikel kosong.</Notice>}
+      {n.viewsSource === null && <Notice tone="warn">No views data (GA4 Pages and screens) for {monthLabel(month)} yet — article views are empty.</Notice>}
 
       {/* 1. Kuota tercapai + produksi vs kuota */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <QuotaHero q={quota} prev={prevQuota} month={month} />
-        <Section title="Delivered vs kuota" subtitle="Artikel per bulan · delivered = published + in review · 6 bulan terakhir" className="lg:col-span-2">
-          <TrendChart
+        <ChartCard title="Delivered vs quota" description="Articles per month · delivered = published + in review" className="lg:col-span-2"
             data={labels}
             series={[
               { key: "newsPublished", name: "Published" },
               { key: "newsDelivered", name: "Delivered (+ review)" },
-              { key: "newsQuota", name: "Kuota", reference: true },
-            ]}
-          />
-        </Section>
+              { key: "newsQuota", name: "Quota", reference: true },
+            ]} />
       </div>
 
       {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (lib/reports/kpi.ts) */}
@@ -62,9 +60,9 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
           const value = k.display?.(n) ?? (k.kind === "rate" ? fmtPct(cur) : k.kind === "duration" ? fmtDuration(cur) : k.kind === "decimal" ? fmtNum(cur, 1) : fmtNum(cur));
           const note =
             k.key === "published"
-              ? `${fmtNum(n.activeDays)} hari aktif · jeda terpanjang ${fmtNum(n.emptyStreak.length)} hari`
+              ? `${fmtNum(n.activeDays)} active days · longest gap ${fmtNum(n.emptyStreak.length)} days`
               : k.key === "views"
-                ? `${fmtNum(n.matchedCount)}/${fmtNum(publishedCount)} URL cocok dengan GA4${n.unmatched.length ? ` · ${n.unmatched.length} tidak cocok` : ""}${n.pendingViews.length ? ` · ${n.pendingViews.length} menunggu data GA4` : ""}`
+                ? `${fmtNum(n.matchedCount)}/${fmtNum(publishedCount)} URLs matched in GA4${n.unmatched.length ? ` · ${n.unmatched.length} unmatched` : ""}${n.pendingViews.length ? ` · ${n.pendingViews.length} awaiting GA4 data` : ""}`
                 : undefined;
           return (
             <KpiCard
@@ -84,36 +82,32 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
       </KpiGrid>
 
       {/* 3. Performa & aktivitas */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Views" subtitle="6 bulan terakhir">
-          <TrendChart data={labels} series={[{ key: "newsViews", name: "Views" }]} />
-        </Section>
-        <Section title="Harian · artikel publish" subtitle={`${fmtNum(n.activeDays)} hari aktif · ${monthLabel(month)}`}>
-          <TrendChart data={n.daily.map((d) => ({ label: fmtDate(d.date, false), count: d.count }))} series={[{ key: "count", name: "Artikel" }]} type="bar" />
-        </Section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartCard title="Views" data={labels} series={[{ key: "newsViews", name: "Views" }]} />
+        <ChartCard title="Daily · articles published" description={`${fmtNum(n.activeDays)} active days · ${monthLabel(month)}`} data={n.daily.map((d) => ({ label: fmtDate(d.date, false), count: d.count }))} series={[{ key: "count", name: "Articles" }]} granularity="day" />
       </div>
 
       {/* 4. Breakdown + top konten */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Section title="Per kategori" subtitle="Views per artikel">
-          <BreakdownBars data={n.byCategory.map((c) => ({ label: c.label, value: c.perContent }))} name="Views/artikel" />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Section title="By category" subtitle="Views per article">
+          <BreakdownBars data={n.byCategory.map((c) => ({ label: c.label, value: c.perContent }))} name="Views/article" />
           <DataTable
             rows={n.byCategory}
             columns={[
-              { header: "Kategori", cell: (r) => r.label },
-              { header: "Artikel", align: "right", cell: (r) => fmtNum(r.count) },
+              { header: "Category", cell: (r) => r.label },
+              { header: "Articles", align: "right", cell: (r) => fmtNum(r.count) },
               { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
             ]}
           />
         </Section>
-        <Section title="Top artikel" subtitle="Berdasarkan views" className="lg:col-span-2">
+        <Section title="Top articles" subtitle="By views" className="lg:col-span-2">
           <DataTable
             rows={n.topArticles}
-            empty="Belum ada data views."
+            empty="No views data yet."
             columns={[
               { header: "#", cell: (_, i) => i + 1, className: "text-muted-foreground" },
               {
-                header: "Judul",
+                header: "Title",
                 cell: (r) =>
                   r.url ? (
                     <a href={r.url} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline">
@@ -123,8 +117,8 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
                     truncate(r.title, 70)
                   ),
               },
-              { header: "Tanggal", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.date)}</span> },
-              { header: "Kategori", cell: (r) => r.category ?? "—" },
+              { header: "Date", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.date)}</span> },
+              { header: "Category", cell: (r) => r.category ?? "—" },
               { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
               { header: "Avg eng.", align: "right", cell: (r) => fmtDuration(r.avgEngagementTime) },
             ]}
@@ -132,25 +126,25 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
         </Section>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Per reporter" subtitle="Artikel dengan >1 reporter dihitung untuk tiap reporter">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title="By reporter" subtitle="Articles with more than one reporter count toward each reporter">
           <DataTable
             rows={n.byReporter}
             columns={[
               { header: "Reporter", cell: (r) => r.label },
-              { header: "Artikel", align: "right", cell: (r) => fmtNum(r.count) },
+              { header: "Articles", align: "right", cell: (r) => fmtNum(r.count) },
               { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
               { header: "Views/art.", align: "right", cell: (r) => fmtNum(r.perContent) },
             ]}
           />
         </Section>
-        <Section title="Per tipe" subtitle="Hard News / Features / Editorial">
-          <BreakdownBars data={n.byType.map((c) => ({ label: c.label, value: c.perContent }))} name="Views/artikel" />
+        <Section title="By format" subtitle="Hard News / Features / Editorial">
+          <BreakdownBars data={n.byType.map((c) => ({ label: c.label, value: c.perContent }))} name="Views/article" />
           <DataTable
             rows={n.byType}
             columns={[
-              { header: "Tipe", cell: (r) => r.label },
-              { header: "Artikel", align: "right", cell: (r) => fmtNum(r.count) },
+              { header: "Format", cell: (r) => r.label },
+              { header: "Articles", align: "right", cell: (r) => fmtNum(r.count) },
               { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
             ]}
           />
@@ -158,41 +152,41 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
       </div>
 
       {/* 5. Bulan ini vs bulan lalu + rekomendasi */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <CompareTable
           month={month}
           hasPrev={!!p}
           rows={[
             { label: "Published", cur: n.published, prev: p?.published, fmt: fmtNum },
-            { label: "Kuota tercapai", cur: quota.rate, prev: prevQuota?.rate, fmt: (v) => fmtPct(v), kind: "rate" },
+            { label: "Quota achieved", cur: quota.rate, prev: prevQuota?.rate, fmt: (v) => fmtPct(v), kind: "rate" },
             { label: "Views", cur: n.totalViews, prev: p?.totalViews, fmt: fmtNum },
-            { label: "Views / artikel", cur: n.viewsPerArticle, prev: p?.viewsPerArticle, fmt: fmtNum },
-            { label: "Pembaca", cur: n.readers, prev: p?.readers, fmt: fmtNum },
+            { label: "Views / article", cur: n.viewsPerArticle, prev: p?.viewsPerArticle, fmt: fmtNum },
+            { label: "Readers", cur: n.readers, prev: p?.readers, fmt: fmtNum },
             { label: "Avg engagement", cur: n.avgEngagementTime, prev: p?.avgEngagementTime, fmt: fmtDuration },
             { label: "In review", cur: n.inReview, prev: p?.inReview, fmt: fmtNum, neutral: true },
-            { label: "Hari aktif publish", cur: n.activeDays, prev: p?.activeDays, fmt: fmtNum },
+            { label: "Active publishing days", cur: n.activeDays, prev: p?.activeDays, fmt: fmtNum },
           ]}
         />
-        <Recommendations items={recs} title="Rekomendasi news" showChannel={false} />
+        <Recommendations items={recs} title="News recommendations" showChannel={false} />
       </div>
 
       {(n.unmatched.length > 0 || n.zeroViews.length > 0 || n.pendingViews.length > 0) && (
         <Section
-          title="Perlu dicek"
-          subtitle={`Artikel published yang tidak cocok dengan data views, atau 0 views${n.pendingViews.length ? " · menunggu data GA4 = baru tayang, GA4 butuh ±48 jam" : ""}`}
+          title="Needs review"
+          subtitle={`Published articles that don't match the views data, or have 0 views${n.pendingViews.length ? " · awaiting GA4 data = just published, GA4 needs ~48 hours" : ""}`}
         >
           <DataTable
             rows={[...n.unmatched, ...n.zeroViews, ...n.pendingViews]}
             columns={[
-              { header: "Judul", cell: (r) => truncate(r.title, 70) },
-              { header: "URL", cell: (r) => <span className="break-all text-muted-foreground">{r.path ?? "(tanpa URL)"}</span> },
+              { header: "Title", cell: (r) => truncate(r.title, 70) },
+              { header: "URL", cell: (r) => <span className="break-all text-muted-foreground">{r.path ?? "(no URL)"}</span> },
               {
-                header: "Masalah",
+                header: "Issue",
                 cell: (r) =>
                   n.pendingViews.includes(r) ? (
-                    <StatusBadge tone="neutral">Menunggu data GA4</StatusBadge>
+                    <StatusBadge tone="neutral">Awaiting GA4 data</StatusBadge>
                   ) : (
-                    <StatusBadge tone="warn">{r.matched ? "0 views" : "Tidak cocok"}</StatusBadge>
+                    <StatusBadge tone="warn">{r.matched ? "0 views" : "Unmatched"}</StatusBadge>
                   ),
               },
             ]}

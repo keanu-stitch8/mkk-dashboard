@@ -12,8 +12,10 @@ export interface ReportData {
   tones?: Record<string, Tone>;
   /** tabel berteks panjang (judul/URL) yang tinggi barisnya disesuaikan isi setelah diisi */
   autoHeight?: string[];
-  /** key nilai yang barisnya disembunyikan (mis. kategori "Other" bernilai 0) — tidak tampil di PDF & chart */
+  /** key nilai yang barisnya disembunyikan (mis. In review bernilai 0) — tidak tampil di PDF & chart */
   hideRows?: string[];
+  /** peringatan dari data (mis. kategori tanpa baris di laporan) — ditampilkan bersama peringatan penanda */
+  warnings?: string[];
   /** tabel yang baris terakhirnya tanpa garis bawah (garis di batas halaman PDF ikut tercetak di atas halaman berikut) */
   openEnd?: string[];
 }

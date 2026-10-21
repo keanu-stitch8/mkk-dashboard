@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
+import { ChartCard } from "@/components/ChartCard";
 import { Section, CompareTable, DataTable, EmptyState, KpiCard, KpiGrid, Notice } from "@/components/blocks";
-import { BreakdownBars, TrendChart } from "@/components/charts";
+import { BreakdownBars } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
 import { getMonthAndPrev, getTrend, resolveMonth } from "@/lib/data/summary";
 import { generateRecommendations } from "@/lib/recommendations";
@@ -20,7 +21,7 @@ export default async function WebsitePage({ searchParams }: PageProps<"/website"
 
   if (!w.hasData) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="flex flex-col gap-6">
         <PageHeader title="Website" month={month} months={months} />
         <EmptyState channel="Website" month={month} source="GA4 / Search Console" />
       </div>
@@ -28,16 +29,16 @@ export default async function WebsitePage({ searchParams }: PageProps<"/website"
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="flex flex-col gap-6">
       <PageHeader title="Website" description="mainkekudus.com · GA4 + Google Search Console" month={month} months={months} />
 
-      {!w.hasGa4 && <Notice tone="warn">Data GA4 {monthLabel(month)} belum di-import — metrik traffic kosong.</Notice>}
+      {!w.hasGa4 && <Notice tone="warn">GA4 data for {monthLabel(month)} hasn&apos;t been imported — traffic metrics are empty.</Notice>}
       {w.hasGa4 && !w.hasPages && (
         <Notice tone="warn">
-          GA4 <b>Pages and screens</b> belum di-import (CSV) — pageviews & top pages kosong, dan views artikel News memakai angka dari report. Isi manual di halaman Import jika perlu.
+          GA4 <b>Pages and screens</b> hasn&apos;t been imported (CSV) — pageviews & top pages are empty, and News article views use the numbers from the report. Enter them manually on the Import page if needed.
         </Notice>
       )}
-      {!w.hasGsc && <Notice tone="warn">Data Search Console {monthLabel(month)} belum di-import.</Notice>}
+      {!w.hasGsc && <Notice tone="warn">Search Console data for {monthLabel(month)} hasn&apos;t been imported.</Notice>}
 
       <KpiGrid>
         {WEBSITE_KPIS.map((k) => {
@@ -53,23 +54,19 @@ export default async function WebsitePage({ searchParams }: PageProps<"/website"
               kind={k.kind === "rate" ? "rate" : undefined}
               goodWhenUp={k.goodWhenUp}
               hint={k.hint}
-              note={k.key === "users" && w.usersEstimated ? "Estimasi dari jumlah per kota" : undefined}
+              note={k.key === "users" && w.usersEstimated ? "Estimated from the sum per city" : undefined}
             />
           );
         })}
       </KpiGrid>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Tren traffic" subtitle="Users & sessions · 6 bulan">
-          <TrendChart data={labels} series={[{ key: "websiteUsers", name: "Users" }, { key: "websiteSessions", name: "Sessions" }]} />
-        </Section>
-        <Section title="Tren Google Search" subtitle="Clicks & impressions · 6 bulan">
-          <TrendChart data={labels} series={[{ key: "gscImpressions", name: "Impressions" }, { key: "gscClicks", name: "Clicks" }]} />
-        </Section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartCard title="Traffic trend" description="Users & sessions" data={labels} series={[{ key: "websiteUsers", name: "Users" }, { key: "websiteSessions", name: "Sessions" }]} />
+        <ChartCard title="Google Search trend" description="Clicks & impressions" data={labels} series={[{ key: "gscImpressions", name: "Impressions" }, { key: "gscClicks", name: "Clicks" }]} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Sumber traffic" subtitle="Sessions per channel (GA4 Traffic acquisition)">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title="Traffic sources" subtitle="Sessions per channel (GA4 Traffic acquisition)">
           <BreakdownBars data={w.sourceBreakdown.map((s) => ({ label: s.label, value: s.sessions }))} name="Sessions" />
           <div className="mt-3">
             <DataTable
@@ -77,33 +74,31 @@ export default async function WebsitePage({ searchParams }: PageProps<"/website"
               columns={[
                 { header: "Channel", cell: (r) => r.label },
                 { header: "Sessions", align: "right", cell: (r) => fmtNum(r.sessions) },
-                { header: "Porsi", align: "right", cell: (r) => fmtPct(r.share) },
+                { header: "Share", align: "right", cell: (r) => fmtPct(r.share) },
                 { header: "Eng. rate", align: "right", cell: (r) => fmtPct(r.engagementRate) },
                 { header: "Avg eng.", align: "right", cell: (r) => fmtDuration(r.avgEngagementTime) },
               ]}
             />
           </div>
         </Section>
-        <Section title="Klik Google harian" subtitle={`Search Console · ${monthLabel(month)}`}>
-          <TrendChart data={w.gscDaily.map((d) => ({ label: fmtDate(d.date, false), clicks: d.clicks }))} series={[{ key: "clicks", name: "Clicks" }]} type="bar" height={240} />
-        </Section>
+        <ChartCard title="Daily Google clicks" description={`Search Console · ${monthLabel(month)}`} data={w.gscDaily.map((d) => ({ label: fmtDate(d.date, false), clicks: d.clicks }))} series={[{ key: "clicks", name: "Clicks" }]} granularity="day" />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Top pages (GA4)" subtitle="Berdasarkan views">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title="Top pages (GA4)" subtitle="By views">
           <DataTable
-            rows={w.topPages}
-            empty="Import GA4 Pages and screens (CSV) untuk melihat top pages."
+            rows={w.topPages.slice(0, 10)}
+            empty="Import GA4 Pages and screens (CSV) to see top pages."
             columns={[
               { header: "#", cell: (_, i) => i + 1, className: "text-muted-foreground" },
-              { header: "Halaman", cell: (r) => <span className="break-all">{truncate(r.title ?? r.path, 70)}</span> },
+              { header: "Page", cell: (r) => <span className="break-all">{truncate(r.title ?? r.path, 70)}</span> },
               { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
               { header: "Users", align: "right", cell: (r) => fmtNum(r.activeUsers) },
               { header: "Avg eng.", align: "right", cell: (r) => fmtDuration(r.avgEngagementTime) },
             ]}
           />
         </Section>
-        <Section title="Top landing pages (GA4)" subtitle="Berdasarkan sessions">
+        <Section title="Top landing pages (GA4)" subtitle="By sessions">
           <DataTable
             rows={w.topLanding}
             empty="Import GA4 Landing page (CSV)."
@@ -117,53 +112,53 @@ export default async function WebsitePage({ searchParams }: PageProps<"/website"
         </Section>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Top queries (GSC)" subtitle="Berdasarkan clicks">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title="Top queries (GSC)" subtitle="By clicks">
           <DataTable
-            rows={w.topQueries}
-            empty="Import Search Console untuk melihat query."
+            rows={w.topQueries.slice(0, 10)}
+            empty="Import Search Console to see queries."
             columns={[
               { header: "Query", cell: (r) => r.query },
               { header: "Clicks", align: "right", cell: (r) => fmtNum(r.clicks) },
               { header: "Impr.", align: "right", cell: (r) => fmtNum(r.impressions) },
               { header: "CTR", align: "right", cell: (r) => fmtPct(r.ctr) },
-              { header: "Posisi", align: "right", cell: (r) => fmtNum(r.position, 1) },
+              { header: "Position", align: "right", cell: (r) => fmtNum(r.position, 1) },
             ]}
           />
         </Section>
-        <Section title="Peluang: query posisi 4–10" subtitle="Diurutkan dari impressions terbanyak — target naik ke top 3">
+        <Section title="Opportunities: queries in positions 4–10" subtitle="Sorted by most impressions — aim to move into the top 3">
           <DataTable
             rows={w.opportunityQueries}
-            empty="Tidak ada query di posisi 4–10."
+            empty="No queries in positions 4–10."
             columns={[
               { header: "Query", cell: (r) => r.query },
               { header: "Impr.", align: "right", cell: (r) => fmtNum(r.impressions) },
               { header: "Clicks", align: "right", cell: (r) => fmtNum(r.clicks) },
-              { header: "Posisi", align: "right", cell: (r) => fmtNum(r.position, 1) },
+              { header: "Position", align: "right", cell: (r) => fmtNum(r.position, 1) },
             ]}
           />
         </Section>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Section title="Top pages (GSC)" subtitle="Berdasarkan clicks" className="lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Section title="Top pages (GSC)" subtitle="By clicks" className="lg:col-span-2">
           <DataTable
             rows={w.gscTopPages.slice(0, 10)}
             columns={[
-              { header: "Halaman", cell: (r) => <span className="break-all">{truncate(r.path, 60)}</span> },
+              { header: "Page", cell: (r) => <span className="break-all">{truncate(r.path, 60)}</span> },
               { header: "Clicks", align: "right", cell: (r) => fmtNum(r.clicks) },
               { header: "Impr.", align: "right", cell: (r) => fmtNum(r.impressions) },
               { header: "CTR", align: "right", cell: (r) => fmtPct(r.ctr) },
-              { header: "Posisi", align: "right", cell: (r) => fmtNum(r.position, 1) },
+              { header: "Position", align: "right", cell: (r) => fmtNum(r.position, 1) },
             ]}
           />
         </Section>
-        <Section title="Kota teratas" subtitle="Active users (GA4)">
+        <Section title="Top cities" subtitle="Active users (GA4)">
           <BreakdownBars data={w.cities.slice(0, 8)} name="Active users" />
         </Section>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <CompareTable
           month={month}
           hasPrev={!!p}
@@ -181,7 +176,7 @@ export default async function WebsitePage({ searchParams }: PageProps<"/website"
             { label: "Avg position", cur: w.gscPosition, prev: p?.gscPosition, fmt: (v) => fmtNum(v, 1), goodWhenUp: false },
           ]}
         />
-        <Recommendations items={recs} title="Rekomendasi website" showChannel={false} />
+        <Recommendations items={recs} title="Website recommendations" showChannel={false} />
       </div>
     </div>
   );

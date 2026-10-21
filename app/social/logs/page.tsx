@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, Section } from "@/components/blocks";
 import { PublishingLogTable, type LogColumn, type LogRow, type ThumbRatio } from "@/components/PublishingLogTable";
-import { BADGE } from "@/components/log-badges";
+import { platformLabels, socialFormatLabel } from "@/lib/taxonomy";
 import { getSocialSummary, resolveMonth } from "@/lib/data/summary";
 import { igThumbs } from "@/lib/data/ig-thumbs";
 import { fmtNum } from "@/lib/format";
@@ -9,25 +9,13 @@ import { monthLabel } from "@/lib/month";
 
 export const dynamic = "force-dynamic";
 
+// kategori sosmed = pilar konten (khusus channel ini), tetap nilai Publishing Log
 const COLUMNS: LogColumn[] = [
-  { key: "format", label: "Format", badges: { reels: BADGE.violet, feeds: BADGE.blue, carousel: BADGE.blue, story: BADGE.orange, video: BADGE.red } },
-  { key: "category", label: "Kategori" },
-  { key: "platform", label: "Platform" },
-  { key: "admin", label: "Admin" },
+  { key: "format", label: "Format", badge: "format" },
+  { key: "category", label: "Category", badge: "outline" },
+  { key: "platform", label: "Platform", badge: "outline", multi: true },
   { key: "designer", label: "Designer" },
 ];
-
-const PLATFORMS: Record<string, string> = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", threads: "Threads", youtube: "YouTube" };
-const ORDER = Object.keys(PLATFORMS);
-const platforms = (s: string) =>
-  s
-    .split(",")
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b))
-    .map((p) => PLATFORMS[p] ?? p)
-    .join(", ");
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** Kotak thumbnail Instagram 4:5 (rasio feed); reels 9:16 dipotong di tengah. */
 const IG_RATIO: ThumbRatio = "4:5";
 
@@ -41,22 +29,22 @@ export default async function SocialLogsPage({ searchParams }: PageProps<"/socia
 
   const rows: LogRow[] = s.logs.map((l) => ({
     date: l.date,
-    title: l.title ?? "(tanpa judul)",
+    title: l.title ?? "(untitled)",
     url: l.link,
     status: l.status,
-    fields: { format: capitalize(l.format), category: l.category, platform: platforms(l.platform), admin: l.admin, designer: l.designer },
+    fields: { format: socialFormatLabel(l.format), category: l.category, platform: platformLabels(l.platform).join(", ") || null, designer: l.designer },
     thumb: l.igMediaId ? (igThumb.get(l.igMediaId) ?? null) : null,
     thumbRatio: IG_RATIO,
   }));
   // in review dari tracker Task Progress: label "format · judul", tanpa tanggal tayang
   for (const label of s.inReviewItems) {
     const [format, ...title] = label.split(" · ");
-    rows.push({ date: null, title: title.join(" · ") || "(tanpa judul)", url: null, status: "review", fields: { format: capitalize(format), category: null, platform: null, admin: null, designer: null }, thumbRatio: IG_RATIO });
+    rows.push({ date: null, title: title.join(" · ") || "(untitled)", url: null, status: "review", fields: { format: socialFormatLabel(format), category: null, platform: null, designer: null }, thumbRatio: IG_RATIO });
   }
 
   if (!rows.length) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="flex flex-col gap-6">
         <PageHeader title="Publishing Log" month={month} months={months} />
         <EmptyState channel="Social Media" month={month} source="MKK Kudus Social Media - Publishing Log" />
       </div>
@@ -67,17 +55,17 @@ export default async function SocialLogsPage({ searchParams }: PageProps<"/socia
   const withLink = rows.filter((r) => r.url).length;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Publishing Log"
-        description={`Semua konten Social Media di publishing log ${monthLabel(month)}. Judul bisa diklik jika post-nya cocok dengan post Instagram (story tidak bisa dipasangkan).`}
+        description={`All Social Media content in the ${monthLabel(month)} publishing log. Titles are clickable when the post matches an Instagram post (stories can't be matched).`}
         month={month}
         months={months}
       />
 
       <Section
-        title="Semua konten"
-        subtitle={`${fmtNum(rows.length)} konten · ${fmtNum(count("publish"))} published · ${fmtNum(count("review"))} in review · ${fmtNum(withLink)} dengan link`}
+        title="All content"
+        subtitle={`${fmtNum(rows.length)} items · ${fmtNum(count("publish"))} published · ${fmtNum(count("review"))} in review · ${fmtNum(withLink)} with link`}
       >
         <PublishingLogTable columns={COLUMNS} rows={rows} thumbnails />
       </Section>

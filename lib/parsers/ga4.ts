@@ -179,7 +179,7 @@ export function detectGa4(table: RawTable): Dataset[] | null {
           eventCount: n(r, m!, "eventCount"),
         };
       });
-    if (!byPath) warnings.push("Export per judul halaman (bukan path) — views tidak bisa dicocokkan ke URL artikel News.");
+    if (!byPath) warnings.push("Exported by page title (not path) — views can't be matched to News article URLs.");
     return [makeDataset("ga4_pages", table, m, { month, rows, warnings })];
   }
 

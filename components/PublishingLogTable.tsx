@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ImageOff } from "lucide-react";
-import { StatusBadge } from "@/components/blocks";
+import { Fragment, useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Circle, CircleCheck, CircleX, Clock, ImageOff, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { BADGE, FORMAT_BADGES } from "@/components/log-badges";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fmtDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 /** Satu baris log konten. Kolom tambahan (reporter, kategori, format, …) dibaca dari `fields`. */
 export interface LogRow {
@@ -21,27 +22,45 @@ export interface LogRow {
 }
 
 export type ThumbRatio = "16:9" | "4:5";
-/** Ukuran kotak per rasio: 16:9 (YouTube/News) lebar 96px; 4:5 (Instagram) tinggi 96px. */
-const RATIO_CLASS: Record<ThumbRatio, string> = { "16:9": "aspect-video w-24", "4:5": "aspect-[4/5] h-24" };
+/**
+ * Ukuran kotak per rasio: 16:9 (YouTube/News) lebar 96px; 4:5 (Instagram) tinggi 96px (lebar 76.8px).
+ * shrink-0 + min-w: lebar tetap walau kolom Judul mengambil 90% tabel.
+ */
+const RATIO_CLASS: Record<ThumbRatio, string> = { "16:9": "aspect-video w-24 min-w-24 shrink-0", "4:5": "aspect-[4/5] h-24 min-w-[4.8rem] shrink-0" };
 
-/** Kolom tambahan di antara Judul dan Status. `badges` = nilai (huruf kecil) → class warna; ada `badges` berarti tampil sebagai Badge. */
+/**
+ * Kolom tambahan di antara Tanggal dan Status. Urutan seragam di semua channel: Format → Kategori → kolom khas
+ * channel (mis. Platform) → kreator (Reporter / Designer / Video Editor).
+ * `badge`: "format" = Badge berwarna tanpa garis (FORMAT_BADGES), "outline" = Badge bergaris seperti kolom Category
+ * template Tasks (kategori, platform). Tinggi keduanya sama: Badge tanpa garis tetap ber-border transparan.
+ * `multi`: nilai "A, B" tampil sebagai beberapa Badge (platform).
+ */
 export interface LogColumn {
   key: string;
   label: string;
-  badges?: Record<string, string>;
+  badge?: "format" | "outline";
+  multi?: boolean;
 }
 
 type SortDir = "asc" | "desc";
 
-const STATUS_TONE = { publish: "good", review: "warn", draft: "neutral" } as const;
+/** Status gaya kolom Status template Tasks (ikon + teks, bukan badge); ikon diwarnai sesuai status. */
+const STATUS: Record<string, { label: string; icon: LucideIcon; className: string }> = {
+  publish: { label: "Published", icon: CircleCheck, className: "text-success" },
+  // menunggu approval → amber (warna pending)
+  review: { label: "In review", icon: Clock, className: "text-warning" },
+  draft: { label: "Draft", icon: Circle, className: "text-muted-foreground" },
+  canceled: { label: "Canceled", icon: CircleX, className: "text-destructive" },
+};
+const NO_STATUS = { label: "No status", icon: Circle, className: "text-muted-foreground/60" };
 
 const valueOf = (r: LogRow, key: string) => (key === "date" || key === "title" || key === "status" ? r[key] : r.fields[key]);
-const collator = new Intl.Collator("id", { sensitivity: "base", numeric: true });
+const collator = new Intl.Collator("en-ID", { sensitivity: "base", numeric: true });
 
 /** Tabel Publishing Log: klik header untuk sort A-Z / Z-A, default per tanggal. Nilai kosong selalu di bawah. */
 export function PublishingLogTable({ rows, columns, thumbnails = false }: { rows: LogRow[]; columns: LogColumn[]; thumbnails?: boolean }) {
   const [sort, setSort] = useState<{ key: string; dir: SortDir }>({ key: "date", dir: "asc" });
-  const headers = [{ key: "date", label: "Tanggal" }, { key: "title", label: "Judul" }, ...columns, { key: "status", label: "Status" }];
+  const headers = [{ key: "date", label: "Date" }, { key: "title", label: "Title" }, ...columns, { key: "status", label: "Status" }];
 
   const sorted = useMemo(() => {
     const sign = sort.dir === "asc" ? 1 : -1;
@@ -57,76 +76,101 @@ export function PublishingLogTable({ rows, columns, thumbnails = false }: { rows
   const toggle = (key: string) => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>#</TableHead>
-          {thumbnails && <TableHead>Thumbnail</TableHead>}
-          {headers.map((c) => {
-            const active = sort.key === c.key;
-            const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
-            return (
-              <TableHead key={c.key} aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
-                <button type="button" onClick={() => toggle(c.key)} className="inline-flex items-center gap-1 hover:text-foreground">
-                  {c.label}
-                  <Icon className={active ? "size-3.5" : "size-3.5 text-muted-foreground/50"} />
-                </button>
-              </TableHead>
-            );
-          })}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sorted.map((r, i) => (
-          <TableRow key={`${r.url ?? r.title}-${i}`}>
-            <TableCell className="align-top text-muted-foreground">{i + 1}</TableCell>
-            {thumbnails && (
-              <TableCell className="align-top">
-                {r.thumb ? (
-                  <a href={r.url ?? r.thumb} target="_blank" rel="noreferrer" className="block w-fit">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail eksternal kecil, tanpa optimasi next/image */}
-                    <img src={r.thumb} alt="" loading="lazy" className={`${RATIO_CLASS[r.thumbRatio ?? "16:9"]} rounded-md bg-muted object-cover`} />
-                  </a>
-                ) : (
-                  <div className={`flex ${RATIO_CLASS[r.thumbRatio ?? "16:9"]} items-center justify-center rounded-md bg-muted text-muted-foreground/60`} title="Belum ada thumbnail">
-                    <ImageOff className="size-6" aria-hidden />
-                  </div>
-                )}
-              </TableCell>
-            )}
-            <TableCell className="align-top whitespace-nowrap">{fmtDate(r.date)}</TableCell>
-            <TableCell className="align-top whitespace-normal">
-              {r.url ? (
-                <a href={r.url} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline">
-                  {r.title}
-                </a>
-              ) : (
-                r.title
-              )}
-            </TableCell>
-            {columns.map((c) => {
-              const v = r.fields[c.key];
-              const cls = v && c.badges ? c.badges[v.toLowerCase()] : undefined;
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader className="sticky top-0 z-10 bg-muted">
+          <TableRow>
+            {/* lebar tetap: tanpa ini sisa lebar di luar Judul ikut dibagi ke kolom # dan beda tiap halaman */}
+            <TableHead className="w-12 min-w-12 pl-4">#</TableHead>
+            {headers.map((c) => {
+              const active = sort.key === c.key;
+              const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
               return (
-                <TableCell key={c.key} className="align-top whitespace-normal">
-                  {!v ? (
-                    "—"
-                  ) : c.badges ? (
-                    <Badge variant={cls ? "outline" : "secondary"} className={cls}>
-                      {v}
-                    </Badge>
-                  ) : (
-                    v
-                  )}
-                </TableCell>
+                <Fragment key={c.key}>
+                  {/* Judul mengambil sisa lebar (90%), kolom lain selebar isinya (nowrap) supaya rapat kanan-kiri */}
+                  <TableHead className={c.key === "title" ? "w-[90%] min-w-64" : undefined} aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+                    <button type="button" onClick={() => toggle(c.key)} className="inline-flex items-center gap-1 hover:text-foreground">
+                      {c.label}
+                      <Icon className={active ? "size-3.5" : "size-3.5 text-muted-foreground/50"} />
+                    </button>
+                  </TableHead>
+                  {/* urutan: # · Tanggal · Thumbnail · Judul · … */}
+                  {c.key === "date" && thumbnails && <TableHead>Thumbnail</TableHead>}
+                </Fragment>
               );
             })}
-            <TableCell className="align-top">
-              <StatusBadge tone={STATUS_TONE[r.status as keyof typeof STATUS_TONE] ?? "neutral"}>{r.status}</StatusBadge>
-            </TableCell>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {sorted.map((r, i) => (
+            <TableRow key={`${r.url ?? r.title}-${i}`}>
+              <TableCell className="pl-4 align-top text-muted-foreground tabular-nums">{i + 1}</TableCell>
+              <TableCell className="align-top whitespace-nowrap">{fmtDate(r.date)}</TableCell>
+              {thumbnails && (
+                <TableCell className="align-top">
+                  {r.thumb ? (
+                    <a href={r.url ?? r.thumb} target="_blank" rel="noreferrer" className="block w-fit">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail eksternal kecil, tanpa optimasi next/image */}
+                      <img src={r.thumb} alt="" loading="lazy" className={`${RATIO_CLASS[r.thumbRatio ?? "16:9"]} rounded-md bg-muted object-cover`} />
+                    </a>
+                  ) : (
+                    <div className={`flex ${RATIO_CLASS[r.thumbRatio ?? "16:9"]} items-center justify-center rounded-md bg-muted text-muted-foreground/60`} title="No thumbnail yet">
+                      <ImageOff className="size-6" aria-hidden />
+                    </div>
+                  )}
+                </TableCell>
+              )}
+              <TableCell className="align-top whitespace-normal">
+                {r.url ? (
+                  <a href={r.url} target="_blank" rel="noreferrer" className="hover:text-primary hover:underline">
+                    {r.title}
+                  </a>
+                ) : (
+                  r.title
+                )}
+              </TableCell>
+              {columns.map((c) => {
+                const v = r.fields[c.key];
+                return (
+                  <TableCell key={c.key} className="align-top whitespace-nowrap">
+                    {!v ? (
+                      "—"
+                    ) : c.badge ? (
+                      // multi (platform): mengalir ±3 badge per baris; tanpa batas lebar tiap badge turun satu baris
+                      <div className={cn("flex gap-1", c.multi && "w-52 flex-wrap")}>
+                        {(c.multi ? v.split(", ") : [v]).map((x) => (
+                          <Badge
+                            key={x}
+                            variant={c.badge === "outline" ? "outline" : "secondary"}
+                            className={c.badge === "outline" ? undefined : cn("border-transparent", FORMAT_BADGES[x.toLowerCase()] ?? BADGE.gray)}
+                          >
+                            {x}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      v
+                    )}
+                  </TableCell>
+                );
+              })}
+              <TableCell className="align-top">
+                <StatusCell status={r.status} />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function StatusCell({ status }: { status: string }) {
+  const s = STATUS[status] ?? (status === "unknown" ? NO_STATUS : { ...NO_STATUS, label: status });
+  return (
+    <div className="flex items-center whitespace-nowrap">
+      <s.icon className={cn("mr-2 size-4 shrink-0", s.className)} aria-hidden />
+      <span className="text-sm">{s.label}</span>
+    </div>
   );
 }

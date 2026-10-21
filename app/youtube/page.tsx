@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
+import { ChartCard } from "@/components/ChartCard";
 import { Section, CompareTable, DataTable, EmptyState, KpiCard, KpiGrid, Notice, QuotaHero } from "@/components/blocks";
-import { BreakdownBars, TrendChart } from "@/components/charts";
+import { BreakdownBars } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
 import { contentQuota, getMonthAndPrev, getTrend, resolveMonth } from "@/lib/data/summary";
 import { generateRecommendations } from "@/lib/recommendations";
@@ -22,7 +23,7 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
 
   if (!y.hasData) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="flex flex-col gap-6">
         <PageHeader title="YouTube" month={month} months={months} />
         <EmptyState channel="YouTube" month={month} source="YouTube Studio" />
       </div>
@@ -33,25 +34,22 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
   const prevVpv = p ? p.viewsPerVideo : null;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
-      <PageHeader title="YouTube" description={`Video yang dipublish ${monthLabel(month)} · performa selama ${monthLabel(month)}`} month={month} months={months} />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="YouTube" description={`Videos published in ${monthLabel(month)} · performance during ${monthLabel(month)}`} month={month} months={months} />
       <Notice>
-        Definisi laporan: semua angka di halaman ini hanya dari video yang <b>dipublish di {monthLabel(month)}</b>, dengan views/watch time yang terjadi selama {monthLabel(month)} (sama seperti report News).
+        Report definition: every number on this page comes only from videos <b>published in {monthLabel(month)}</b>, with the views/watch time that happened during {monthLabel(month)} (same as the News report).
       </Notice>
 
       {/* 1. Kuota tercapai + produksi vs kuota */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <QuotaHero q={quota} prev={prevQuota} month={month} />
-        <Section title="Delivered vs kuota" subtitle="Video per bulan · delivered = published + in review · 6 bulan terakhir" className="lg:col-span-2">
-          <TrendChart
+        <ChartCard title="Delivered vs quota" description="Videos per month · delivered = published + in review" className="lg:col-span-2"
             data={labels}
             series={[
               { key: "ytPublished", name: "Published" },
               { key: "ytDelivered", name: "Delivered (+ review)" },
-              { key: "ytQuota", name: "Kuota", reference: true },
-            ]}
-          />
-        </Section>
+              { key: "ytQuota", name: "Quota", reference: true },
+            ]} />
       </div>
 
       {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (lib/reports/kpi.ts) */}
@@ -60,13 +58,13 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
           const cur = k.get(y);
           const value =
             k.key === "watch_hours"
-              ? `${fmtNum(cur, 1)} jam`
+              ? `${fmtNum(cur, 1)} hrs`
               : (k.display?.(y) ?? (k.kind === "rate" ? fmtPct(cur, 2) : k.kind === "duration" ? fmtDuration(cur) : k.kind === "decimal" ? fmtNum(cur, 1) : fmtNum(cur))) ?? "—";
           const note =
             k.key === "subs_net"
               ? y.hasSubsLost
                 ? `+${fmtNum(y.subsGained)} / −${fmtNum(y.subsLost)}`
-                : "Data subscribers lost tidak ada"
+                : "No subscribers-lost data"
               : k.key === "delivered"
                 ? `${fmtNum(y.published)} published + ${fmtNum(y.inReview)} in review`
                 : undefined;
@@ -88,36 +86,41 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
       </KpiGrid>
 
       {/* 3. Performa & aktivitas */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Views" subtitle="6 bulan terakhir">
-          <TrendChart data={labels} series={[{ key: "ytViews", name: "Views" }]} />
-        </Section>
-        <Section title="Harian · watch time (jam)" subtitle={monthLabel(month)}>
-          {y.daily.length ? (
-            <TrendChart data={y.daily.map((d) => ({ label: fmtDate(d.date, false), wh: d.watchHours }))} series={[{ key: "wh", name: "Watch time" }]} type="bar" format="hours" />
-          ) : (
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartCard title="Views" data={labels} series={[{ key: "ytViews", name: "Views" }]} />
+        {y.daily.length ? (
+          <ChartCard
+            title="Daily · watch time (hours)"
+            description={monthLabel(month)}
+            data={y.daily.map((d) => ({ label: fmtDate(d.date, false), wh: d.watchHours }))}
+            series={[{ key: "wh", name: "Watch time" }]}
+            format="hours"
+            granularity="day"
+          />
+        ) : (
+          <Section title="Daily · watch time (hours)" subtitle={monthLabel(month)}>
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Belum ada data harian. Export YouTube Studio dengan metrik grafik <b>Watch time (hours)</b>, lalu upload Totals.csv.
+              No daily data yet. Export from YouTube Studio with the <b>Watch time (hours)</b> chart metric, then upload Totals.csv.
             </p>
-          )}
-        </Section>
+          </Section>
+        )}
       </div>
 
       {/* 4. Breakdown + top konten */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Section title="Per kategori" subtitle="Views per video · kategori dari publishing log">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Section title="By category" subtitle="Views per video · category from the publishing log">
           {y.byCategory.length > 0 && <BreakdownBars data={y.byCategory.map((c) => ({ label: c.label, value: c.perContent }))} name="Views/video" />}
           <DataTable
             rows={y.byCategory}
-            empty="Import publishing log YouTube untuk melihat kategori."
+            empty="Import the YouTube publishing log to see categories."
             columns={[
-              { header: "Kategori", cell: (r) => r.label },
+              { header: "Category", cell: (r) => r.label },
               { header: "Video", align: "right", cell: (r) => fmtNum(r.count) },
               { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
             ]}
           />
         </Section>
-        <Section title="Top video" subtitle="Berdasarkan views" className="lg:col-span-2">
+        <Section title="Top videos" subtitle="By views" className="lg:col-span-2">
           <DataTable
             rows={y.topVideos}
             columns={[
@@ -132,7 +135,7 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
               },
               { header: "Publish", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.publishedDate)}</span> },
               { header: "Views", align: "right", cell: (r) => fmtNum(r.views) },
-              { header: "Watch (jam)", align: "right", cell: (r) => fmtNum(r.watchHours, 1) },
+              { header: "Watch (hrs)", align: "right", cell: (r) => fmtNum(r.watchHours, 1) },
               { header: "AVD", align: "right", cell: (r) => fmtDuration(r.avgViewDurationSec) },
               { header: "Impr.", align: "right", cell: (r) => fmtNum(r.impressions) },
               { header: "CTR", align: "right", cell: (r) => <span className={r.ctr != null && r.ctr < 0.04 ? "font-medium text-danger" : ""}>{fmtPct(r.ctr, 2)}</span> },
@@ -143,23 +146,23 @@ export default async function YoutubePage({ searchParams }: PageProps<"/youtube"
       </div>
 
       {/* 5. Bulan ini vs bulan lalu + rekomendasi */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <CompareTable
           month={month}
           hasPrev={!!p}
           rows={[
             { label: "Published", cur: y.published, prev: p?.published, fmt: fmtNum },
-            { label: "Kuota tercapai", cur: quota.rate, prev: prevQuota?.rate, fmt: (v) => fmtPct(v), kind: "rate" },
+            { label: "Quota achieved", cur: quota.rate, prev: prevQuota?.rate, fmt: (v) => fmtPct(v), kind: "rate" },
             { label: "Views", cur: y.views, prev: p?.views, fmt: fmtNum },
             { label: "Views / video", cur: vpv, prev: prevVpv, fmt: fmtNum },
             { label: "Impressions", cur: y.impressions, prev: p?.impressions, fmt: fmtNum },
             { label: "Impressions CTR", cur: y.ctr, prev: p?.ctr, fmt: (v) => fmtPct(v, 2), kind: "rate" },
-            { label: "Watch time (jam)", cur: y.watchHours, prev: p?.watchHours, fmt: (v) => fmtNum(v, 1) },
+            { label: "Watch time (hours)", cur: y.watchHours, prev: p?.watchHours, fmt: (v) => fmtNum(v, 1) },
             { label: "Avg view duration", cur: y.avgViewDurationSec, prev: p?.avgViewDurationSec, fmt: fmtDuration },
             { label: "Subscribers net", cur: y.subsNet, prev: p?.subsNet, fmt: fmtNum },
           ]}
         />
-        <Recommendations items={recs} title="Rekomendasi YouTube" showChannel={false} />
+        <Recommendations items={recs} title="YouTube recommendations" showChannel={false} />
       </div>
     </div>
   );

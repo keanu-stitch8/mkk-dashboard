@@ -6,25 +6,27 @@ import { kpiData, SOCIAL_KPIS } from "../kpi";
 import { enMonth } from "../month";
 import type { Cell, ReportChannel, ReportData } from "../types";
 import { sheetDate } from "./news";
+import { platformLabels, socialFormatKey, socialFormatLabel } from "../../taxonomy";
 import { socialFindings } from "./social-narrative";
 
-/** Baris tetap tabel format & kategori di Executive Summary (rentang pie chart menunjuk baris-baris ini). */
-export const SOC_FORMATS: [string, string][] = [
-  ["feeds", "Feeds"],
-  ["reels", "Reels"],
-  ["story", "Stories"],
-  ["video", "Videos"],
-];
+/**
+ * Baris tetap tabel format & kategori di Executive Summary (rentang pie chart menunjuk baris-baris ini). Label format
+ * singular (taksonomi: Feed · Reel · Story · Video); kategori = pilar konten khusus sosmed, tanpa "Other".
+ */
+export const SOC_FORMATS: [string, string][] = ["feeds", "reels", "story", "video"].map((k) => [k, socialFormatLabel(k)]);
 export const SOC_CATEGORIES = ["Audience Engagements", "Featured News", "Featured Video", "Highlight", "Schedule", "Teaser", "Teaser Editorial Feature", "Teaser Recap"];
-export const SOC_CATEGORY_SLOTS = SOC_CATEGORIES.length + 1; // + Other
+export const SOC_CATEGORY_SLOTS = SOC_CATEGORIES.length;
+/** Bentuk jamak untuk kalimat narasi ("Stories made up …"); tabel memakai label singular. */
+const PLURAL: Record<string, string> = { Feed: "Feeds", Reel: "Reels", Story: "Stories", Video: "Videos" };
+const plural = (label: string) => PLURAL[label] ?? label;
 
-const CHANNEL_LABEL: Record<string, string> = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", threads: "Threads", youtube: "YouTube" };
+
 const div = (a: number | null | undefined, b: number | null | undefined) => (a == null || !b ? null : a / b);
 const sumOf = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
 const norm = (s: string) => s.trim().toLowerCase();
 
-/** Format log/Meta → label laporan (carousel & foto = Feeds). */
-export const formatLabel = (f: string) => SOC_FORMATS.find(([k]) => k === f)?.[1] ?? (["carousel", "photo"].includes(f) ? "Feeds" : f);
+/** Format log/Meta → label laporan (carousel & foto = Feed). */
+export const formatLabel = socialFormatLabel;
 
 /** Judul post: judul Publishing Log, jika tidak ada → kalimat pertama caption (maks. ~70 huruf). */
 export function postTitle(title: string | null, caption: string | null): string {
@@ -42,12 +44,13 @@ export function reviewItem(label: string): { format: string; title: string } {
   return { format: formatLabel(format), title: !title || title === "(tanpa judul)" ? "(untitled)" : title };
 }
 
-/** Hitung per kategori ke slot tetap; kategori tak dikenal / kosong masuk "Other". */
-export function socCategorySlots(categories: (string | null)[]): { name: string; count: number }[] {
-  const slots = [...SOC_CATEGORIES, "Other"].map((name) => ({ name, count: 0 }));
+/** Hitung per kategori ke slot tetap; kategori tak dikenal / kosong → `warnings` (tidak ada slot "Other"). */
+export function socCategorySlots(categories: (string | null)[], warnings: string[] = []): { name: string; count: number }[] {
+  const slots = SOC_CATEGORIES.map((name) => ({ name, count: 0 }));
   for (const c of categories) {
-    const i = SOC_CATEGORIES.findIndex((k) => norm(k) === norm(c ?? ""));
-    slots[i >= 0 ? i : slots.length - 1].count++;
+    const slot = slots.find((s) => norm(s.name) === norm(c ?? ""));
+    if (slot) slot.count++;
+    else warnings.push(`Post category "${c ?? "(empty)"}" has no row in the report — fix the Publishing Log, or add it to SOC_CATEGORIES and the template.`);
   }
   return slots;
 }
@@ -66,10 +69,11 @@ export async function buildSocial(month: string): Promise<ReportData> {
   const prevLogs = ps?.logs.filter((l) => l.status === "publish") ?? null;
   const formatRows = SOC_FORMATS.map(([k, label]) => ({
     label,
-    count: logs.filter((l) => l.format === k).length,
-    prevCount: prevLogs ? prevLogs.filter((l) => l.format === k).length : null,
+    count: logs.filter((l) => socialFormatKey(l.format) === k).length,
+    prevCount: prevLogs ? prevLogs.filter((l) => socialFormatKey(l.format) === k).length : null,
   }));
-  const cats = socCategorySlots(logs.map((l) => l.category));
+  const warnings: string[] = [];
+  const cats = socCategorySlots(logs.map((l) => l.category), warnings);
   // delivered = published + in review (Task Progress, snapshot akhir bulan) — definisi sama dengan News & YouTube
   const inReview = s.inReview;
   const delivered = src.cur.delivered;
@@ -100,9 +104,9 @@ export async function buildSocial(month: string): Promise<ReportData> {
     inReview,
     delivered,
     prevPublished: src.prev?.published ?? null,
-    formats: formatRows,
+    formats: formatRows.map((f) => ({ ...f, label: plural(f.label) })),
     top: byViews.map((p) => ({ title: p.name, views: p.views! })),
-    formatViews: avgBy((p) => p.label),
+    formatViews: avgBy((p) => plural(p.label)),
     categoryViews: avgBy((p) => p.category),
     topFollows: topFollows ? { title: topFollows.name, follows: topFollows.follows! } : null,
   });
@@ -157,9 +161,9 @@ export async function buildSocial(month: string): Promise<ReportData> {
     values,
     tones: kpi.tones,
     autoHeight: ["findings", "posts", "log"],
-    // kategori "Other" (slot terakhir), In review & Unpublished hanya tampil jika ada isinya (tabel tetap muat di halaman 2)
+    warnings,
+    // In review & Unpublished hanya tampil jika ada isinya (tabel tetap muat di halaman 2)
     hideRows: [
-      ...(cats.at(-1)!.count === 0 ? [`cat.${cats.length}.name`] : []),
       ...(inReview === 0 ? ["cat.review"] : []),
       ...(unpublished === 0 ? ["cat.unpublished"] : []),
     ],
@@ -186,10 +190,7 @@ export async function buildSocial(month: string): Promise<ReportData> {
           title: l.title ?? "",
           url: l.url ?? (l.title ? (permalink.get(norm(l.title)) ?? "") : ""),
           category: l.category ?? "",
-          channels: l.platform
-            .split(",")
-            .map((c) => CHANNEL_LABEL[c.trim()] ?? c.trim())
-            .join(", "),
+          channels: platformLabels(l.platform).join(", "),
           format: formatLabel(l.format),
           status: "Published",
         })),

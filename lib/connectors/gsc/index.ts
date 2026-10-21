@@ -34,15 +34,15 @@ async function listSites(sc: searchconsole_v1.Searchconsole): Promise<{ siteUrl:
 /** GSC_SITE_URL → siteUrl persis. Nama polos (mainkekudus.com) dicocokkan ke daftar properti. */
 async function resolveSite(sc: searchconsole_v1.Searchconsole): Promise<string> {
   const raw = rawSite();
-  if (!raw) throw new ConnectorError("GSC_SITE_URL belum diisi di .env.local (mis. sc-domain:mainkekudus.com atau https://mainkekudus.com/).");
+  if (!raw) throw new ConnectorError("GSC_SITE_URL isn't set in .env.local (e.g. sc-domain:mainkekudus.com or https://mainkekudus.com/).");
   const sites = await listSites(sc);
   const usable = sites.filter((s) => s.permissionLevel !== "siteUnverifiedUser");
   const host = raw.replace(/^sc-domain:/, "").replace(/^https?:\/\//, "").replace(/\/.*$/, "");
   const candidates = /^(sc-domain:|https?:\/\/)/.test(raw) ? [raw, raw.endsWith("/") ? raw : `${raw}/`] : [`sc-domain:${host}`, `https://${host}/`, `https://www.${host}/`, `http://${host}/`];
   const found = candidates.find((c) => usable.some((s) => s.siteUrl === c));
   if (found) return found;
-  const list = usable.map((s) => s.siteUrl).join(", ") || "tidak ada";
-  throw new ConnectorError(`Properti Search Console "${raw}" tidak bisa diakses akun ini. Properti yang tersedia: ${list}.`);
+  const list = usable.map((s) => s.siteUrl).join(", ") || "none";
+  throw new ConnectorError(`This account can't access the Search Console property "${raw}". Available properties: ${list}.`);
 }
 
 /**
@@ -63,16 +63,16 @@ async function lastFinalDate(sc: searchconsole_v1.Searchconsole, siteUrl: string
 async function gscRange(sc: searchconsole_v1.Searchconsole, siteUrl: string, month: string, now = new Date()) {
   const range = monthRange(month, now, PACIFIC);
   const latest = await lastFinalDate(sc, siteUrl, range.start, range.end);
-  if (range.start > latest) throw new ConnectorError(`Data Search Console untuk ${month} belum final (hari pertama yang masih diproses Google: ${addDays(latest, 1)}, Pacific Time).`);
+  if (range.start > latest) throw new ConnectorError(`Search Console data for ${month} isn't final yet (first day Google is still processing: ${addDays(latest, 1)}, Pacific Time).`);
   return range.end > latest ? { start: range.start, end: latest, partial: true } : range;
 }
 
 export const gsc: Connector = {
   id: "gsc",
   env: [
-    { name: "GSC_SITE_URL", required: true, hint: "Properti Search Console, mis. sc-domain:mainkekudus.com atau https://mainkekudus.com/." },
-    { name: "GOOGLE_APPLICATION_CREDENTIALS", required: false, hint: "Opsi 1 — service account (harus ditambahkan sebagai user di Search Console)." },
-    { name: "GOOGLE_OAUTH_CLIENT_ID", required: false, hint: "Opsi 2 — login akun Google kamu (OAuth client yang sama dengan GA4)." },
+    { name: "GSC_SITE_URL", required: true, hint: "Search Console property, e.g. sc-domain:mainkekudus.com or https://mainkekudus.com/." },
+    { name: "GOOGLE_APPLICATION_CREDENTIALS", required: false, hint: "Option 1 — service account (must be added as a user in Search Console)." },
+    { name: "GOOGLE_OAUTH_CLIENT_ID", required: false, hint: "Option 2 — sign in with your Google account (same OAuth client as GA4)." },
   ],
 
   async status(): Promise<ConnectorStatus> {
@@ -80,8 +80,8 @@ export const gsc: Connector = {
     const oauth = { ...(await oauthAccount("gsc")), available: oauthClientConfigured() };
     try {
       if (hasServiceAccount()) return { configured: !missing.length, missing, account: `Service account ${serviceAccountKey().clientEmail}`, oauth };
-      if (oauth.connected) return { configured: !missing.length, missing, account: `Akun Google ${oauth.account ?? ""}`.trim(), oauth };
-      return { configured: false, missing, account: oauth.available ? "Klik “Hubungkan akun Google” (izin Search Console terpisah dari GA4)." : "Isi GOOGLE_APPLICATION_CREDENTIALS atau GOOGLE_OAUTH_CLIENT_ID/SECRET.", oauth };
+      if (oauth.connected) return { configured: !missing.length, missing, account: `Google account ${oauth.account ?? ""}`.trim(), oauth };
+      return { configured: false, missing, account: oauth.available ? "Click “Connect Google account” (Search Console permission is separate from GA4)." : "Set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_OAUTH_CLIENT_ID/SECRET.", oauth };
     } catch (e) {
       return { configured: false, missing, account: (e as Error).message, oauth };
     }
@@ -99,10 +99,10 @@ export const gsc: Connector = {
       const start = addDays(end, -6);
       const { data } = await withRetry(() => c.sc.searchanalytics.query({ siteUrl, requestBody: { startDate: start, endDate: end, type: "web" } }), isRetryableGoogleError);
       const row = data.rows?.[0];
-      const via = info.mode === "oauth" ? `akun Google ${info.account ?? ""}`.trim() : `service account ${info.account}`;
+      const via = info.mode === "oauth" ? `Google account ${info.account ?? ""}`.trim() : `service account ${info.account}`;
       return {
         ok: true,
-        message: `Terhubung ke ${siteUrl} lewat ${via}. 7 hari (${start} s/d ${end}): ${Number(row?.clicks ?? 0).toLocaleString("id-ID")} klik, ${Number(row?.impressions ?? 0).toLocaleString("id-ID")} impressions.`,
+        message: `Connected to ${siteUrl} via ${via}. 7 days (${start} to ${end}): ${Number(row?.clicks ?? 0).toLocaleString("en-ID")} clicks, ${Number(row?.impressions ?? 0).toLocaleString("en-ID")} impressions.`,
       };
     } catch (e) {
       return { ok: false, message: translate(e, info, siteUrl).message };
@@ -129,9 +129,9 @@ export const gsc: Connector = {
         devices: await q(["device"]),
         countries: await q(["country"]),
       };
-      const via = info.mode === "oauth" ? `akun ${info.account ?? "Google"}` : "service account";
-      const datasets = mapGscMonth(res, month, `API Search Console · ${siteUrl} · ${via} · ${start} s/d ${end} (Pacific Time)`);
-      if (partial) for (const d of datasets) d.warnings.push(`Data GSC final baru sampai ${end} (Pacific Time; hari setelahnya masih diproses Google) — sync ulang setelah awal bulan depan.`);
+      const via = info.mode === "oauth" ? `account ${info.account ?? "Google"}` : "service account";
+      const datasets = mapGscMonth(res, month, `API Search Console · ${siteUrl} · ${via} · ${start} to ${end} (Pacific Time)`);
+      if (partial) for (const d of datasets) d.warnings.push(`Final GSC data only goes through ${end} (Pacific Time; later days are still being processed by Google) — re-sync after the start of next month.`);
       return datasets;
     } catch (e) {
       throw translate(e, info, siteUrl);

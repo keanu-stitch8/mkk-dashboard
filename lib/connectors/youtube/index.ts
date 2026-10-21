@@ -52,7 +52,7 @@ async function myChannel(c: Clients): Promise<{ id: string; title: string; uploa
   const { data } = await retry(() => c.yt.channels.list({ mine: true, part: ["id", "snippet", "contentDetails", "statistics"] }));
   const ch = data.items?.[0];
   if (!ch?.id || !ch.contentDetails?.relatedPlaylists?.uploads) {
-    throw new ConnectorError(`Akun Google ${c.info.account ? `${c.info.account} ` : ""}tidak punya channel YouTube. Hubungkan ulang dan pilih akun / Brand Account channel Main ke Kudus di layar pilih akun Google.`);
+    throw new ConnectorError(`Google account ${c.info.account ? `${c.info.account} ` : ""}has no YouTube channel. Reconnect and choose the Main ke Kudus channel's account / Brand Account on Google's account picker.`);
   }
   return { id: ch.id, title: ch.snippet?.title ?? ch.id, uploads: ch.contentDetails.relatedPlaylists.uploads, subscribers: Number(ch.statistics?.subscriberCount ?? 0) };
 }
@@ -139,15 +139,15 @@ async function ingestReachReports(c: Clients, jobId: string): Promise<number> {
 export const youtube: Connector = {
   id: "youtube",
   env: [
-    { name: "GOOGLE_OAUTH_CLIENT_ID", required: true, hint: "OAuth client (sama dengan GA4/GSC)." },
+    { name: "GOOGLE_OAUTH_CLIENT_ID", required: true, hint: "OAuth client (same as GA4/GSC)." },
     { name: "GOOGLE_OAUTH_CLIENT_SECRET", required: true, hint: "Secret OAuth client." },
   ],
 
   async status(): Promise<ConnectorStatus> {
     const missing = this.env.filter((v) => v.required && !process.env[v.name]?.trim()).map((v) => v.name);
     const oauth = { ...(await oauthAccount("youtube")), available: oauthClientConfigured() };
-    if (oauth.connected) return { configured: !missing.length, missing, account: `Akun Google ${oauth.account ?? ""}`.trim(), oauth };
-    return { configured: false, missing, account: "Klik “Hubungkan akun Google” dan pilih akun / Brand Account pemilik channel Main ke Kudus.", oauth };
+    if (oauth.connected) return { configured: !missing.length, missing, account: `Google account ${oauth.account ?? ""}`.trim(), oauth };
+    return { configured: false, missing, account: "Click “Connect Google account” and pick the account / Brand Account that owns the Main ke Kudus channel.", oauth };
   },
 
   async testConnection(): Promise<TestResult> {
@@ -165,12 +165,12 @@ export const youtube: Connector = {
       try {
         const job = await ensureReachJob(c);
         reach = job.created
-          ? " Job laporan Reach (impressions & CTR) baru dibuat — laporan pertama tersedia ±2 hari lagi, berisi 30 hari ke belakang."
-          : " Laporan Reach (impressions & CTR) aktif.";
+          ? " Reach report job (impressions & CTR) just created — the first report arrives in ~2 days, covering the past 30 days."
+          : " Reach report (impressions & CTR) is active.";
       } catch (e) {
-        reach = ` ⚠ Impressions & CTR belum bisa: ${translate(e, info).message}`;
+        reach = ` ⚠ Impressions & CTR not available yet: ${translate(e, info).message}`;
       }
-      return { ok: true, message: `Terhubung ke channel “${ch.title}” (${ch.subscribers.toLocaleString("id-ID")} subscriber). Views 7 hari (${start} s/d ${end}): ${views.toLocaleString("id-ID")}.${reach}` };
+      return { ok: true, message: `Connected to channel “${ch.title}” (${ch.subscribers.toLocaleString("en-ID")} subscribers). 7-day views (${start} to ${end}): ${views.toLocaleString("en-ID")}.${reach}` };
     } catch (e) {
       return { ok: false, message: translate(e, info).message };
     }
@@ -187,8 +187,8 @@ export const youtube: Connector = {
       for (const v of all) if (await isShort(v)) shorts.add(v.id);
       const videos = all.filter((v) => !shorts.has(v.id));
       const warnings: string[] = [];
-      if (shorts.size) warnings.push(`${shorts.size} YouTube Shorts tidak dihitung (mirror Reels; laporan hanya video long-form).`);
-      if (!videos.length) warnings.push(`Tidak ada video long-form yang dipublish ${month} di channel “${ch.title}”.`);
+      if (shorts.size) warnings.push(`${shorts.size} YouTube Shorts not counted (they mirror Reels; the report only covers long-form videos).`);
+      if (!videos.length) warnings.push(`No long-form videos published in ${month} on channel “${ch.title}”.`);
 
       const filters = videos.length ? `video==${videos.map((v) => v.id).join(",")}` : undefined;
       const empty = { columnHeaders: [], rows: [] };
@@ -227,12 +227,12 @@ export const youtube: Connector = {
         } else {
           warnings.push(
             covered.size
-              ? `Impressions & CTR dari API baru mencakup ${covered.size} dari ${days.length} hari (laporan Reach hanya 30 hari histori sejak job dibuat).`
-              : `Impressions & CTR belum tersedia dari API untuk bulan ini${job.created ? " (job laporan Reach baru dibuat; laporan pertama ±2 hari lagi)" : ""}.`,
+              ? `API impressions & CTR only cover ${covered.size} of ${days.length} days so far (Reach reports only have 30 days of history from when the job was created).`
+              : `Impressions & CTR aren't available from the API for this month yet${job.created ? " (Reach report job just created; first report in ~2 days)" : ""}.`,
           );
         }
       } catch (e) {
-        warnings.push(`Impressions & CTR tidak bisa diambil: ${translate(e, c.info).message}`);
+        warnings.push(`Couldn't fetch impressions & CTR: ${translate(e, c.info).message}`);
       }
 
       // Data yang tidak ada di API (atau belum tersedia) diambil dari import sebelumnya (CSV Studio) supaya tidak tertimpa kosong.
@@ -241,7 +241,7 @@ export const youtube: Connector = {
         const prev = prevVideos.filter((p) => p.impressions != null);
         if (prev.length) {
           reach = new Map(prev.map((p) => [p.videoId, { impressions: p.impressions ?? 0, ctr: p.ctr }]));
-          warnings.push("Impressions & CTR memakai data import sebelumnya (export YouTube Studio).");
+          warnings.push("Impressions & CTR use the previously imported data (YouTube Studio export).");
         }
       }
       // Unique viewers tidak tersedia di YouTube Analytics API.
@@ -254,13 +254,18 @@ export const youtube: Connector = {
       if (uniqueViewers.perVideo.size) {
         warnings.push(
           uniqueViewers.total != null
-            ? "Unique viewers memakai data import sebelumnya (tidak tersedia di API YouTube)."
-            : "Unique viewers per video memakai data import sebelumnya; total tidak dipakai karena daftar video berbeda dari import itu (unique viewers tidak bisa dijumlah).",
+            ? "Unique viewers use the previously imported data (not available from the YouTube API)."
+            : "Per-video unique viewers use the previously imported data; the total isn't used because the video list differs from that import (unique viewers can't be summed).",
         );
       }
 
-      const datasets = mapYoutubeMonth({ videos, perVideo, daily, reach, totals, uniqueViewers }, month, `API YouTube · ${ch.title} · ${start} s/d ${end}`);
-      if (partial) warnings.push(`Bulan berjalan — data sampai ${end} (Pacific Time).`);
+      const datasets = mapYoutubeMonth({ videos, perVideo, daily, reach, totals, uniqueViewers }, month, `API YouTube · ${ch.title} · ${start} to ${end}`);
+      if (partial) {
+        warnings.push(`Current month — data through ${end} (Pacific Time).`);
+        // total subscriber hanya tersedia "saat ini" (Data API, dibulatkan 3 angka penting) → bulan lalu dihitung mundur
+        const md = datasets.find((d) => d.metrics.some((m) => m.key === "views")) ?? datasets[0];
+        md?.metrics.push({ channel: "youtube", key: "subscribersNow", value: ch.subscribers });
+      }
       for (const d of datasets) d.warnings.push(...warnings);
       return datasets;
     } catch (e) {

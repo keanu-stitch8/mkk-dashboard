@@ -33,7 +33,7 @@ interface Rule {
 const pctChange = (cur: number | null | undefined, prev: number | null | undefined) =>
   cur == null || prev == null || prev === 0 ? null : (cur - prev) / prev;
 
-const fmtChange = (r: number) => `${r > 0 ? "naik" : "turun"} ${fmtPct(Math.abs(r))}`;
+const fmtChange = (r: number) => `${r > 0 ? "up" : "down"} ${fmtPct(Math.abs(r))}`;
 
 const formatName = (platform: string, format: string) =>
   `${FORMAT_LABEL[format] ?? format} ${PLATFORM_LABEL[platform] ?? platform}`.trim();
@@ -55,8 +55,8 @@ export const RULES: Rule[] = [
       if (ri == null || ri <= 0 || w.gscCtr == null || p.gscCtr == null || w.gscCtr >= p.gscCtr) return null;
       return {
         priority: "tinggi",
-        title: "Impressions naik, CTR turun",
-        text: `Impressions Google ${fmtChange(ri)} (${fmtNum(p.gscImpressions)} → ${fmtNum(w.gscImpressions)}), tapi CTR turun dari ${fmtPct(p.gscCtr)} ke ${fmtPct(w.gscCtr)}. Optimasi judul (title tag) dan meta description halaman dengan impressions terbesar supaya lebih menarik diklik.`,
+        title: "Impressions up, CTR down",
+        text: `Google impressions are ${fmtChange(ri)} (${fmtNum(p.gscImpressions)} → ${fmtNum(w.gscImpressions)}), but CTR fell from ${fmtPct(p.gscCtr)} to ${fmtPct(w.gscCtr)}. Optimize the title tags and meta descriptions of the highest-impression pages so they're more clickable.`,
       };
     },
   },
@@ -66,11 +66,11 @@ export const RULES: Rule[] = [
     run: ({ cur }) => {
       const qs = cur.website.opportunityQueries.filter((q) => q.impressions >= 5).slice(0, 3);
       if (!qs.length) return null;
-      const list = qs.map((q) => `"${q.query}" (posisi ${fmtNum(q.position, 1)}, ${fmtNum(q.impressions)} impressions)`).join(", ");
+      const list = qs.map((q) => `"${q.query}" (position ${fmtNum(q.position, 1)}, ${fmtNum(q.impressions)} impressions)`).join(", ");
       return {
         priority: "sedang",
-        title: "Query di posisi 4–10: peluang naik ke top 3",
-        text: `${cur.website.opportunityQueries.length} query berada di posisi 4–10, mis. ${list}. Perkuat konten terkait (tambah subjudul yang memuat query, internal link dari halaman populer, perbarui isi) agar naik ke top 3.`,
+        title: "Queries in positions 4–10: a chance to reach the top 3",
+        text: `${cur.website.opportunityQueries.length} queries rank in positions 4–10, e.g. ${list}. Strengthen the related content (add subheadings containing the query, internal links from popular pages, refresh the copy) to move them into the top 3.`,
       };
     },
   },
@@ -82,8 +82,8 @@ export const RULES: Rule[] = [
       if (!pages.length) return null;
       return {
         priority: "rendah",
-        title: "Halaman sering tampil tapi jarang diklik",
-        text: `Halaman ${pages.map((p) => `${p.path} (${fmtNum(p.impressions)} impressions, CTR ${fmtPct(p.ctr)})`).join(", ")} punya CTR di bawah 2%. Tulis ulang title & meta description-nya.`,
+        title: "Pages shown often but rarely clicked",
+        text: `The pages ${pages.map((p) => `${p.path} (${fmtNum(p.impressions)} impressions, CTR ${fmtPct(p.ctr)})`).join(", ")} have a CTR below 2%. Rewrite their titles & meta descriptions.`,
       };
     },
   },
@@ -96,8 +96,8 @@ export const RULES: Rule[] = [
       if (r == null || r > -0.1) return null;
       return {
         priority: "tinggi",
-        title: "Engagement rate website turun",
-        text: `Engagement rate website turun ${fmtPct(-r)} MoM (${fmtPct(prev!.website.engagementRate)} → ${fmtPct(cur.website.engagementRate)}). Cek halaman landing teratas: kecepatan loading, relevansi konten dengan sumber traffic, dan CTA ke artikel terkait.`,
+        title: "Website engagement rate down",
+        text: `Website engagement rate is down ${fmtPct(-r)} MoM (${fmtPct(prev!.website.engagementRate)} → ${fmtPct(cur.website.engagementRate)}). Check the top landing pages: load speed, how well the content matches the traffic source, and CTAs to related articles.`,
       };
     },
   },
@@ -110,9 +110,9 @@ export const RULES: Rule[] = [
       if (r == null || Math.abs(r) < 0.2) return null;
       return {
         priority: r < 0 ? "sedang" : "rendah",
-        title: r < 0 ? "Sesi website turun signifikan" : "Sesi website naik signifikan",
-        text: `Sesi website ${fmtChange(r)} (${fmtNum(prev!.website.sessions)} → ${fmtNum(cur.website.sessions)}). ${
-          r < 0 ? "Bandingkan sumber traffic untuk melihat channel mana yang menurun." : "Identifikasi konten/channel pendorongnya dan ulangi polanya."
+        title: r < 0 ? "Website sessions down significantly" : "Website sessions up significantly",
+        text: `Website sessions are ${fmtChange(r)} (${fmtNum(prev!.website.sessions)} → ${fmtNum(cur.website.sessions)}). ${
+          r < 0 ? "Compare traffic sources to see which channel declined." : "Identify the content/channels driving it and repeat the pattern."
         }`,
       };
     },
@@ -125,8 +125,8 @@ export const RULES: Rule[] = [
       if (!top || top.share == null || top.share < 0.5) return null;
       return {
         priority: "rendah",
-        title: "Traffic bergantung pada satu sumber",
-        text: `${fmtPct(top.share)} sesi berasal dari ${top.label}. Diversifikasi: dorong Organic Search lewat SEO dan Organic Social lewat link di bio/story.`,
+        title: "Traffic depends on a single source",
+        text: `${fmtPct(top.share)} of sessions come from ${top.label}. Diversify: grow Organic Search through SEO and Organic Social through links in bio/stories.`,
       };
     },
   },
@@ -142,9 +142,9 @@ export const RULES: Rule[] = [
       const gap = Math.max(0, n.quota.value - n.delivered);
       return {
         priority: n.achievement < 0.7 ? "tinggi" : "sedang",
-        title: "Kuota artikel belum tercapai",
-        text: `Delivered ${fmtNum(n.delivered)} dari ${fmtNum(n.quota.value)} artikel (${fmtPct(n.achievement)}): ${fmtNum(n.published)} published + ${fmtNum(n.inReview)} in review; kurang ${fmtNum(gap)}.${
-          n.inReview ? ` Percepat approval ${fmtNum(n.inReview)} artikel yang masih review supaya cepat terbit.` : ""
+        title: "Article quota not met yet",
+        text: `Delivered ${fmtNum(n.delivered)} of ${fmtNum(n.quota.value)} articles (${fmtPct(n.achievement)}): ${fmtNum(n.published)} published + ${fmtNum(n.inReview)} in review; ${fmtNum(gap)} short.${
+          n.inReview ? ` Speed up approval of the ${fmtNum(n.inReview)} articles still in review so they publish sooner.` : ""
         }`,
       };
     },
@@ -159,8 +159,8 @@ export const RULES: Rule[] = [
       if (best.perContent! < cur.news.viewsPerArticle * 1.2) return null;
       return {
         priority: "sedang",
-        title: `Kategori "${best.label}" paling efektif`,
-        text: `Kategori ${best.label} rata-rata ${fmtNum(best.perContent)} views per artikel (${fmtNum(best.count)} artikel), di atas rata-rata ${fmtNum(cur.news.viewsPerArticle)}. Perbanyak porsi kategori ini bulan depan.`,
+        title: `Category "${best.label}" performs best`,
+        text: `The ${best.label} category averages ${fmtNum(best.perContent)} views per article (${fmtNum(best.count)} articles), above the overall average of ${fmtNum(cur.news.viewsPerArticle)}. Publish more in this category next month.`,
       };
     },
   },
@@ -173,18 +173,18 @@ export const RULES: Rule[] = [
       if (n.unmatched.length) {
         out.push({
           priority: "sedang",
-          title: "Artikel published tidak ditemukan di GA4",
-          text: `${fmtNum(n.unmatched.length)} artikel published tidak cocok dengan data views (${n.unmatched
+          title: "Published articles not found in GA4",
+          text: `${fmtNum(n.unmatched.length)} published articles don't match the views data (${n.unmatched
             .slice(0, 3)
             .map((a) => `"${truncate(a.title, 40)}"`)
-            .join(", ")}${n.unmatched.length > 3 ? ", …" : ""}). Cek URL di log (typo, slug berubah) atau pastikan export GA4 Pages and screens memuat semua baris.`,
+            .join(", ")}${n.unmatched.length > 3 ? ", …" : ""}). Check the URLs in the log (typos, changed slugs) or make sure the GA4 Pages and screens export includes every row.`,
         });
       }
       if (n.zeroViews.length) {
         out.push({
           priority: "sedang",
-          title: "Artikel dengan 0 views",
-          text: `${fmtNum(n.zeroViews.length)} artikel published tercatat 0 views. Distribusikan ulang lewat sosmed dan tambahkan internal link.`,
+          title: "Articles with 0 views",
+          text: `${fmtNum(n.zeroViews.length)} published articles recorded 0 views. Redistribute them on social and add internal links.`,
         });
       }
       return out;
@@ -198,8 +198,8 @@ export const RULES: Rule[] = [
       if (!cur.news.hasData || s.length < 4) return null;
       return {
         priority: "rendah",
-        title: "Hari tanpa artikel berturut-turut",
-        text: `Tidak ada artikel terbit selama ${fmtNum(s.length)} hari berturut-turut (${fmtDate(s.from, false)}–${fmtDate(s.to, false)}). Siapkan stok artikel evergreen untuk mengisi jeda.`,
+        title: "Consecutive days without articles",
+        text: `No articles were published for ${fmtNum(s.length)} days in a row (${fmtDate(s.from, false)}–${fmtDate(s.to, false)}). Keep a stock of evergreen articles to fill gaps.`,
       };
     },
   },
@@ -212,8 +212,8 @@ export const RULES: Rule[] = [
       if (r == null || r > -0.15) return null;
       return {
         priority: "sedang",
-        title: "Views per artikel turun",
-        text: `Views per artikel ${fmtChange(r)} (${fmtNum(prev!.news.viewsPerArticle)} → ${fmtNum(cur.news.viewsPerArticle)}). Evaluasi judul dan distribusi artikel bulan ini.`,
+        title: "Views per article down",
+        text: `Views per article are ${fmtChange(r)} (${fmtNum(prev!.news.viewsPerArticle)} → ${fmtNum(cur.news.viewsPerArticle)}). Review this month's headlines and article distribution.`,
       };
     },
   },
@@ -229,16 +229,16 @@ export const RULES: Rule[] = [
       if (y.ctr != null && y.ctr < 0.04) {
         out.push({
           priority: "tinggi",
-          title: "CTR thumbnail YouTube di bawah 4%",
-          text: `CTR impressions channel ${fmtPct(y.ctr, 2)} dari ${fmtNum(y.impressions)} impressions. Uji thumbnail dengan wajah/teks besar dan judul yang lebih spesifik.`,
+          title: "YouTube thumbnail CTR below 4%",
+          text: `Channel impressions CTR is ${fmtPct(y.ctr, 2)} from ${fmtNum(y.impressions)} impressions. Test thumbnails with faces/large text and more specific titles.`,
         });
       }
       const low = y.lowCtrVideos.slice(0, 3);
       if (low.length) {
         out.push({
           priority: "sedang",
-          title: "Video dengan CTR thumbnail rendah",
-          text: `${low.map((v) => `"${truncate(v.title, 40)}" (CTR ${fmtPct(v.ctr, 2)}, ${fmtNum(v.impressions)} impressions)`).join(", ")}. Ganti thumbnail/judul video ini.`,
+          title: "Videos with low thumbnail CTR",
+          text: `${low.map((v) => `"${truncate(v.title, 40)}" (CTR ${fmtPct(v.ctr, 2)}, ${fmtNum(v.impressions)} impressions)`).join(", ")}. Replace these videos' thumbnails/titles.`,
         });
       }
       return out;
@@ -253,8 +253,8 @@ export const RULES: Rule[] = [
       const v = vids[0];
       return {
         priority: "rendah",
-        title: "Retensi video rendah",
-        text: `"${truncate(v.title, 50)}" rata-rata ditonton ${fmtDuration(v.avgViewDurationSec)} dari durasi ${fmtDuration(v.durationSec)} (${fmtPct(v.avgViewDurationSec! / v.durationSec!)}). Perkuat 15 detik pertama dan pertimbangkan versi lebih pendek.`,
+        title: "Low video retention",
+        text: `"${truncate(v.title, 50)}" is watched for ${fmtDuration(v.avgViewDurationSec)} on average out of ${fmtDuration(v.durationSec)} (${fmtPct(v.avgViewDurationSec! / v.durationSec!)}). Strengthen the first 15 seconds and consider a shorter cut.`,
       };
     },
   },
@@ -266,9 +266,9 @@ export const RULES: Rule[] = [
       if (!y.hasData || y.deliveredRate == null || y.deliveredRate >= 0.9) return null;
       return {
         priority: "sedang",
-        title: "Kuota video YouTube belum tercapai",
-        text: `Delivered ${fmtNum(y.delivered)} dari ${fmtNum(y.quota.value)} video (${fmtPct(y.deliveredRate)}): ${fmtNum(y.published)} published + ${fmtNum(y.inReview)} in review.${
-          y.inReview ? ` Percepat approval ${fmtNum(y.inReview)} video yang masih review supaya cepat tayang.` : ""
+        title: "YouTube video quota not met yet",
+        text: `Delivered ${fmtNum(y.delivered)} of ${fmtNum(y.quota.value)} videos (${fmtPct(y.deliveredRate)}): ${fmtNum(y.published)} published + ${fmtNum(y.inReview)} in review.${
+          y.inReview ? ` Speed up approval of the ${fmtNum(y.inReview)} videos still in review so they go live sooner.` : ""
         }`,
       };
     },
@@ -282,8 +282,8 @@ export const RULES: Rule[] = [
       if (r == null || r > -0.2) return null;
       return {
         priority: "sedang",
-        title: "Views YouTube turun",
-        text: `Views YouTube ${fmtChange(r)} (${fmtNum(prev!.youtube.views)} → ${fmtNum(cur.youtube.views)}). Promosikan video lewat Shorts/Reels potongan dan end screen.`,
+        title: "YouTube views down",
+        text: `YouTube views are ${fmtChange(r)} (${fmtNum(prev!.youtube.views)} → ${fmtNum(cur.youtube.views)}). Promote the videos with Shorts/Reels cut-downs and end screens.`,
       };
     },
   },
@@ -298,11 +298,11 @@ export const RULES: Rule[] = [
       const gap = Math.max(0, q.quota.value - q.count);
       return {
         priority: q.rate < 0.7 ? "tinggi" : "sedang",
-        title: "Kuota post sosmed belum tercapai",
-        text: `Delivered ${fmtNum(q.count)} dari ${fmtNum(q.quota.value)} post (${fmtPct(q.rate)}): ${fmtNum(q.published)} published + ${fmtNum(q.inReview)} in review; kurang ${fmtNum(gap)}.${
-          q.inReview ? ` Percepat approval ${fmtNum(q.inReview)} konten yang masih review supaya cepat tayang.` : ""
+        title: "Social post quota not met yet",
+        text: `Delivered ${fmtNum(q.count)} of ${fmtNum(q.quota.value)} posts (${fmtPct(q.rate)}): ${fmtNum(q.published)} published + ${fmtNum(q.inReview)} in review; ${fmtNum(gap)} short.${
+          q.inReview ? ` Speed up approval of the ${fmtNum(q.inReview)} items still in review so they go live sooner.` : ""
         }${
-          cur.social.countSource === "meta" ? " Dihitung dari export Meta tanpa Stories — import Publishing Log untuk angka resmi." : ""
+          cur.social.countSource === "meta" ? " Counted from the Meta export without Stories — import the Publishing Log for official numbers." : ""
         }`,
       };
     },
@@ -320,8 +320,8 @@ export const RULES: Rule[] = [
         if (r == null || r > -0.1) continue;
         out.push({
           priority: "tinggi",
-          title: `Engagement rate ${PLATFORM_LABEL[p.platform] ?? p.platform} turun`,
-          text: `Engagement rate ${PLATFORM_LABEL[p.platform] ?? p.platform} turun ${fmtPct(-r)} MoM (${fmtPct(q!.er)} → ${fmtPct(p.er)}). Perkuat hook di 3 detik pertama, ajak audiens berkomentar/menyimpan, dan evaluasi jam posting.`,
+          title: `${PLATFORM_LABEL[p.platform] ?? p.platform} engagement rate down`,
+          text: `${PLATFORM_LABEL[p.platform] ?? p.platform} engagement rate is down ${fmtPct(-r)} MoM (${fmtPct(q!.er)} → ${fmtPct(p.er)}). Strengthen the hook in the first 3 seconds, prompt the audience to comment/save, and review posting times.`,
         });
       }
       return out;
@@ -341,8 +341,8 @@ export const RULES: Rule[] = [
         if (ratio < 1.5) continue;
         out.push({
           priority: ratio >= 2 ? "sedang" : "rendah",
-          title: `${formatName(platform, best.format)} unggul jauh dari ${FORMAT_LABEL[worst.format] ?? worst.format}`,
-          text: `Rata-rata reach ${formatName(platform, best.format)} ${fmtNum(best.avgReach)} per post vs ${formatName(platform, worst.format)} ${fmtNum(worst.avgReach)} (${fmtNum(ratio, 1)}×). Perbanyak ${FORMAT_LABEL[best.format] ?? best.format}; untuk ${FORMAT_LABEL[worst.format] ?? worst.format}, uji ulang cover dan caption.`,
+          title: `${formatName(platform, best.format)} far outperforms ${FORMAT_LABEL[worst.format] ?? worst.format}`,
+          text: `Average reach for ${formatName(platform, best.format)} is ${fmtNum(best.avgReach)} per post vs ${formatName(platform, worst.format)} at ${fmtNum(worst.avgReach)} (${fmtNum(ratio, 1)}×). Post more ${FORMAT_LABEL[best.format] ?? best.format}; for ${FORMAT_LABEL[worst.format] ?? worst.format}, re-test the cover and caption.`,
         });
       }
       return out;
@@ -357,8 +357,8 @@ export const RULES: Rule[] = [
       const best = [...cats].sort((a, b) => b.avgReach! - a.avgReach!)[0];
       return {
         priority: "rendah",
-        title: `Kategori sosmed "${best.label}" paling menjangkau`,
-        text: `Kategori ${best.label} rata-rata ${fmtNum(best.avgReach)} reach per post (${fmtNum(best.posts)} post). Perbanyak konten kategori ini.`,
+        title: `Social category "${best.label}" has the widest reach`,
+        text: `The ${best.label} category averages ${fmtNum(best.avgReach)} reach per post (${fmtNum(best.posts)} posts). Post more content in this category.`,
       };
     },
   },
@@ -370,8 +370,8 @@ export const RULES: Rule[] = [
       if (!cur.social.hasData || s.length < 3) return null;
       return {
         priority: s.length >= 5 ? "sedang" : "rendah",
-        title: "Hari publish kosong berturut-turut",
-        text: `Tidak ada posting selama ${fmtNum(s.length)} hari berturut-turut (${fmtDate(s.from, false)}–${fmtDate(s.to, false)}). Aktif ${fmtNum(cur.social.activeDays)} hari di ${monthLabel(cur.month)}. Jadwalkan konten cadangan supaya ritme posting stabil.`,
+        title: "Consecutive days without posts",
+        text: `Nothing was posted for ${fmtNum(s.length)} days in a row (${fmtDate(s.from, false)}–${fmtDate(s.to, false)}). Active on ${fmtNum(cur.social.activeDays)} days in ${monthLabel(cur.month)}. Schedule backup content to keep a steady posting rhythm.`,
       };
     },
   },
@@ -388,7 +388,7 @@ export function generateRecommendations(ctx: RuleContext): Recommendation[] {
     try {
       res = rule.run(ctx);
     } catch (e) {
-      console.error(`Rule ${rule.id} gagal:`, e);
+      console.error(`Rule ${rule.id} failed:`, e);
       continue;
     }
     if (!res) continue;

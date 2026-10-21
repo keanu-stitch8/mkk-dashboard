@@ -240,7 +240,7 @@ describe("format sintetis (UI Indonesia / Google Sheets)", () => {
     const oct = applyMonth(d, "2026-10");
     expect(oct.rows).toHaveLength(2);
     expect(oct.rows[0]).toMatchObject({ path: "/news/b", status: "publish", reporter: "YSR" });
-    expect(oct.warnings.join(" ")).toMatch(/1 baris di luar Oktober 2026/);
+    expect(oct.warnings.join(" ")).toMatch(/1 rows outside October 2026 ignored/);
   });
 
   it("Publishing log sosmed (Tanggal, Channel, Tipe, Kategori, Admin, Designer, Status)", () => {
@@ -316,8 +316,8 @@ describe("YouTube: periode export vs bulan publish video", () => {
     expect(t.month).toBe("2026-09");
     expect(t.range).toEqual({ start: "2026-09-01", end: "2026-09-30" });
     const w = applyMonth(t, "2026-08").warnings.join(" ");
-    expect(w).toMatch(/periode 1 Sep 2026–30 Sep 2026/);
-    expect(w).toMatch(/Pastikan bulan yang dipilih sudah benar/);
+    expect(w).toMatch(/covers 1 Sep 2026–30 Sep 2026/);
+    expect(w).toMatch(/Make sure the selected month is correct/);
     // Totals berisi Subscribers gained → dilewati dengan alasan spesifik
     expect(r.skipped.some((s) => /Subscribers gained/.test(s.reason))).toBe(true);
     expect(applyMonth(t, "2026-09").warnings.join(" ")).not.toMatch(/periode/);
@@ -356,7 +356,7 @@ describe("YouTube: laporan = video yang dipublish di bulan laporan", () => {
     expect(metric(aug, "ctr")).toBeCloseTo(0.04);
     expect(metric(aug, "avgViewDurationSec")).toBeCloseTo(120);
     expect(metric(aug, "uniqueViewers")).toBeUndefined();
-    expect(aug.warnings.join(" ")).toMatch(/1 video publish Juli 2026/);
+    expect(aug.warnings.join(" ")).toMatch(/1 published in July 2026/);
   });
 
   it("hitung ulang: avg view duration = rata-rata per video tertimbang views (bukan watch time ÷ views)", () => {

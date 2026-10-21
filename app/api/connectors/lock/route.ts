@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { month?: string; locked?: boolean };
-  if (!body.month || !isMonth(body.month)) return Response.json({ error: "Format bulan harus YYYY-MM." }, { status: 400 });
-  if (body.locked && body.month >= currentMonth()) return Response.json({ error: "Bulan berjalan belum bisa dikunci." }, { status: 400 });
-  await setMonthLock(body.month, !!body.locked, body.locked ? "Dikunci manual" : undefined);
+  if (!body.month || !isMonth(body.month)) return Response.json({ error: "Month must be in YYYY-MM format." }, { status: 400 });
+  if (body.locked && body.month >= currentMonth()) return Response.json({ error: "The current month can't be locked yet." }, { status: 400 });
+  await setMonthLock(body.month, !!body.locked, body.locked ? "Locked manually" : undefined);
   return Response.json({ ok: true });
 }

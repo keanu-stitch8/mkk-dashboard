@@ -6,83 +6,91 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0.002 90);
+  /* Preset "Orange" shadcnstore dashboard template (utils/shadcn-ui-theme-presets.ts), radius 1.0;
+     primary = oranye mainkekudus.com (repo mainkekudus: --primary) menggantikan orange-600 preset */
+  --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.6677 0.2235 36.99);
+  --primary-foreground: oklch(0.98 0.016 73.684); /* orange-50 */
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.965 0.002 90);
-  --muted-foreground: oklch(0.52 0.004 90);
-  --accent: oklch(0.96 0.002 90);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.915 0.004 90);
-  --input: oklch(0.915 0.004 90);
-  --ring: oklch(0.708 0 0);
-  /* Palet kategorikal tervalidasi CVD — urutan tetap, jangan diacak */
-  --chart-1: #2a78d6;
-  --chart-2: #eb6834;
-  --chart-3: #1baf7a;
-  --chart-4: #eda100;
-  --chart-5: #e87ba4;
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.75 0.183 55.934); /* orange-400 */
+  /* Grafik: preset "Orange" template = gradasi orange-500…900 */
+  --chart-1: oklch(0.705 0.213 47.604);
+  --chart-2: oklch(0.646 0.222 41.116);
+  --chart-3: oklch(0.553 0.195 38.402);
+  --chart-4: oklch(0.47 0.157 37.304);
+  --chart-5: oklch(0.408 0.123 38.172);
   /* Status (naik/turun/peringatan) — selalu dipasangkan dengan ikon + teks */
-  --success: #0b7a0b;
+  --success: oklch(0.627 0.194 149.214); /* status template */
   --success-soft: #e6f4e6;
   --danger: #c42f2f;
   --danger-soft: #fbeaea;
   --warning: #9a6400;
   --warning-soft: #fdf3dc;
   --info-soft: #e8f1fc;
-  --radius: 0.625rem;
+  /* palet badge halaman Users template (text-X bg-X/10) */
+  --info: oklch(0.546 0.245 262.881);
+  --attention: oklch(0.705 0.213 47.604);
+  --radius: 1rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.6677 0.2235 36.99);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.955 0.002 90);
+  --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.915 0.004 90);
+  --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.195 0 0);
+  --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.269 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.6677 0.2235 36.99);
+  --primary-foreground: oklch(0.98 0.016 73.684); /* orange-50 */
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.25 0 0);
+  --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: oklch(0.371 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: #3987e5;
-  --chart-2: #d95926;
-  --chart-3: #199e70;
-  --chart-4: #c98500;
-  --chart-5: #d55181;
-  --success: #4cc44c;
+  --ring: oklch(0.408 0.123 38.172); /* orange-900 */
+  /* preset "Orange" dark = orange-400…800 */
+  --chart-1: oklch(0.75 0.183 55.934);
+  --chart-2: oklch(0.705 0.213 47.604);
+  --chart-3: oklch(0.646 0.222 41.116);
+  --chart-4: oklch(0.553 0.195 38.402);
+  --chart-5: oklch(0.47 0.157 37.304);
+  --success: oklch(0.792 0.209 151.711); /* status template */
   --success-soft: #17301a;
   --danger: #f07070;
   --danger-soft: #3a1c1c;
   --warning: #e0a830;
   --warning-soft: #3a2e12;
   --info-soft: #1b2a3d;
-  --sidebar: oklch(0.175 0 0);
+  --info: oklch(0.707 0.165 254.624);
+  --attention: oklch(0.75 0.183 55.934);
+  --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: oklch(0.6677 0.2235 36.99);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
@@ -91,9 +99,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-sans);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -124,6 +132,8 @@
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-info-soft: var(--info-soft);
+  --color-info: var(--info);
+  --color-attention: var(--attention);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -132,10 +142,11 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  /* skala radius shadcnstore template (radius ± px) */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);

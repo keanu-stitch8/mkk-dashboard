@@ -19,7 +19,7 @@ export interface KpiDef<S> {
 }
 
 const MINUS = "−";
-const en1 = (v: number) => Math.abs(v).toLocaleString("en-US", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const en1 = (v: number) => Math.abs(v).toLocaleString("en-ID", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
 
 /** Durasi detik → "1m 44s" / "45s" (laporan EN). */
 export function fmtDurationEn(sec: number): string {
@@ -36,9 +36,9 @@ export function kpiChange(kind: KpiKind, cur: number | null | undefined, prev: n
     const good = diff > 0 === goodWhenUp;
     return { text: `${diff > 0 ? "↑" : "↓"} from 0 last month${goodWhenUp ? "" : good ? " (up)" : " (down)"}`, tone: good ? "good" : "bad" };
   }
-  if (kind !== "rate" && prev === 0) return { text: "→ 0.0% vs last month", tone: "flat" };
+  if (kind !== "rate" && prev === 0) return { text: "→ 0,0% vs last month", tone: "flat" };
   const flat = kind === "rate" ? Math.abs(diff) < 0.0005 : Math.abs(diff / prev) < 0.0005;
-  if (flat) return { text: `→ ${kind === "rate" ? "0.0 percentage points" : "0.0%"} vs last month`, tone: "flat" };
+  if (flat) return { text: `→ ${kind === "rate" ? "0,0 percentage points" : "0,0%"} vs last month`, tone: "flat" };
   const sign = diff > 0 ? "+" : MINUS;
   // laporan client: "percentage points" ditulis lengkap (bukan "pp") supaya tidak membingungkan
   const body = kind === "rate" ? `${sign}${en1(diff * 100)} percentage points` : `${sign}${en1((diff / prev) * 100)}%`;
@@ -84,15 +84,15 @@ export interface WebsiteKpiSource {
 export const WEBSITE_KPIS: KpiDef<WebsiteKpiSource>[] = [
   { key: "users", label: "Users", kind: "count", get: (s) => s.users },
   { key: "new_users", label: "New users", kind: "count", get: (s) => s.newUsers },
-  { key: "sessions", label: "Sessions", kind: "count", get: (s) => s.sessions, hint: "Jumlah sesi semua channel (Traffic acquisition)." },
+  { key: "sessions", label: "Sessions", kind: "count", get: (s) => s.sessions, hint: "Sessions across all channels (Traffic acquisition)." },
   { key: "views", label: "Views", kind: "count", get: (s) => s.pageviews },
   { key: "engagement_rate", label: "Engagement rate", kind: "rate", get: (s) => s.engagementRate, hint: "Engaged sessions ÷ sessions." },
-  { key: "bounce_rate", label: "Bounce rate", kind: "rate", goodWhenUp: false, get: (s) => s.bounceRate, hint: "1 − engagement rate (definisi GA4)." },
-  { key: "avg_engagement_time", label: "Avg engagement time", kind: "duration", get: (s) => s.avgEngagementTime, hint: "Rata-rata waktu engagement per sesi." },
+  { key: "bounce_rate", label: "Bounce rate", kind: "rate", goodWhenUp: false, get: (s) => s.bounceRate, hint: "1 − engagement rate (GA4 definition)." },
+  { key: "avg_engagement_time", label: "Avg engagement time", kind: "duration", get: (s) => s.avgEngagementTime, hint: "Average engagement time per session." },
   { key: "gsc_clicks", label: "GSC clicks", kind: "count", get: (s) => s.gscClicks },
   { key: "gsc_impressions", label: "GSC impressions", kind: "count", get: (s) => s.gscImpressions },
   { key: "gsc_ctr", label: "GSC CTR", kind: "rate", get: (s) => s.gscCtr },
-  { key: "gsc_position", label: "Avg position", kind: "decimal", goodWhenUp: false, get: (s) => s.gscPosition, hint: "Rata-rata posisi tertimbang impressions. Makin kecil makin baik." },
+  { key: "gsc_position", label: "Avg position", kind: "decimal", goodWhenUp: false, get: (s) => s.gscPosition, hint: "Impression-weighted average position. Lower is better." },
   { key: "engaged_sessions", label: "Engaged sessions", kind: "count", get: (s) => s.engagedSessions },
 ];
 
@@ -112,13 +112,13 @@ export interface NewsKpiSource {
 /** Kartu KPI News (urutan = grid dashboard & blok kartu laporan): baris 1 produksi, baris 2 pembaca. */
 export const NEWS_KPIS: KpiDef<NewsKpiSource>[] = [
   { key: "published", label: "Articles published", kind: "count", get: (s) => s.published },
-  { key: "in_review", label: "Articles in review", kind: "count", neutral: true, get: (s) => s.inReview, hint: "Artikel yang sudah dikirim tapi belum dipublish." },
-  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published + in review (definisi 'Delivered' di report News)." },
-  { key: "achievement", label: "Quota achievement", kind: "rate", get: (s) => s.achievement, hint: "Delivered ÷ kuota." },
-  { key: "views", label: "Article views", kind: "count", get: (s) => s.totalViews, hint: "Jumlah views artikel yang dipublish bulan ini (cocok via URL)." },
+  { key: "in_review", label: "Articles in review", kind: "count", neutral: true, get: (s) => s.inReview, hint: "Articles submitted but not yet published." },
+  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published + in review (the News report's 'Delivered' definition)." },
+  { key: "achievement", label: "Quota achievement", kind: "rate", get: (s) => s.achievement, hint: "Delivered ÷ quota." },
+  { key: "views", label: "Article views", kind: "count", get: (s) => s.totalViews, hint: "Total views of articles published this month (matched by URL)." },
   { key: "views_per_article", label: "Views per article", kind: "decimal", get: (s) => s.viewsPerArticle },
-  { key: "readers", label: "Readers", kind: "count", get: (s) => s.readers, hint: "Jumlah active users per artikel (satu orang bisa terhitung di beberapa artikel)." },
-  { key: "avg_engagement_time", label: "Avg engagement time", kind: "duration", get: (s) => s.avgEngagementTime, hint: "Rata-rata waktu engagement per pembaca, tertimbang jumlah pembaca." },
+  { key: "readers", label: "Readers", kind: "count", get: (s) => s.readers, hint: "Sum of active users per article (one person can be counted on several articles)." },
+  { key: "avg_engagement_time", label: "Avg engagement time", kind: "duration", get: (s) => s.avgEngagementTime, hint: "Average engagement time per reader, weighted by reader count." },
 ];
 
 /** Field summary YouTube yang dipakai kartu KPI. */
@@ -135,15 +135,15 @@ export interface YoutubeKpiSource {
   subsNet: number | null;
 }
 
-const signed = (v: number | null) => (v == null ? null : `${v > 0 ? "+" : ""}${v.toLocaleString("en-US")}`);
+const signed = (v: number | null) => (v == null ? null : `${v > 0 ? "+" : ""}${v.toLocaleString("en-ID")}`);
 
 /** Kartu KPI YouTube (urutan = grid dashboard & blok kartu laporan): baris 1 produksi & jangkauan, baris 2 tontonan. */
 export const YOUTUBE_KPIS: KpiDef<YoutubeKpiSource>[] = [
-  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published (Calendar Timeline, termasuk recap) + in review (Review/Approved di Gantt per akhir bulan) vs kuota bulanan." },
+  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published (Calendar Timeline, including recaps) + in review (Review/Approved in the Gantt at month end) vs the monthly quota." },
   { key: "views", label: "Views", kind: "count", get: (s) => s.views },
   { key: "views_per_video", label: "Views per video", kind: "decimal", get: (s) => s.viewsPerVideo },
-  { key: "impressions", label: "Impressions", kind: "count", get: (s) => s.impressions, hint: "Berapa kali thumbnail ditampilkan di YouTube." },
-  { key: "ctr", label: "Impressions CTR", kind: "rate", get: (s) => s.ctr, hint: "Rasio klik thumbnail. Di bawah 4% = perlu perbaikan thumbnail/judul." },
+  { key: "impressions", label: "Impressions", kind: "count", get: (s) => s.impressions, hint: "How many times thumbnails were shown on YouTube." },
+  { key: "ctr", label: "Impressions CTR", kind: "rate", get: (s) => s.ctr, hint: "Thumbnail click-through rate. Below 4% = the thumbnail/title needs work." },
   { key: "watch_hours", label: "Watch time (hours)", kind: "decimal", get: (s) => s.watchHours },
   { key: "avg_view_duration", label: "Avg view duration", kind: "duration", get: (s) => s.avgViewDurationSec },
   { key: "subs_net", label: "Subscribers (net)", kind: "count", get: (s) => s.subsNet, display: (s) => signed(s.subsNet) },
@@ -165,12 +165,12 @@ export interface SocialKpiSource {
 
 /** Kartu KPI Social / Instagram (urutan = grid dashboard & blok kartu laporan). */
 export const SOCIAL_KPIS: KpiDef<SocialKpiSource>[] = [
-  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published (satu baris publishing log = satu konten, semua format termasuk Stories) + in review (Task Progress per akhir bulan) vs kuota bulanan." },
-  { key: "views", label: "Views", kind: "count", get: (s) => s.views, hint: "Insight akun Instagram selama bulan ini (API) — termasuk Stories & post lama, bukan hanya post yang dipublish bulan ini." },
-  { key: "views_per_post", label: "Views per post", kind: "count", get: (s) => s.viewsPerPost, hint: "Rata-rata views lifetime per post feed/Reels yang dipublish bulan ini (sejak publish)." },
-  { key: "reach", label: "Reach", kind: "count", get: (s) => s.reach, hint: "Akun unik yang melihat konten selama bulan ini (insight akun). Untuk bulan 31 hari Meta hanya memberi 30 hari pertama." },
-  { key: "engagement_rate", label: "Engagement rate", kind: "rate", get: (s) => s.engagementRate, hint: "Interactions ÷ reach akun selama bulan ini. Lebih tinggi dari ER per post karena pembaginya akun unik." },
-  { key: "interactions", label: "Interactions", kind: "count", get: (s) => s.interactions, hint: "Total interaksi (likes, comments, shares, saves, replies) di semua konten selama bulan ini — insight akun." },
-  { key: "follows", label: "Follows", kind: "count", get: (s) => s.follows, hint: "Follow baru ke akun Instagram selama bulan ini (insight akun via API)." },
-  { key: "active_days", label: "Active publishing days", kind: "count", get: (s) => s.activeDays, display: (s) => `${s.activeDays} days`, hint: "Hari dengan minimal satu konten dipublish (publishing log)." },
+  { key: "delivered", label: "Delivered vs quota", kind: "count", get: (s) => s.delivered, display: (s) => `${s.delivered} / ${s.quota.value}`, hint: "Published (one publishing-log row = one piece of content, all formats including Stories) + in review (Task Progress at month end) vs the monthly quota." },
+  { key: "views", label: "Views", kind: "count", get: (s) => s.views, hint: "Instagram account insights during this month (API) — includes Stories & older posts, not just posts published this month." },
+  { key: "views_per_post", label: "Views per post", kind: "count", get: (s) => s.viewsPerPost, hint: "Average lifetime views per feed/Reels post published this month (since publishing)." },
+  { key: "reach", label: "Reach", kind: "count", get: (s) => s.reach, hint: "Unique accounts that saw content during this month (account insights). For 31-day months Meta only returns the first 30 days." },
+  { key: "engagement_rate", label: "Engagement rate", kind: "rate", get: (s) => s.engagementRate, hint: "Interactions ÷ account reach during this month. Higher than per-post ER because the denominator is unique accounts." },
+  { key: "interactions", label: "Interactions", kind: "count", get: (s) => s.interactions, hint: "Total interactions (likes, comments, shares, saves, replies) across all content during this month — account insights." },
+  { key: "follows", label: "Follows", kind: "count", get: (s) => s.follows, hint: "New follows to the Instagram account during this month (account insights via API)." },
+  { key: "active_days", label: "Active publishing days", kind: "count", get: (s) => s.activeDays, display: (s) => `${s.activeDays} days`, hint: "Days with at least one piece of content published (publishing log)." },
 ];
