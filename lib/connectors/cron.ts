@@ -1,10 +1,11 @@
-// Sync otomatis saat server Next jalan (SYNC_CRON=1): bulan lalu, tiap tanggal 3 jam 07:00 WIB.
+// Sync otomatis saat server Next jalan (SYNC_CRON=1): bulan lalu, tiap tanggal potong (CUTOFF_DAY = 5) jam 07:00 WIB.
 // Tanpa dependensi: timer mengecek tiap 10 menit apakah slot terakhir sudah dijalankan (SyncLog trigger "cron").
 // Jika server mati saat jadwal, sync dikejar begitu server menyala lagi; tiap slot hanya dijalankan sekali.
-import { prevMonth } from "../month";
+import { fmtDate } from "../format";
+import { CUTOFF_DAY, cutoffDate, prevMonth } from "../month";
 import { WIB, dateIn, zonedInstant } from "../tz";
 
-const SYNC_DAY = 3;
+const SYNC_DAY = CUTOFF_DAY;
 const SYNC_HOUR_WIB = 7;
 const CHECK_EVERY_MS = 10 * 60_000;
 
@@ -74,7 +75,7 @@ async function tick() {
     // semua connector metrik berhasil → bulan final, kunci supaya angka laporan tidak berubah lagi
     const metricResults = results.filter((r) => isLockable(r.connector));
     if (!locked && metricResults.length && metricResults.every((r) => r.ok)) {
-      await setMonthLock(month, true, "Otomatis setelah sync cron");
+      await setMonthLock(month, true, `Locked automatically · cut-off ${fmtDate(cutoffDate(month))}`);
       console.log(`[sync-cron] 🔒 ${month} dikunci`);
       // bulan final → buat laporan Google Sheets untuk channel yang master template-nya sudah ada
       const { REPORT_CHANNELS } = await import("../reports/channels");

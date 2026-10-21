@@ -137,7 +137,7 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
 
       <Section
         title="Month locks"
-        subtitle="Locked months aren't re-synced by GA4, GSC, YouTube & Meta, so report numbers don't change (lifetime per-post metrics keep growing). Publishing Logs can still be synced. The cron job locks last month automatically after the sync on the 3rd."
+        subtitle="Locked months aren't re-synced by GA4, GSC, YouTube & Meta, so report numbers don't change (lifetime per-post metrics keep growing). Publishing Logs can still be synced. Cut-off: the cron job syncs and locks last month on the 5th (07:00 WIB); Instagram per-post metrics are taken as of the 5th even if the sync runs later."
       >
         <Table>
           <TableBody>

@@ -8,7 +8,7 @@ import { enMonth } from "../month";
 import type { Cell, ReportChannel, ReportData } from "../types";
 import { isRecap, seriesFor, seriesProgress } from "../youtube-series";
 import { sheetDate } from "./news";
-import { categoryLabel, YOUTUBE_FORMATS, YOUTUBE_REPORT_CATEGORIES, youtubeFormat } from "../../taxonomy";
+import { categoryLabel, hiddenCategoryRows, YOUTUBE_FORMATS, YOUTUBE_REPORT_CATEGORIES, youtubeFormat } from "../../taxonomy";
 import { youtubeFindings } from "./youtube-narrative";
 
 /**
@@ -164,6 +164,7 @@ export async function buildYoutube(month: string): Promise<ReportData> {
     warnings,
     // In review & Unpublished hanya tampil jika ada isinya (tabel tetap muat di halaman 2)
     hideRows: [
+      ...hiddenCategoryRows(cats),
       ...(y.inReview === 0 ? ["cat.review"] : []),
       ...(unpublished === 0 ? ["cat.unpublished"] : []),
     ],

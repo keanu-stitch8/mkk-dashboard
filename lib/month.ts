@@ -18,6 +18,13 @@ export function monthLabel(month: string, short = false): string {
 /** Bulan launching; grafik tren tidak menampilkan bulan sebelumnya. */
 export const LAUNCH_MONTH = "2026-06";
 
+/**
+ * Tanggal potong data bulanan (mulai Oktober 2026): tanggal 5 bulan berikutnya — cron sync + kunci + laporan, dan
+ * metrik lifetime per post IG diambil per tanggal ini walau sync terlambat (lib/connectors/meta applyCutoffSnapshot).
+ */
+export const CUTOFF_DAY = 5;
+export const cutoffDate = (month: string) => `${addMonths(month, 1)}-${String(CUTOFF_DAY).padStart(2, "0")}`;
+
 export function addMonths(month: string, delta: number): string {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + delta, 1));

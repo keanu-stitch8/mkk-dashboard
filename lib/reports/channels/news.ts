@@ -4,7 +4,7 @@ import { daysInMonth, prevMonth } from "../../month";
 import { fmtDurationEn, kpiData, NEWS_KPIS } from "../kpi";
 import { enMonth } from "../month";
 import type { Cell, ReportChannel, ReportData } from "../types";
-import { categoryLabel, NEWS_REPORT_CATEGORIES, newsFormat } from "../../taxonomy";
+import { categoryLabel, hiddenCategoryRows, NEWS_REPORT_CATEGORIES, newsFormat } from "../../taxonomy";
 import { newsFindings } from "./news-narrative";
 
 /**
@@ -149,6 +149,8 @@ export async function buildNews(month: string): Promise<ReportData> {
     autoHeight: ["findings", "articles", "log", "review"],
     // kategori "Other" (slot terakhir) hanya tampil jika ada isinya
     warnings,
+    // kategori opsional (mis. Transportation) bernilai 0 → baris disembunyikan
+    hideRows: hiddenCategoryRows(cats),
     tables: {
       findings: findings.map((text) => ({ text })),
       articles: published.map((a, i) => ({

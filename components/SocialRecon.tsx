@@ -7,6 +7,9 @@ import { FORMAT_LABEL, PLATFORM_LABEL } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 
 const label = (f: string) => FORMAT_LABEL[f] ?? f;
+/** Rincian format log digabung per label (feeds & carousel sama-sama "Feed") → [label, jumlah]. */
+const byLabel = (detail: { format: string; count: number }[]) =>
+  Object.entries(detail.reduce<Record<string, number>>((a, d) => ((a[label(d.format)] = (a[label(d.format)] ?? 0) + d.count), a), {}));
 const platforms = (p: string) =>
   p
     .split(",")
@@ -81,7 +84,7 @@ export function SocialRecon({ r, stories }: { r: Recon; stories: SocialSummary["
               cell: (x) => (
                 <span className="whitespace-nowrap">
                   {fmtNum(x.log)}
-                  {x.detail.length > 1 && <span className="text-muted-foreground"> ({x.detail.map((d) => `${fmtNum(d.count)} ${label(d.format)}`).join(" + ")})</span>}
+                  {byLabel(x.detail).length > 1 && <span className="text-muted-foreground"> ({byLabel(x.detail).map(([l, n]) => `${fmtNum(n)} ${l}`).join(" + ")})</span>}
                 </span>
               ),
             },

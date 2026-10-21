@@ -14,6 +14,7 @@ import { GraphError, META_PERMISSIONS, metaErrorMessage } from "./errors";
 import { GRAPH_VERSION, graphGet, graphInsights, graphPaginate, mapLimit, type Paged } from "./graph";
 import { followBreakdown, typeBreakdown, graphTime, igMetricsFor, mapFacebook, mapInstagram, snapshotRows, wibDateTime, type FbPost, type IgMedia, type InsightsResponse } from "./map";
 import { WIB, addDays, dateIn, zonedInstant } from "../../tz";
+import { cutoffDate } from "../../month";
 
 const IG_MEDIA_FIELDS = "id,caption,media_type,media_product_type,permalink,timestamp,username,like_count,comments_count";
 const FB_POST_FIELDS =
@@ -256,7 +257,31 @@ async function fetchInstagram(tok: string, igUserId: string, month: string, w: R
     if (e instanceof GraphError && e.code === 190) throw e;
     warnings.push(`Instagram: couldn't fetch insights by content type (${metaErrorMessage(e)}). Other data was still saved.`);
   }
-  return mapInstagram(media, insights, month, source, account);
+  const ds = mapInstagram(media, insights, month, source, account);
+  await applyCutoffSnapshot(ds, month, warnings);
+  return ds;
+}
+
+/**
+ * Sync setelah tanggal potong (tanggal 5 bulan berikutnya) memakai snapshot per post tanggal itu, supaya metrik
+ * lifetime tiap bulan setara walau sync terlambat (mis. server mati saat jadwal cron). Snapshot tidak ada → angka
+ * hari ini + peringatan.
+ */
+async function applyCutoffSnapshot(ds: Dataset, month: string, warnings: string[]) {
+  const cutoff = cutoffDate(month);
+  if (dateIn(Date.now(), WIB) <= cutoff || !ds.rows.length) return;
+  const snaps = await prisma.igMediaSnapshot.findMany({ where: { date: cutoff, mediaId: { in: ds.rows.map((r) => String(r.postId)) } } });
+  const byId = new Map(snaps.map((s) => [s.mediaId, s]));
+  for (const r of ds.rows) {
+    const s = byId.get(String(r.postId));
+    if (s) Object.assign(r, { views: s.views, reach: s.reach, likes: s.likes, comments: s.comments, shares: s.shares, saves: s.saves, interactions: s.interactions });
+  }
+  const missing = ds.rows.length - snaps.length;
+  warnings.push(
+    missing
+      ? `Instagram: no ${cutoff} cut-off snapshot for ${missing} of ${ds.rows.length} posts — those use today's lifetime values.`
+      : `Instagram: per-post metrics as of the ${cutoff} cut-off snapshot.`,
+  );
 }
 
 /** Potongan [since, until) ≤ 30 hari yang menutup rentang bulan (batas Meta untuk insight akun). */

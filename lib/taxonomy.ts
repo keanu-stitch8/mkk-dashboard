@@ -6,8 +6,7 @@ export const CATEGORIES = [
   "Accommodation",
   "Arena",
   "Attraction",
-  "Club",
-  "Community",
+  "Community & Club",
   "Culinary",
   "Event",
   "Health",
@@ -27,9 +26,12 @@ const CATEGORY_ALIASES: Record<string, string> = {
   venue: "Arena",
   atraksi: "Attraction",
   attraction: "Attraction",
-  club: "Club",
-  komunitas: "Community",
-  community: "Community",
+  // komunitas & klub olahraga = satu kategori (website: communities / sports_group)
+  club: "Community & Club",
+  klub: "Community & Club",
+  komunitas: "Community & Club",
+  community: "Community & Club",
+  "community & club": "Community & Club",
   kuliner: "Culinary",
   culinary: "Culinary",
   kegiatan: "Event",
@@ -67,11 +69,16 @@ export function categoryLabel(raw: string | null | undefined): string | null {
 export const isKnownCategory = (label: string) => (CATEGORIES as readonly string[]).includes(label);
 
 /**
- * Baris tetap tabel kategori laporan (pie chart menunjuk baris-baris ini): hanya kategori yang sudah pernah dipakai
- * channel itu. Kategori baru → peringatan saat generate, lalu tambahkan di sini + patch template.
+ * Baris tetap tabel kategori laporan (pie chart menunjuk baris-baris ini). Kategori di luar daftar → peringatan saat
+ * generate, lalu tambahkan di sini + patch template. Kategori di REPORT_HIDE_WHEN_ZERO disiapkan barisnya tapi
+ * disembunyikan selama 0 (laporan tetap "hanya yang dipakai", muncul sendiri saat pertama dipakai).
  */
-export const NEWS_REPORT_CATEGORIES = ["Accommodation", "Arena", "Attraction", "Community", "Culinary", "Event", "Health", "Profile", "Sport Gears", "About Kudus", "Sports", "UMKM"];
-export const YOUTUBE_REPORT_CATEGORIES = ["Accommodation", "Arena", "Attraction", "Club", "Culinary", "Event", "Profile", "Sport Gears"];
+export const NEWS_REPORT_CATEGORIES = ["Accommodation", "Arena", "Attraction", "Community & Club", "Culinary", "Event", "Health", "Profile", "Sport Gears", "Transportation", "About Kudus", "Sports", "UMKM"];
+export const YOUTUBE_REPORT_CATEGORIES = ["Accommodation", "Arena", "Attraction", "Community & Club", "Culinary", "Event", "Profile", "Sport Gears", "Transportation"];
+export const REPORT_HIDE_WHEN_ZERO = new Set(["Transportation"]);
+/** Key baris kategori yang disembunyikan (nilai 0 & kategori opsional) → ReportData.hideRows. */
+export const hiddenCategoryRows = (cats: { name: string; count: number }[]) =>
+  cats.flatMap((c, i) => (c.count === 0 && REPORT_HIDE_WHEN_ZERO.has(c.name) ? [`cat.${i + 1}.name`] : []));
 
 /** Jenis video YouTube (urutan = baris laporan). */
 export const YOUTUBE_FORMATS = ["Editorial Feature Video", "Event Recap", "Hero Video"] as const;

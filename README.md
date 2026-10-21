@@ -139,7 +139,7 @@ Data yang ditarik per bulan: total active users & new users, sessions/engaged se
    - **Service account**: pemilik properti menambahkan email service account di Search Console → Settings → **Users and permissions → Add user** (Restricted).
 4. **Test koneksi** di kartu Search Console.
 
-Catatan: data Search Console terlambat ±2–3 hari. Sync bulan berjalan otomatis berhenti di 3 hari lalu (ada peringatan); sync ulang bulan sebelumnya setelah tanggal 3 supaya datanya final. Query & halaman ditarik **top 1000** (urut klik, setara export XLSX Search Console; ubah `GSC_TOP_ROWS` di `lib/connectors/gsc/index.ts` jika perlu, maks. 25.000 per request). Total klik, impressions, CTR, dan posisi rata-rata diambil dari total resmi properti.
+Catatan: data Search Console terlambat ±2–3 hari. Sync bulan berjalan otomatis berhenti di 3 hari lalu (ada peringatan); sync ulang bulan sebelumnya setelah tanggal potong (tanggal 5) supaya datanya final. Query & halaman ditarik **top 1000** (urut klik, setara export XLSX Search Console; ubah `GSC_TOP_ROWS` di `lib/connectors/gsc/index.ts` jika perlu, maks. 25.000 per request). Total klik, impressions, CTR, dan posisi rata-rata diambil dari total resmi properti.
 
 ### 5. YouTube
 
@@ -154,7 +154,7 @@ Yang ditarik per bulan, sesuai definisi laporan YouTube (video yang dipublish di
 - **Analytics API**: views, watch time, average view duration, subscribers gained/lost, likes, comments, shares per video, plus views & watch time harian.
 - **Impressions & CTR thumbnail**: metrik ini **tidak ada di Analytics API**, hanya di **Reporting API** (laporan `channel_reach_basic_a1`). Karena itu:
   - Saat job pertama dibuat, YouTube hanya menyediakan **30 hari ke belakang**, dan laporan pertama muncul ±2 hari kemudian.
-  - Setiap laporan di API hanya bertahan **60 hari**, jadi dashboard menyimpan laporan harian ke database (`YtReachDaily`) setiap sync. Jalankan sync minimal sebulan sekali (cron tanggal 3 sudah cukup).
+  - Setiap laporan di API hanya bertahan **60 hari**, jadi dashboard menyimpan laporan harian ke database (`YtReachDaily`) setiap sync. Jalankan sync minimal sebulan sekali (cron tanggal 5 sudah cukup).
   - Bulan yang belum tercakup penuh tetap memakai impressions dari import CSV Studio sebelumnya, dan ada peringatan di riwayat sync.
 - Unique viewers tidak tersedia di API YouTube (sudah dihapus Google), jadi kolom itu hanya terisi dari import CSV.
 
@@ -199,7 +199,7 @@ Bulan lama hasil import CSV tetap memakai definisi lama (jumlah per post); MoM a
 - **Views bulan ini** = views s/d snapshot pertama setelah bulan selesai (`IgMediaSnapshot`, maks. 7 hari setelah tanggal 1). Snapshot diambil tiap sync Meta dan **sekali sehari** lewat cron (`SYNC_CRON=1`); snapshot pertama 19 Okt 2026, jadi kolom ini mulai ada untuk Oktober (setelah snapshot 1 Nov).
 - **Per jenis konten · selama bulan ini** (tabel `IgAccountByType`): insight akun dengan breakdown `media_product_type` — views & reach Reels / Carousel / Foto / Story selama bulan itu (termasuk post lama yang masih ditonton). Angka per periode, tidak berubah saat sync ulang.
 
-**Kunci bulan (Pengaturan → Connectors → Kunci bulan):** bulan terkunci tidak ditarik ulang oleh GA4, GSC, YouTube & Meta (Publishing Log tetap bisa di-sync), supaya angka laporan tidak berubah. Cron mengunci bulan lalu otomatis setelah sync tanggal 3 berhasil. Menarik ulang bulan terkunci: buka kunci di UI, atau `npm run sync -- --month=YYYY-MM --force`. Jul–Sep 2026 dikunci 19 Okt 2026.
+**Kunci bulan (Pengaturan → Connectors → Kunci bulan):** bulan terkunci tidak ditarik ulang oleh GA4, GSC, YouTube & Meta (Publishing Log tetap bisa di-sync), supaya angka laporan tidak berubah. **Tanggal potong (mulai Oktober 2026): tanggal 5 bulan berikutnya jam 07:00 WIB** (`CUTOFF_DAY` di `lib/month.ts`) — cron sync, mengunci bulan lalu, lalu membuat laporan. Metrik lifetime per post Instagram diambil dari snapshot tanggal 5 (`IgMediaSnapshot`) walau sync terlambat (server mati saat jadwal), supaya tiap bulan setara; snapshot tidak ada → angka saat sync + peringatan. Menarik ulang bulan terkunci: buka kunci di UI, atau `npm run sync -- --month=YYYY-MM --force`. Jul–Sep 2026 dikunci 19 Okt 2026.
 
 **Story Instagram (hanya info, bukan KPI):** API Meta hanya memberi Story yang masih aktif (≤24 jam), jadi Story disimpan ke tabel `IgStory` setiap sync Meta dan **tiap 6 jam** saat `SYNC_CRON=1` (server harus menyala — Story yang kedaluwarsa saat server mati tidak bisa diambil lagi). Untuk bulan lalu / celah, import CSV Story dari Business Suite (Insight → Konten → filter Story → Ekspor) lewat halaman Import; terdeteksi otomatis sebagai *Meta · Instagram Stories*, upsert per ID (aman diulang, tidak menimpa post IG). Jam export Meta = Pacific Time → export 1 hari lebih lebar agar Story tepi bulan (WIB) ikut. Widget "Cek Publishing Log vs Instagram" menampilkan Story di log vs Story yang tayang di IG; angka IG termasuk repost & tiap frame, jadi kuota/KPI Story tetap dari Publishing Log. File CSV Story Jul–Sep ada di `data-samples/2026-0X/IG Stories *.csv`.
 
@@ -210,7 +210,7 @@ Yang ditarik per bulan (tanggal WIB, sama dengan import CSV):
 
 Catatan:
 - **Post kolaborasi** milik akun lain (yang muncul di export CSV) tidak ikut di API — memang tidak dihitung di dashboard.
-- Metrik Meta bersifat *lifetime* dan bisa terlambat ±48 jam; sync ulang bulan lalu setelah awal bulan (cron tanggal 3).
+- Metrik Meta bersifat *lifetime* dan bisa terlambat ±48 jam; sync ulang bulan lalu setelah awal bulan (cron tanggal 5).
 - Bulan tanpa post tidak menimpa data lama (termasuk hasil import CSV).
 - Reels Facebook mungkin tidak muncul di `/posts` (Meta memindahkannya ke edge `video_reels`); jika Facebook mulai aktif lagi, cek jumlah post di dashboard vs Meta Business Suite.
 
@@ -245,10 +245,10 @@ Setup:
   npm run sync -- --backfill=6         # 6 bulan terakhir
   npm run sync -- --connector=ga4      # connector tertentu
   ```
-  Exit code 1 jika ada yang gagal. Contoh cron (macOS/Linux, tiap tanggal 3 jam 07:00):
-  `0 7 3 * * cd /path/ke/dashboard && npm run sync >> sync.log 2>&1`
-- **Otomatis saat server jalan:** isi `SYNC_CRON=1` lalu restart `npm run dev` / `npm start`. Server menyinkronkan **bulan lalu** setiap **tanggal 3 jam 07:00 WIB** dan menyimpan Story IG aktif tiap 6 jam (lewat `instrumentation.ts`, runtime Node.js saja). Kalau laptop mati saat jadwal, sync dijalankan begitu server menyala lagi; tiap jadwal hanya sekali (tercatat sebagai *cron* di Riwayat sync).
-- Semua sync tercatat di **Riwayat sync** (halaman Connectors API), termasuk pesan error dalam Bahasa Indonesia, mis. *"Service account belum ditambahkan ke properti GA4"*.
+  Exit code 1 jika ada yang gagal. Contoh cron (macOS/Linux, tiap tanggal 5 jam 07:00):
+  `0 7 5 * * cd /path/ke/dashboard && npm run sync >> sync.log 2>&1`
+- **Otomatis saat server jalan:** isi `SYNC_CRON=1` lalu restart `npm run dev` / `npm start`. Server menyinkronkan **bulan lalu** setiap **tanggal 5 jam 07:00 WIB** (tanggal potong) dan menyimpan Story IG aktif tiap 6 jam (lewat `instrumentation.ts`, runtime Node.js saja). Kalau laptop mati saat jadwal, sync dijalankan begitu server menyala lagi; tiap jadwal hanya sekali (tercatat sebagai *cron* di Riwayat sync).
+- Semua sync tercatat di **Riwayat sync** (halaman Connectors API), termasuk pesan error yang bisa ditindaklanjuti, mis. *"The service account hasn't been added to GA4 property …"*.
 
 ---
 

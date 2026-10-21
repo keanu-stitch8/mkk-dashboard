@@ -10,7 +10,7 @@ describe("kategori", () => {
       Atraksi: "Attraction",
       Kegiatan: "Event",
       Kesehatan: "Health",
-      Komunitas: "Community",
+      Komunitas: "Community & Club",
       Kuliner: "Culinary",
       Olahraga: "Sports",
       Pelatih: "Profile",
@@ -22,9 +22,10 @@ describe("kategori", () => {
     for (const [raw, label] of Object.entries(map)) expect(categoryLabel(raw)).toBe(label);
   });
 
-  it("kategori YouTube: Venue = Arena, Club terpisah dari Community, Hero bukan kategori", () => {
+  it("kategori YouTube: Venue = Arena, Club & Community = Community & Club, Hero bukan kategori", () => {
     expect(categoryLabel("Venue")).toBe("Arena");
-    expect(categoryLabel("Club")).toBe("Club");
+    expect(categoryLabel("Club")).toBe("Community & Club");
+    expect(categoryLabel("Community")).toBe("Community & Club");
     expect(categoryLabel("Sport Gears")).toBe("Sport Gears");
     expect(categoryLabel("Hero")).toBeNull();
   });
