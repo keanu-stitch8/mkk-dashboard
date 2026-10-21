@@ -20,7 +20,7 @@ export function Recommendations({ items, title = "Recommendations", showChannel 
       action={items.length > 0 ? <Badge variant="secondary">{items.length}</Badge> : undefined}
     >
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No recommendations for this month's data.</p>
+        <p className="text-sm text-muted-foreground">No recommendations for this month&apos;s data.</p>
       ) : (
         <ul className="divide-y">
           {items.map((r) => (
