@@ -450,7 +450,8 @@ describe("Meta connector: Graph API client & error", () => {
     expect(metaErrorMessage(await graphError(190, "Error validating access token: Session has expired", 463))).toMatch(/expired.*Generate a new token/);
     expect(metaErrorMessage(await graphError(190, "Invalid OAuth access token."))).toMatch(/META_ACCESS_TOKEN is invalid/);
     expect(metaErrorMessage(await graphError(10, "(#10) Application does not have permission for this action"), { pageId: "123" })).toMatch(/The Meta token lacks permissions for Page 123.*instagram_manage_insights.*assigned/);
-    expect(metaErrorMessage(await graphError(200, "(#200) Requires pages_read_engagement permission"))).toMatch(/The Meta token lacks permissions/);
+    expect(metaErrorMessage(await graphError(200, "(#200) Requires pages_read_engagement permission"))).toMatch(/The Meta token lacks permissions.*Meta: "\(#200\) Requires pages_read_engagement permission", code 200/);
+    expect(metaErrorMessage(await graphError(200, "API access blocked."), { pageId: "123" })).toMatch(/^Meta blocked API access for this app.*developers\.facebook\.com.*Meta: "API access blocked\."/);
     expect(metaErrorMessage(await graphError(803, "(#803) Some of the aliases you requested do not exist: abc"), { pageId: "abc" })).toMatch(/ID Page abc wasn't found/);
     expect(metaErrorMessage(await graphError(100, "Unsupported get request. Object with ID '99' does not exist", 33), { igUserId: "99" })).toMatch(/IG account 99 wasn't found.*META_IG_USER_ID/);
     expect(metaErrorMessage(await graphError(4, "(#4) Application request limit reached"))).toMatch(/rate limit/);

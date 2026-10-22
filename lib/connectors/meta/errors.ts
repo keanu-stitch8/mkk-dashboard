@@ -59,23 +59,29 @@ export function metaErrorMessage(e: unknown, ctx: Ctx = {}): string {
   }
   const { code, subcode, message } = e;
   const ids = [ctx.pageId && `Page ${ctx.pageId}`, ctx.igUserId && `IG account ${ctx.igUserId}`].filter(Boolean).join(" / ") || "Page / IG account";
+  // pesan asli Meta ikut ditampilkan supaya diagnosis tidak bergantung pada tebakan pemetaan di bawah
+  const raw = ` (Meta: "${message}"${code !== undefined ? `, code ${code}${subcode ? `/${subcode}` : ""}` : ""})`;
 
+  // code 200 juga dipakai untuk izin kurang, jadi cek pesannya dulu: blokir app menolak semua request, termasuk /me
+  if (/API access blocked/i.test(message)) {
+    return `Meta blocked API access for this app — every request is rejected, so regenerating the token won't help yet. Check the app at developers.facebook.com (restriction, Data Use Checkup, verification) and Account Quality in Business Settings.${raw}`;
+  }
   if (code === 190 || code === 102) {
-    if (subcode === 463) return "META_ACCESS_TOKEN has expired. Generate a new token in Business Settings → Users → System users → Generate new token (choose Token expiration: Never).";
-    if (subcode === 460) return "META_ACCESS_TOKEN is no longer valid because the account password / session changed. Generate a new token from the system user.";
-    return "META_ACCESS_TOKEN is invalid, expired, or revoked. Regenerate the system user token in Business Settings → Users → System users, then update .env.local.";
+    if (subcode === 463) return `META_ACCESS_TOKEN has expired. Generate a new token in Business Settings → Users → System users → Generate new token (choose Token expiration: Never).${raw}`;
+    if (subcode === 460) return `META_ACCESS_TOKEN is no longer valid because the account password / session changed. Generate a new token from the system user.${raw}`;
+    return `META_ACCESS_TOKEN is invalid, expired, or revoked. Regenerate the system user token in Business Settings → Users → System users, then update .env.local.${raw}`;
   }
   if (code === 803 || (code === 100 && subcode === 33)) {
-    return `ID ${ids} wasn't found or isn't accessible with this token. Check META_PAGE_ID / META_IG_USER_ID, and make sure the Page & Instagram account are assigned to the system user (Business Settings → System users → Assign assets).`;
+    return `ID ${ids} wasn't found or isn't accessible with this token. Check META_PAGE_ID / META_IG_USER_ID, and make sure the Page & Instagram account are assigned to the system user (Business Settings → System users → Assign assets).${raw}`;
   }
   if (code === 10 || code === 3 || (code !== undefined && code >= 200 && code <= 299)) {
-    return `The Meta token lacks permissions for ${ids}. Regenerate the system user token with: ${META_PERMISSIONS.join(", ")} — and make sure the Page & Instagram account are assigned to the system user (full access / "Manage" for the Page).`;
+    return `The Meta token lacks permissions for ${ids}. Regenerate the system user token with: ${META_PERMISSIONS.join(", ")} — and make sure the Page & Instagram account are assigned to the system user (full access / "Manage" for the Page).${raw}`;
   }
-  if (code === 368) return "Meta temporarily blocked the account / app for suspicious activity. Wait a while and try again.";
+  if (code === 368) return `Meta temporarily blocked the account / app for suspicious activity. Wait a while and try again.${raw}`;
   if (code === 4 || code === 17 || code === 32 || code === 613 || code === 341 || (code !== undefined && code >= 80001 && code <= 80014)) {
     return "Meta Graph API rate limit reached. Try again in a few minutes (the limit is counted per hour).";
   }
   if (code === 1 || code === 2 || (e.status !== undefined && e.status >= 500)) return "Meta's servers are having problems. Try again later.";
-  if (code === 100) return `Permintaan ditolak Meta Graph API: ${message}`;
+  if (code === 100) return `The Meta Graph API rejected the request: ${message}`;
   return `Failed to fetch data from the Meta Graph API: ${message}${code !== undefined ? ` (code ${code}${subcode ? `/${subcode}` : ""})` : ""}`;
 }

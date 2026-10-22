@@ -51,7 +51,7 @@ export default async function OverviewPage({ searchParams }: PageProps<"/">) {
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-3">
         <QuotaMini q={contentQuota(cur, "news")} prev={prev.news.hasData ? contentQuota(prev, "news") : null} href={`/news?m=${month}`} />
         <QuotaMini q={contentQuota(cur, "social")} prev={prev.social.hasData ? contentQuota(prev, "social") : null} href={`/social?m=${month}`} />
         <QuotaMini q={contentQuota(cur, "youtube")} prev={prev.youtube.hasData ? contentQuota(prev, "youtube") : null} href={`/youtube?m=${month}`} />
