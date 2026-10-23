@@ -1,4 +1,4 @@
-import { Cable, ClipboardList, FileSpreadsheet, FileText, Globe, LayoutDashboard, MessagesSquare, Newspaper, NotebookPen, Upload } from "lucide-react";
+import { Cable, CalendarRange, ClipboardList, FileSpreadsheet, FileText, Globe, LayoutDashboard, MessagesSquare, Newspaper, NotebookPen, Trophy, Upload, UsersRound, Workflow } from "lucide-react";
 import { SiYoutube } from "./icons";
 
 export type NavLink = { title: string; url: string };
@@ -34,8 +34,12 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Team",
     items: [
+      { title: "Content Pipeline", url: "/team/pipeline", icon: Workflow },
       { title: "Stories", url: "/team/stories", icon: NotebookPen },
       { title: "Briefs", url: "/team/briefs", icon: ClipboardList },
+      { title: "Contributors", url: "/team/contributors", icon: UsersRound },
+      { title: "Team Scorecard", url: "/team/scorecard", icon: Trophy },
+      { title: "2026 in Numbers", url: "/team/recap", icon: CalendarRange },
     ],
   },
   {

@@ -3,7 +3,16 @@
 import { findHeader, getCell } from "./headers";
 import { dataRows, dominantMonth, findUrlInRow, makeDataset, normalizeStatus } from "./common";
 import type { Dataset, RawTable } from "./types";
-import { normalizePath, parseCount, parseDate, parseDuration, str, strOrNull, toMonth } from "./values";
+import { normalizePath, parseCount, parseDate, parseDuration, str, strOrNull, toMonth, type Cell } from "./values";
+
+/** Kolom opsional kode liputan (YYMMDD-N dari panduan liputan) — penyambung pasti antar tahap di halaman Team. */
+const STORY_HEADERS = ["Story", "Story Code", "Kode Story", "Kode Liputan", "Story ID"];
+
+/** "261022-1", "Story 261022 - 2", "261022-1b" → "261022-1"; selain itu null. */
+export function parseStoryCode(v: Cell): string | null {
+  const m = str(v).match(/\b(\d{6})\s*-\s*(\d{1,2}[a-z]?)\b/i);
+  return m ? `${m[1]}-${m[2].toLowerCase()}` : null;
+}
 
 export const NEWS_FIELDS = {
   date: ["Publish Date", "Tanggal Publish", "Tanggal Terbit", "Tanggal Tayang", "Tanggal", "Date", "Planned Date", "Tanggal Rencana"],
@@ -20,6 +29,7 @@ export const NEWS_FIELDS = {
   views: ["Views", "Tampilan", "Dilihat", "Pageviews", "Page views"],
   activeUsers: ["Active Users", "Pengguna Aktif", "Users"],
   avgEngagement: ["Avg Engagement", "Average engagement time", "Rata-rata engagement", "Avg Engagement Time"],
+  story: STORY_HEADERS,
 } as const;
 
 export const SOCIAL_LOG_FIELDS = {
@@ -32,6 +42,7 @@ export const SOCIAL_LOG_FIELDS = {
   status: ["Status"],
   title: ["Judul", "Title", "Caption", "Konten", "Content", "Topik", "Headline", "Judul Konten"],
   url: ["Link", "URL", "Permalink", "Tautan", "Link Post"],
+  story: STORY_HEADERS,
 } as const;
 
 type N = keyof typeof NEWS_FIELDS;
@@ -99,6 +110,7 @@ export function detectNewsLog(table: RawTable): Dataset[] | null {
         status,
         type: strOrNull(getCell(r, m, "type")),
         method: strOrNull(getCell(r, m, "method")),
+        story: parseStoryCode(getCell(r, m, "story")),
         _date: date,
       };
       // Snapshot akhir bulan: disubmit bulan X tapi baru tayang bulan berikutnya → in review di bulan X (baris
@@ -168,6 +180,7 @@ export function detectSocialLog(table: RawTable): Dataset[] | null {
         status: normalizeStatus(getCell(r, m, "status")),
         title: strOrNull(getCell(r, m, "title")),
         url,
+        story: parseStoryCode(getCell(r, m, "story")),
         _date: date,
       };
     })

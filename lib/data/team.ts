@@ -3,10 +3,12 @@
 import { prisma } from "../db";
 import { briefKey } from "../team/parse";
 
-export type MatchState = "confirmed" | "tracker" | "auto" | "suggested";
+export type MatchState = "confirmed" | "coded" | "tracker" | "auto" | "suggested";
 
 export interface LinkView {
   id: string;
+  /** kunci target (articleKey / socialKey) */
+  key: string;
   state: MatchState;
   title: string;
   date: string | null;
@@ -20,11 +22,14 @@ export interface Linked {
   suggestions: LinkView[];
 }
 
+/** Status yang dihitung sebagai tersambung, urut dari bukti terkuat. */
+export const COUNTED = ["confirmed", "coded", "tracker", "auto"] as const;
+
 type MatchRow = Awaited<ReturnType<typeof prisma.teamMatch.findMany>>[number];
 
 function linked(rows: MatchRow[]): Linked {
-  const view = (m: MatchRow): LinkView => ({ id: m.id, state: m.status as MatchState, title: m.toTitle, date: m.toDate, format: m.toFormat, url: m.toUrl });
-  const match = rows.find((m) => m.status === "confirmed") ?? rows.find((m) => m.status === "tracker") ?? rows.find((m) => m.status === "auto");
+  const view = (m: MatchRow): LinkView => ({ id: m.id, key: m.toKey, state: m.status as MatchState, title: m.toTitle, date: m.toDate, format: m.toFormat, url: m.toUrl });
+  const match = COUNTED.map((st) => rows.find((m) => m.status === st)).find(Boolean);
   return { match: match ? view(match) : null, suggestions: match ? [] : rows.filter((m) => m.status === "suggested").map(view) };
 }
 
@@ -33,7 +38,7 @@ async function matchesFor(fromType: string, keys: string[]) {
   return (key: string, toType: string) => linked(rows.filter((m) => m.fromKey === key && m.toType === toType));
 }
 
-const dayDiff = (from: string, to: string | null) => (to ? Math.round((Date.parse(to) - Date.parse(from)) / 864e5) : null);
+export const dayDiff = (from: string, to: string | null) => (to ? Math.round((Date.parse(to) - Date.parse(from)) / 864e5) : null);
 
 export function median(xs: number[]): number | null {
   if (!xs.length) return null;
@@ -69,7 +74,12 @@ export const taskStage = (status: string | null): TaskStage | null => (status ? 
 export type BriefState = "posted" | "check" | "review" | "waiting";
 
 export async function getBriefs(month: string) {
-  const [briefs, tasks] = await Promise.all([prisma.brief.findMany({ where: { month }, orderBy: [{ date: "desc" }, { fileName: "asc" }] }), prisma.briefTask.findMany()]);
+  return loadBriefs({ month });
+}
+
+/** Brief + pasangan + status Task Progress, untuk filter apa pun (bulan, atau daftar fileId dari pipeline). */
+export async function loadBriefs(where: { month?: string; fileId?: { in: string[] } }) {
+  const [briefs, tasks] = await Promise.all([prisma.brief.findMany({ where, orderBy: [{ date: "desc" }, { fileName: "asc" }] }), prisma.briefTask.findMany()]);
   const of = await matchesFor("brief", briefs.map((b) => b.fileId));
   const taskByKey = new Map(tasks.map((t) => [t.briefKey, t]));
   // satu link IG dipakai beberapa brief di tracker = salah tempel; link-nya tidak ditampilkan sebagai bukti
@@ -82,7 +92,7 @@ export async function getBriefs(month: string) {
     const posted = !!social.match || task?.stage === "published";
     const state: BriefState = posted ? "posted" : social.suggestions.length ? "check" : task?.stage === "review" ? "review" : "waiting";
     const postedOn = social.match?.date ?? (task?.stage === "published" ? task.published : null);
-    return { ...b, outlineLines: b.outline?.split("\n").filter(Boolean) ?? [], social, article: of(b.fileId, "article"), task, state, lag: postedOn ? dayDiff(b.date, postedOn) : null };
+    return { ...b, outlineLines: b.outline?.split("\n").filter(Boolean) ?? [], social, article: of(b.fileId, "article"), task, state, postedOn, lag: postedOn ? dayDiff(b.date, postedOn) : null };
   });
 }
 

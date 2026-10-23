@@ -10,6 +10,7 @@ import type { Linked, LinkView } from "@/lib/data/team";
 
 const MATCHED: Record<LinkView["state"], { label: string; hint: string }> = {
   confirmed: { label: "Confirmed", hint: "Confirmed by the team" },
+  coded: { label: "Linked · Story code", hint: "The log row carries this story's code in its Story column" },
   tracker: { label: "Matched · Task Progress", hint: "Task Progress says it was published on this date (±1 day), and the title matches" },
   auto: { label: "Matched · auto", hint: "Matched automatically (strong title match)" },
   suggested: { label: "Needs confirmation", hint: "Possible match — not counted until the team confirms it" },

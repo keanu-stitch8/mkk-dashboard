@@ -45,6 +45,8 @@ export interface MatchOptions<F extends MatchItem, T extends MatchItem> {
   /** from / to yang sudah punya pasangan terkonfirmasi (tidak dicocokkan lagi) */
   takenFrom?: Set<string>;
   takenTo?: Set<string>;
+  /** satu target boleh dipakai banyak item (mis. beberapa IG story untuk satu artikel) */
+  multiTo?: boolean;
 }
 
 export interface MatchResult {
@@ -87,7 +89,7 @@ export function matchItems<F extends MatchItem, T extends MatchItem>(from: F[], 
     });
   }
   // dua kandidat auto yang sama kuat untuk satu item (mis. dua artikel dari event yang sama) = ambigu → suggested
-  for (const side of ["fromKey", "toKey"] as const) {
+  for (const side of opts.multiTo ? (["fromKey"] as const) : (["fromKey", "toKey"] as const)) {
     const groups = new Map<string, MatchResult[]>();
     for (const c of cands) if (c.status === "auto") groups.set(c[side], [...(groups.get(c[side]) ?? []), c]);
     for (const g of groups.values()) {
@@ -100,7 +102,7 @@ export function matchItems<F extends MatchItem, T extends MatchItem>(from: F[], 
   const usedTo = new Set<string>();
   const out: MatchResult[] = [];
   for (const c of cands) {
-    if (usedFrom.has(c.fromKey) || usedTo.has(c.toKey)) continue;
+    if (usedFrom.has(c.fromKey) || (!opts.multiTo && usedTo.has(c.toKey))) continue;
     usedFrom.add(c.fromKey);
     usedTo.add(c.toKey);
     out.push({ ...c, score: Math.round((c.score % 100) * 100) / 100 });

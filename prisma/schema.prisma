@@ -282,6 +282,8 @@ model SocialLog {
   status   String
   title    String?
   url      String?
+  /// kode liputan dari kolom Story (opsional), mis. "261022-1"
+  story    String?
   import   Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   @@index([month])
@@ -302,6 +304,8 @@ model NewsArticle {
   status        String // publish | review | draft | lainnya
   type          String?
   method        String?
+  /// kode liputan dari kolom Story (opsional), mis. "261022-1"
+  story         String?
   import        Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   @@index([month])
@@ -547,4 +551,57 @@ model BriefTask {
   igUrl     String?
   note      String? // isi kolom Instagram Link yang bukan URL, mis. "Unpublished by client"
   updatedAt DateTime @updatedAt
+}
+
+/// Baris "Local Contributor - Task Progress": satu rencana liputan kontributor lokal + kelengkapan asetnya.
+/// Diganti utuh setiap sync. Aset: available | missing | null (belum diisi).
+model ContributorTask {
+  id          String   @id // "<tab>#<No>"
+  tab         String // YYYY-MM
+  no          Int
+  planned     String?
+  guideFile   String?
+  n           Int
+  title       String
+  status      String?
+  articleBy   String?
+  articleAt   String?
+  landscape   String?
+  landscapeBy String?
+  landscapeAt String?
+  portrait    String?
+  portraitBy  String?
+  portraitAt  String?
+  video       String?
+  videoBy     String?
+  videoAt     String?
+  interview   String?
+  interviewBy String?
+  interviewAt String?
+  /// kode Story jika judulnya cocok dengan rencana artikel di panduan hari itu (tanpa tebakan)
+  storyCode   String?
+  updatedAt   DateTime @updatedAt
+
+  @@index([tab])
+}
+
+/// Alias kontributor (tab Ref) → nama lengkap.
+model Contributor {
+  alias String @id
+  name  String
+}
+
+/// Snapshot Team Scorecard saat bulan dikunci (angka tidak berubah lagi walau pasangan dikonfirmasi belakangan).
+/// Bulan yang belum punya snapshot dihitung live.
+model TeamScore {
+  month     String
+  key       String
+  value     Float?
+  /// pembilang & penyebut untuk ukuran berbentuk rasio (mis. 10 dari 24 artikel) — supaya bisa dijumlah setahun
+  n         Int?
+  base      Int?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@id([month, key])
 }

@@ -11,12 +11,13 @@ export const LOG_FILES: Record<LogKind, { label: string; pattern: RegExp; group:
   social: { label: "Socmed Content Logs", pattern: /\b(socmed|social media|sosmed) content logs?\b/i, group: "social_log", key: "social_log" },
 };
 
-export type TrackerKind = "social" | "youtube";
+export type TrackerKind = "social" | "youtube" | "contributor";
 
 /** File tracker satu-untuk-semua-bulan. */
 export const TRACKER_FILES: Record<TrackerKind, { label: string; pattern: RegExp }> = {
   social: { label: "Social Media - Task Progress", pattern: /\bsocial media\s*-\s*task progress\b/i },
   youtube: { label: "Youtube Calendar Timeline", pattern: /\byoutube calendar timeline\b/i },
+  contributor: { label: "Local Contributor - Task Progress", pattern: /\blocal contributor\s*-\s*task progress\b/i },
 };
 
 /** File tracker terbaru (salinan "Copy of" paling belakang). */

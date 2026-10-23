@@ -14,6 +14,13 @@ export async function isMonthLocked(month: string): Promise<boolean> {
 export async function setMonthLock(month: string, locked: boolean, note?: string): Promise<void> {
   if (locked) await prisma.monthLock.upsert({ where: { month }, create: { month, note }, update: {} });
   else await prisma.monthLock.deleteMany({ where: { month } });
+  // Team Scorecard ikut final (atau kembali live saat kunci dibuka); gagal di sini tidak membatalkan kunci
+  try {
+    const { snapshotScorecard, clearScorecard } = await import("../data/scorecard");
+    await (locked ? snapshotScorecard(month) : clearScorecard(month));
+  } catch (e) {
+    console.error(`[lock] Team Scorecard ${month}:`, e);
+  }
 }
 
 export const lockedError = (month: string) =>

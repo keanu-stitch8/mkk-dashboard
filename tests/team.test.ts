@@ -154,3 +154,82 @@ describe("Task Progress", () => {
     expect(withTracker(res, from, to, new Map(), {})[0].status).toBe("auto");
   });
 });
+
+describe("kolom Story & IG story", () => {
+  it("kode Story dari sel log", async () => {
+    const { parseStoryCode } = await import("../lib/parsers/logs");
+    expect(parseStoryCode("261022-1")).toBe("261022-1");
+    expect(parseStoryCode("Story 261022 - 2")).toBe("261022-2");
+    expect(parseStoryCode("261022-1B")).toBe("261022-1b");
+    expect(parseStoryCode("22 Okt")).toBeNull();
+    expect(parseStoryCode(null)).toBeNull();
+  });
+  it("multiTo: beberapa IG story boleh ke satu artikel", () => {
+    const from = [
+      { key: "s1", date: "2026-10-20", text: "Peserta MLSC Kudus Seri 1 Bertambah" },
+      { key: "s2", date: "2026-10-21", text: "Potret Sportivitas Final MLSC Kudus Seri 1" },
+    ];
+    const to = [{ key: "a", date: "2026-10-19", text: "Jumlah Peserta MLSC Kudus Seri 1 Bertambah, Potret Sportivitas Final" }];
+    expect(matchItems(from, to, { minDays: -30, maxDays: 7 })).toHaveLength(1);
+    expect(matchItems(from, to, { minDays: -30, maxDays: 7, multiTo: true }).map((m) => m.fromKey).sort()).toEqual(["s1", "s2"]);
+  });
+});
+
+describe("Task Progress kontributor", () => {
+  const head1 = ["No.", "Planned Date", "Artikel", "Brief", "Status", "Article", null, null, "Footage", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+  const head2 = [null, null, null, null, null, "Assignee", "Link", "Submitted Date", "Landscape Photo", "Assignee", "Google Drive", "Submitted Date", "Portrait Photo", "Assignee", "Google Drive", "Submitted Date", "Portrait Video", "Assignee", "Google Drive", "Submitted Date", "Interview Video", "Assignee", "Google Drive", "Submitted Date"];
+  const table = {
+    file: "c.xlsx",
+    sheet: "September",
+    blockCount: 1,
+    comments: [],
+    rows: [
+      head1,
+      head2,
+      [1, 46266, "POP Kids Climbing Club Kudus", "260901_PANDUAN LIPUTAN WAWANCARA SHOTLIST.docx", null, null, null, null, "Not Available", null, null, null, "-", null, null, null, "Available", "YSR", "x", "22 Sept 2026", "Available", "YSR", "y", "22 Sept 2026"],
+      [2, null, "Venue Wall Climbing", null, "Submitted", "FZ", "z", 46273, "Available", "YSR", "a", 46280, null, null, null, null, "Available", "YSR", "b", 46280, "Not Available", null, null, null],
+      [3, 46267, null, null, null, null, null, null, "-", null, null, null, "-", null, null, null, "-", null, null, null, "-", null, null, null],
+    ],
+  };
+  it("baris, aset, Planned Date & file panduan diteruskan", async () => {
+    const { readContributorTab, assetSummary } = await import("../lib/team/contributors");
+    const tab = readContributorTab(table)!;
+    expect(tab.tab).toBe("2026-09");
+    expect(tab.rows).toHaveLength(2);
+    const [a, b] = tab.rows;
+    expect(a).toMatchObject({ planned: "2026-09-01", n: 1, title: "POP Kids Climbing Club Kudus", status: null });
+    expect(a.assets.landscape.state).toBe("missing");
+    expect(a.assets.portrait.state).toBeNull();
+    expect(a.assets.video).toEqual({ state: "available", by: "YSR", at: "2026-09-22" });
+    expect(b).toMatchObject({ planned: "2026-09-01", n: 2, guideFile: "260901_PANDUAN LIPUTAN WAWANCARA SHOTLIST.docx", status: "submitted", articleBy: "FZ", articleAt: "2026-09-08" });
+    // lengkap = foto + video portrait + wawancara
+    expect(assetSummary(a.assets)).toMatchObject({ complete: false, reelReady: true, lastAsset: "2026-09-22" });
+    expect(assetSummary(b.assets)).toMatchObject({ complete: false, reelReady: true });
+  });
+  it("alias kontributor & sambungan ke panduan hanya lewat judul", async () => {
+    const { readContributorNames, readContributorTab } = await import("../lib/team/contributors");
+    const { linkContributorStory } = await import("../lib/team/store");
+    expect(readContributorNames({ file: "c", sheet: "Ref", blockCount: 1, comments: [], rows: [["Journalist", "Journalist Alias", "Status"], ["Yasril Faza Aftoni", "YSR", "Draft"]] })?.get("YSR")).toBe("Yasril Faza Aftoni");
+    const [a, b] = readContributorTab(table)!.rows;
+    const stories = [
+      { code: "260901-1", date: "2026-09-01", title: "POP Kids Climbing Club Kudus, Wadah Atlet Cilik" },
+      { code: "260901-2", date: "2026-09-01", title: "Pembinaan Panjat Tebing" },
+    ];
+    expect(linkContributorStory(a, stories)).toBe("260901-1");
+    // judul tidak cocok → tidak ditebak dari urutan baris
+    expect(linkContributorStory(b, stories)).toBeNull();
+  });
+});
+
+describe("Team Scorecard", () => {
+  it("target naik / turun", async () => {
+    const { onTarget, SCORE_DEFS } = await import("../lib/data/scorecard");
+    const repurpose = SCORE_DEFS.find((d) => d.key === "repurpose")!;
+    const backlog = SCORE_DEFS.find((d) => d.key === "backlog")!;
+    expect(onTarget(repurpose, 80)).toBe(true);
+    expect(onTarget(repurpose, 41.7)).toBe(false);
+    expect(onTarget(backlog, 3)).toBe(true);
+    expect(onTarget(backlog, 12)).toBe(false);
+    expect(onTarget(backlog, null)).toBeNull();
+  });
+});

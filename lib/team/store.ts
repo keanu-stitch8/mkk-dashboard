@@ -7,7 +7,8 @@ import { readTables } from "../parsers/tabular";
 import { readTrackerTab } from "../parsers/logs";
 import { pickTrackerFile } from "../connectors/sheets/map";
 import { briefKey, docxParagraphs, panduanDate, parseBriefName, parseBriefOutline, parsePanduan, trackerLink } from "./parse";
-import { matchItems, withTracker, type MatchItem, type TrackedResult, type TrackerHint } from "./match";
+import { matchItems, tokens, withTracker, type MatchItem, type TrackedResult, type TrackerHint } from "./match";
+import { readContributorNames, readContributorTab, rowGuideDate, type ContributorRow } from "./contributors";
 
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -156,6 +157,92 @@ export async function syncBriefTracker(drive: drive_v3.Drive): Promise<TrackerSy
   return { file: file.name, rows: tasks.size, unknown, warnings };
 }
 
+// ── Task Progress kontributor lokal ────────────────────────────────────────
+
+/**
+ * Rencana artikel di panduan hari yang sama dengan judul paling mirip. Hanya jika jelas: ≥2 kata sama, ≥50% judul
+ * yang lebih pendek, dan tidak ada kandidat lain yang sama kuat. Urutan baris di sheet tidak dipakai sebagai bukti.
+ */
+export function linkContributorStory(row: ContributorRow, stories: { code: string; date: string; title: string }[]): string | null {
+  const day = rowGuideDate(row);
+  const A = tokens(row.title);
+  const scored = stories
+    .filter((s) => s.date === day)
+    .map((s) => {
+      const B = tokens(s.title);
+      const common = [...A].filter((w) => B.has(w)).length;
+      return { code: s.code, common, sim: common / Math.max(1, Math.min(A.size, B.size)) };
+    })
+    .filter((x) => x.common >= 2 && x.sim >= 0.5)
+    .sort((a, b) => b.common + b.sim - (a.common + a.sim));
+  if (!scored.length || (scored[1] && scored[0].common + scored[0].sim - (scored[1].common + scored[1].sim) < 1)) return null;
+  return scored[0].code;
+}
+
+export interface ContributorSyncResult {
+  file: string | null;
+  tabs: string[];
+  rows: number;
+  linked: number;
+  warnings: string[];
+}
+
+/** Baca "Local Contributor - Task Progress" (semua tab) lalu ganti seluruh ContributorTask + alias kontributor. */
+export async function syncContributors(drive: drive_v3.Drive): Promise<ContributorSyncResult> {
+  const { data } = await drive.files.list({
+    q: `name contains 'Task Progress' and mimeType = '${SHEET}' and trashed = false`,
+    fields: "files(id,name,modifiedTime)",
+    pageSize: 100,
+    includeItemsFromAllDrives: true,
+    supportsAllDrives: true,
+  });
+  const file = pickTrackerFile(
+    (data.files ?? []).flatMap((f) => (f.id && f.name ? [{ id: f.id, name: f.name.trim(), modifiedTime: f.modifiedTime ?? undefined }] : [])),
+    "contributor",
+  );
+  if (!file) return { file: null, tabs: [], rows: 0, linked: 0, warnings: ["“Local Contributor - Task Progress” not found in Google Drive — contributor assets weren't updated."] };
+
+  const res = await drive.files.export({ fileId: file.id, mimeType: XLSX }, { responseType: "arraybuffer" });
+  const tables = readTables({ name: `${file.name}.xlsx`, data: new Uint8Array(res.data as ArrayBuffer) }).tables;
+  const tabs = tables.flatMap((t) => readContributorTab(t) ?? []);
+  const names = tables.map(readContributorNames).find((x) => !!x) ?? new Map<string, string>();
+  const stories = await prisma.story.findMany({ select: { code: true, date: true, title: true } });
+
+  const rows = tabs.flatMap(({ tab, rows }) =>
+    rows.map((r) => ({
+      id: `${tab}#${r.no}`,
+      tab,
+      no: r.no,
+      planned: r.planned,
+      guideFile: r.guideFile,
+      n: r.n,
+      title: r.title,
+      status: r.status,
+      articleBy: r.articleBy,
+      articleAt: r.articleAt,
+      ...Object.fromEntries(Object.entries(r.assets).flatMap(([k, a]) => [[k, a.state], [`${k}By`, a.by], [`${k}At`, a.at]])),
+      storyCode: linkContributorStory(r, stories),
+    })),
+  ) as Prisma.ContributorTaskCreateManyInput[];
+  const ids = new Set<string>();
+  const unique = rows.filter((r) => !ids.has(r.id) && ids.add(r.id));
+
+  await prisma.$transaction([
+    prisma.contributorTask.deleteMany(),
+    prisma.contributorTask.createMany({ data: unique }),
+    prisma.contributor.deleteMany(),
+    prisma.contributor.createMany({ data: [...names].map(([alias, name]) => ({ alias, name })) }),
+  ]);
+  const empty = tabs.filter((t) => !t.rows.length).map((t) => t.tab);
+  return {
+    file: file.name,
+    tabs: tabs.filter((t) => t.rows.length).map((t) => t.tab),
+    rows: unique.length,
+    linked: unique.filter((r) => r.storyCode).length,
+    warnings: empty.length ? [`Local Contributor - Task Progress: no stories filled in yet for ${empty.join(", ")}.`] : [],
+  };
+}
+
 // ── Pencocokan ──────────────────────────────────────────────────────────────
 
 interface Target extends MatchItem {
@@ -164,28 +251,31 @@ interface Target extends MatchItem {
 }
 
 /** Kunci stabil (baris log diganti tiap sync, jadi ID database tidak bisa dipakai). */
-const articleKey = (a: { url: string | null; date: string | null; title: string }) => a.url?.trim() || `${a.date}|${a.title.trim()}`;
-const socialKey = (s: { url: string | null; date: string | null; format: string; title: string | null }) => s.url?.trim() || `${s.date}|${s.format}|${(s.title ?? "").trim()}`;
+export const articleKey = (a: { url: string | null; date: string | null; title: string }) => a.url?.trim() || `${a.date}|${a.title.trim()}`;
+export const socialKey = (s: { url: string | null; date: string | null; format: string; title: string | null }) => s.url?.trim() || `${s.date}|${s.format}|${(s.title ?? "").trim()}`;
 
 /** Format post IG yang dihasilkan tiap jenis brief. */
 const BRIEF_FORMATS: Record<string, string[]> = { carousel: ["feeds", "carousel"], reel: ["reels"] };
 
 export interface MatchSummary {
+  coded: number;
   auto: number;
   tracker: number;
   suggested: number;
 }
 
 /** Status yang dibuat mesin (dihapus & dihitung ulang tiap rebuild); confirmed / rejected adalah keputusan tim. */
-const GENERATED = ["auto", "tracker", "suggested"];
+const GENERATED = ["coded", "auto", "tracker", "suggested"];
+
+type CodedResult = { fromKey: string; toKey: string; score: number; status: "coded" };
 
 /** Hitung ulang semua pasangan auto / tracker / suggested. Keputusan tim (confirmed / rejected) dipertahankan. */
 export async function rebuildMatches(): Promise<MatchSummary> {
   const [stories, briefs, articles, socials, decided, tasks] = await Promise.all([
     prisma.story.findMany({ select: { code: true, date: true, title: true, angle: true } }),
     prisma.brief.findMany({ select: { fileId: true, fileName: true, date: true, type: true, topic: true, headline: true } }),
-    prisma.newsArticle.findMany({ where: { import: { source: "news_log" }, date: { not: null } }, select: { date: true, title: true, url: true } }),
-    prisma.socialLog.findMany({ where: { platform: { contains: "instagram" }, date: { not: null } }, select: { date: true, format: true, title: true, url: true } }),
+    prisma.newsArticle.findMany({ where: { import: { source: "news_log" }, date: { not: null } }, select: { date: true, title: true, url: true, status: true, story: true } }),
+    prisma.socialLog.findMany({ where: { platform: { contains: "instagram" }, date: { not: null } }, select: { date: true, format: true, title: true, url: true, story: true } }),
     prisma.teamMatch.findMany({ where: { status: { in: ["confirmed", "rejected"] } } }),
     prisma.briefTask.findMany({ select: { briefKey: true, status: true, published: true } }),
   ]);
@@ -197,7 +287,13 @@ export async function rebuildMatches(): Promise<MatchSummary> {
     }),
   );
 
-  const articleTargets: Target[] = articles.map((a) => ({ key: articleKey(a), date: a.date!, text: a.title, title: a.title, url: a.url }));
+  // satu artikel bisa muncul dua kali (baris "in review" bulan submit + baris publish) → satu target, versi publish
+  const articleByKey = new Map<string, (typeof articles)[number]>();
+  for (const a of articles) {
+    const k = articleKey(a);
+    if (!articleByKey.has(k) || a.status === "publish") articleByKey.set(k, a);
+  }
+  const articleTargets: Target[] = [...articleByKey].map(([key, a]) => ({ key, date: a.date!, text: a.title, title: a.title, url: a.url }));
   const socialTargets: Target[] = socials
     .filter((s) => s.title)
     .map((s) => ({ key: socialKey(s), date: s.date!, text: s.title!, title: s.title!, url: s.url, format: s.format }));
@@ -220,15 +316,47 @@ export async function rebuildMatches(): Promise<MatchSummary> {
     ...decisions("brief", "social"),
   };
 
-  const runs: { fromType: string; toType: string; targets: Target[]; res: TrackedResult[] }[] = [
+  // kolom Story di log = sambungan pasti (ditulis tim); judul tidak perlu dicocokkan lagi
+  const codes = new Set(stories.map((s) => s.code));
+  const codedArticles = articleTargets.flatMap((t) => {
+    const story = articleByKey.get(t.key)!.story;
+    return story && codes.has(story) ? [{ fromKey: story, toKey: t.key, score: 0, status: "coded" as const }] : [];
+  });
+  const socialAll: Target[] = socials.map((s) => ({ key: socialKey(s), date: s.date!, text: s.title ?? "", title: s.title ?? `(${s.format})`, url: s.url, format: s.format }));
+  const codedSocial = socials.flatMap((s) => (s.story && codes.has(s.story) ? [{ fromKey: s.story, toKey: socialKey(s), score: 0, status: "coded" as const }] : []));
+  const storyArticle = decisions("story", "article");
+  for (const c of codedArticles) {
+    storyArticle.takenFrom.add(c.fromKey);
+    storyArticle.takenTo.add(c.toKey);
+  }
+
+  const storyTargets: Target[] = stories.map((s) => ({ key: s.code, date: s.date, text: s.title, title: s.title, url: null }));
+
+  const runs: { fromType: string; toType: string; targets: Target[]; res: (TrackedResult | CodedResult)[] }[] = [
     {
       fromType: "story",
       toType: "article",
       targets: articleTargets,
+      res: [...codedArticles, ...matchItems(stories.map((s) => ({ key: s.code, date: s.date, text: s.title, extra: s.angle })), articleTargets, { minDays: -1, maxDays: 45, ...storyArticle })],
+    },
+    { fromType: "story", toType: "social", targets: socialAll, res: codedSocial },
+    {
+      // brief langsung ke rencana artikel di panduan (berguna saat artikelnya belum tersambung)
+      fromType: "brief",
+      toType: "story",
+      targets: storyTargets,
+      res: matchItems(briefFrom, storyTargets, { minDays: -90, maxDays: 7, ...decisions("brief", "story") }),
+    },
+    {
+      // IG story yang mengarah ke artikel: teaser sampai 7 hari sebelum artikel, atau sampai 30 hari sesudahnya.
+      // Satu artikel boleh punya beberapa story; satu story hanya ke satu artikel.
+      fromType: "igstory",
+      toType: "article",
+      targets: articleTargets,
       res: matchItems(
-        stories.map((s) => ({ key: s.code, date: s.date, text: s.title, extra: s.angle })),
+        socialTargets.filter((t) => t.format === "story"),
         articleTargets,
-        { minDays: -1, maxDays: 45, ...decisions("story", "article") },
+        { minDays: -30, maxDays: 7, multiTo: true, ...decisions("igstory", "article") },
       ),
     },
     {
@@ -260,7 +388,7 @@ export async function rebuildMatches(): Promise<MatchSummary> {
 
   await prisma.$transaction([prisma.teamMatch.deleteMany({ where: { status: { in: GENERATED } } }), prisma.teamMatch.createMany({ data: rows })]);
   const count = (s: string) => rows.filter((r) => r.status === s).length;
-  return { auto: count("auto"), tracker: count("tracker"), suggested: count("suggested") };
+  return { coded: count("coded"), auto: count("auto"), tracker: count("tracker"), suggested: count("suggested") };
 }
 
 /** Keputusan tim atas satu pasangan. Konfirmasi menyingkirkan saran lain untuk item yang sama. */
