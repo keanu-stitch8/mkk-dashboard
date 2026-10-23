@@ -107,3 +107,55 @@ export function matchItems<F extends MatchItem, T extends MatchItem>(from: F[], 
   }
   return out;
 }
+
+/** Catatan tim untuk satu item (Task Progress): status & tanggal tayang. */
+export interface TrackerHint {
+  status: string | null;
+  published: string | null;
+}
+
+export type TrackedResult = Omit<MatchResult, "status"> & { status: MatchResult["status"] | "tracker" };
+
+/**
+ * Gabungkan hasil pencocokan judul dengan catatan tim. Tanggal di tracker bisa meleset sehari, jadi tanggal saja
+ * tidak cukup — dua bukti harus sepakat:
+ * - tracker "published" + pasangan judul (auto/suggested) tayang ±1 hari dari tanggalnya → "tracker" (dihitung)
+ * - tracker "published" tapi judul tidak sepakat → semua jadi suggested, ditambah post format sama di ±1 hari itu
+ * - tracker berstatus lain (reviewing, unpublished, …) tapi judul bilang auto → bertentangan, jadi suggested
+ */
+export function withTracker<F extends MatchItem, T extends MatchItem>(
+  res: MatchResult[],
+  from: F[],
+  to: T[],
+  hints: Map<string, TrackerHint>,
+  opts: Pick<MatchOptions<F, T>, "compatible" | "rejected" | "takenTo">,
+): TrackedResult[] {
+  const toByKey = new Map(to.map((t) => [t.key, t]));
+  const near = (a: string, b: string) => Math.abs(day(a) - day(b)) <= 1;
+  const out: TrackedResult[] = res.map((m) => ({ ...m }));
+  const claimed = () => new Set(out.filter((m) => m.status !== "suggested").map((m) => m.toKey));
+
+  for (const f of from) {
+    const hint = hints.get(f.key);
+    if (!hint?.status) continue;
+    const mine = out.filter((m) => m.fromKey === f.key);
+    const pub = hint.status === "published" ? hint.published : null;
+    const agree = pub ? mine.find((m) => near(toByKey.get(m.toKey)!.date, pub)) : undefined;
+    if (agree) {
+      agree.status = "tracker";
+      // pasangan auto item lain ke post yang sama jadi diragukan
+      for (const m of out) if (m !== agree && m.toKey === agree.toKey && m.status === "auto") m.status = "suggested";
+      continue;
+    }
+    for (const m of mine) m.status = "suggested";
+    if (!pub) continue;
+    const taken = claimed();
+    for (const t of to) {
+      if (!near(t.date, pub) || taken.has(t.key) || opts.takenTo?.has(t.key) || opts.rejected?.has(`${f.key}→${t.key}`)) continue;
+      if (opts.compatible && !opts.compatible(f, t)) continue;
+      if (mine.some((m) => m.toKey === t.key)) continue;
+      out.push({ fromKey: f.key, toKey: t.key, score: 0, status: "suggested" });
+    }
+  }
+  return out;
+}

@@ -1,9 +1,13 @@
 // Sinkronisasi dokumen tim dari Drive (panduan liputan → Story, brief → Brief) dan pencocokan antar tahap.
 // Pencocokan diulang dari nol setiap kali, tapi keputusan tim (confirmed / rejected) tidak pernah ditimpa.
 import type { drive_v3 } from "googleapis";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../db";
-import { docxParagraphs, panduanDate, parseBriefName, parseBriefOutline, parsePanduan } from "./parse";
-import { matchItems, type MatchItem } from "./match";
+import { readTables } from "../parsers/tabular";
+import { readTrackerTab } from "../parsers/logs";
+import { pickTrackerFile } from "../connectors/sheets/map";
+import { briefKey, docxParagraphs, panduanDate, parseBriefName, parseBriefOutline, parsePanduan, trackerLink } from "./parse";
+import { matchItems, withTracker, type MatchItem, type TrackedResult, type TrackerHint } from "./match";
 
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -92,6 +96,66 @@ export async function syncTeamDocs(drive: drive_v3.Drive, month: string): Promis
   return { panduan: panduan.length, stories: stories.length, briefs: briefs.length, briefTypes, warnings };
 }
 
+// ── Task Progress (tracker editor) ──────────────────────────────────────────
+
+const SHEET = "application/vnd.google-apps.spreadsheet";
+const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+export interface TrackerSyncResult {
+  file: string | null;
+  rows: number;
+  /** baris tracker yang file brief-nya tidak ditemukan di brief yang sudah di-sync */
+  unknown: string[];
+  warnings: string[];
+}
+
+/** Baca "Social Media - Task Progress" (semua tab bulan) lalu ganti seluruh BriefTask. */
+export async function syncBriefTracker(drive: drive_v3.Drive): Promise<TrackerSyncResult> {
+  const { data } = await drive.files.list({
+    q: `name contains 'Task Progress' and mimeType = '${SHEET}' and trashed = false`,
+    fields: "files(id,name,modifiedTime)",
+    pageSize: 100,
+    includeItemsFromAllDrives: true,
+    supportsAllDrives: true,
+  });
+  const file = pickTrackerFile(
+    (data.files ?? []).flatMap((f) => (f.id && f.name ? [{ id: f.id, name: f.name.trim(), modifiedTime: f.modifiedTime ?? undefined }] : [])),
+    "social",
+  );
+  if (!file) return { file: null, rows: 0, unknown: [], warnings: ["“Social Media - Task Progress” not found in Google Drive — editor status wasn't updated."] };
+
+  const res = await drive.files.export({ fileId: file.id, mimeType: XLSX }, { responseType: "arraybuffer" });
+  const tabs = readTables({ name: `${file.name}.xlsx`, data: new Uint8Array(res.data as ArrayBuffer) }).tables.flatMap((t) => readTrackerTab(t) ?? []);
+  const tasks = new Map<string, Prisma.BriefTaskCreateManyInput>();
+  const warnings: string[] = [];
+  for (const tab of tabs) {
+    for (const r of tab.rows) {
+      if (!r.brief) continue;
+      const key = briefKey(r.brief);
+      if (tasks.has(key)) warnings.push(`Task Progress: “${r.brief}” appears more than once — using the first row.`);
+      else
+        tasks.set(key, {
+          briefKey: key,
+          briefName: r.brief,
+          tab: tab.tabMonth,
+          planned: r.planned,
+          article: r.title,
+          format: r.format,
+          status: r.status || null,
+          assignee: r.assignee,
+          submitted: r.submitted,
+          published: r.published,
+          ...(({ url, note }) => ({ igUrl: url, note }))(trackerLink(r.link)),
+        });
+    }
+  }
+  await prisma.$transaction([prisma.briefTask.deleteMany(), prisma.briefTask.createMany({ data: [...tasks.values()] })]);
+
+  const known = new Set((await prisma.brief.findMany({ select: { fileName: true } })).map((b) => briefKey(b.fileName)));
+  const unknown = [...tasks.values()].filter((t) => !known.has(t.briefKey)).map((t) => t.briefName);
+  return { file: file.name, rows: tasks.size, unknown, warnings };
+}
+
 // ── Pencocokan ──────────────────────────────────────────────────────────────
 
 interface Target extends MatchItem {
@@ -108,18 +172,30 @@ const BRIEF_FORMATS: Record<string, string[]> = { carousel: ["feeds", "carousel"
 
 export interface MatchSummary {
   auto: number;
+  tracker: number;
   suggested: number;
 }
 
-/** Hitung ulang semua pasangan auto / suggested. Keputusan tim (confirmed / rejected) dipertahankan. */
+/** Status yang dibuat mesin (dihapus & dihitung ulang tiap rebuild); confirmed / rejected adalah keputusan tim. */
+const GENERATED = ["auto", "tracker", "suggested"];
+
+/** Hitung ulang semua pasangan auto / tracker / suggested. Keputusan tim (confirmed / rejected) dipertahankan. */
 export async function rebuildMatches(): Promise<MatchSummary> {
-  const [stories, briefs, articles, socials, decided] = await Promise.all([
+  const [stories, briefs, articles, socials, decided, tasks] = await Promise.all([
     prisma.story.findMany({ select: { code: true, date: true, title: true, angle: true } }),
-    prisma.brief.findMany({ select: { fileId: true, date: true, type: true, topic: true, headline: true } }),
+    prisma.brief.findMany({ select: { fileId: true, fileName: true, date: true, type: true, topic: true, headline: true } }),
     prisma.newsArticle.findMany({ where: { import: { source: "news_log" }, date: { not: null } }, select: { date: true, title: true, url: true } }),
     prisma.socialLog.findMany({ where: { platform: { contains: "instagram" }, date: { not: null } }, select: { date: true, format: true, title: true, url: true } }),
     prisma.teamMatch.findMany({ where: { status: { in: ["confirmed", "rejected"] } } }),
+    prisma.briefTask.findMany({ select: { briefKey: true, status: true, published: true } }),
   ]);
+  const taskByKey = new Map(tasks.map((t) => [t.briefKey, t]));
+  const hints = new Map<string, TrackerHint>(
+    briefs.flatMap((b) => {
+      const t = taskByKey.get(briefKey(b.fileName));
+      return t ? [[b.fileId, { status: t.status, published: t.published }] as const] : [];
+    }),
+  );
 
   const articleTargets: Target[] = articles.map((a) => ({ key: articleKey(a), date: a.date!, text: a.title, title: a.title, url: a.url }));
   const socialTargets: Target[] = socials
@@ -136,7 +212,15 @@ export async function rebuildMatches(): Promise<MatchSummary> {
     };
   };
 
-  const runs = [
+  const briefFrom = briefs.map((b) => ({ key: b.fileId, date: b.date, text: [b.headline, b.topic].filter(Boolean).join(" "), format: b.type }));
+  const briefSocialOpts = {
+    minDays: -3,
+    maxDays: 45,
+    compatible: (f: MatchItem, t: MatchItem) => (BRIEF_FORMATS[f.format ?? ""] ?? []).includes(t.format ?? ""),
+    ...decisions("brief", "social"),
+  };
+
+  const runs: { fromType: string; toType: string; targets: Target[]; res: TrackedResult[] }[] = [
     {
       fromType: "story",
       toType: "article",
@@ -151,11 +235,7 @@ export async function rebuildMatches(): Promise<MatchSummary> {
       fromType: "brief",
       toType: "social",
       targets: socialTargets,
-      res: matchItems(
-        briefs.map((b) => ({ key: b.fileId, date: b.date, text: [b.headline, b.topic].filter(Boolean).join(" "), format: b.type })),
-        socialTargets,
-        { minDays: -3, maxDays: 45, compatible: (f, t) => (BRIEF_FORMATS[f.format ?? ""] ?? []).includes(t.format ?? ""), ...decisions("brief", "social") },
-      ),
+      res: withTracker(matchItems(briefFrom, socialTargets, briefSocialOpts), briefFrom, socialTargets, hints, briefSocialOpts),
     },
     {
       fromType: "brief",
@@ -178,8 +258,9 @@ export async function rebuildMatches(): Promise<MatchSummary> {
     });
   });
 
-  await prisma.$transaction([prisma.teamMatch.deleteMany({ where: { status: { in: ["auto", "suggested"] } } }), prisma.teamMatch.createMany({ data: rows })]);
-  return { auto: rows.filter((r) => r.status === "auto").length, suggested: rows.filter((r) => r.status === "suggested").length };
+  await prisma.$transaction([prisma.teamMatch.deleteMany({ where: { status: { in: GENERATED } } }), prisma.teamMatch.createMany({ data: rows })]);
+  const count = (s: string) => rows.filter((r) => r.status === s).length;
+  return { auto: count("auto"), tracker: count("tracker"), suggested: count("suggested") };
 }
 
 /** Keputusan tim atas satu pasangan. Konfirmasi menyingkirkan saran lain untuk item yang sama. */
@@ -187,7 +268,7 @@ export async function decideMatch(id: string, decision: "confirmed" | "rejected"
   const m = await prisma.teamMatch.update({ where: { id }, data: { status: decision } });
   if (decision === "confirmed") {
     await prisma.teamMatch.deleteMany({
-      where: { id: { not: id }, status: { in: ["auto", "suggested"] }, toType: m.toType, fromType: m.fromType, OR: [{ fromKey: m.fromKey }, { toKey: m.toKey }] },
+      where: { id: { not: id }, status: { in: GENERATED }, toType: m.toType, fromType: m.fromType, OR: [{ fromKey: m.fromKey }, { toKey: m.toKey }] },
     });
   }
 }

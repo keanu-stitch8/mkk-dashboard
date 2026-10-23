@@ -77,24 +77,33 @@ export function parsePanduan(paras: string[]): PlannedArticle[] {
 
 // ── Brief turunan ───────────────────────────────────────────────────────────
 
-const BRIEF_NAME = /^(\d{6})_\s*Brief\s+(.+?)\s+-\s+(.+?)(?:\.docx)?$/i;
+const BRIEF_NAME = /^(\d{6})_\s*(.+?)(?:\.docx)?$/i;
+const NAME_WORDS = /\b(?:revised|creative|brief|carousel|reels?|instagram|ig)\b/gi;
 
 export interface BriefMeta {
   date: string;
   /** carousel | reel | jenis lain (huruf kecil) */
   type: string;
+  /** bisa kosong untuk nama lama ("260704_Brief Carousel.docx") */
   topic: string;
 }
 
-/** "261022_ Brief Carousel - Berlian Sports Centre.docx" → { date, type: "carousel", topic } */
+/**
+ * "261022_ Brief Carousel - Berlian Sports Centre.docx" → { date, type: "carousel", topic }. Nama ditulis bervariasi:
+ * "CREATIVE BRIEF CAROUSEL IG - …", "BRIEF REEL- …", "Brief Reel-Ada Doa", "REVISED REEL BRIEF - …",
+ * "Brief Carousel Persahabatan Atlet" (tanpa tanda hubung), "Brief Carousel.docx" (tanpa topik).
+ */
 export function parseBriefName(fileName: string): BriefMeta | null {
   const m = fileName.trim().match(BRIEF_NAME);
   const date = m ? yymmdd(m[1]) : null;
-  if (!m || !date) return null;
-  // ditulis bervariasi: "Carousel", "Carousel Instagram", "Reel", "Reels"
-  const raw = m[2].trim().toLowerCase();
-  const type = /carousel/.test(raw) ? "carousel" : /reel/.test(raw) ? "reel" : raw;
-  return { date, type, topic: m[3].trim() };
+  if (!m || !date || !/\bbrief\b/i.test(m[2])) return null;
+  // jenis di depan tanda hubung pertama, topik sesudahnya (topik sendiri boleh berisi tanda hubung)
+  const d = m[2].match(/^(.*?)\s*[-–—]\s*(.+)$/);
+  const head = d ? d[1] : m[2];
+  const type = /carousel/i.test(head) ? "carousel" : /reel/i.test(head) ? "reel" : head.replace(NAME_WORDS, " ").trim().toLowerCase();
+  if (!type) return null;
+  const topic = d ? d[2] : m[2].replace(NAME_WORDS, " ");
+  return { date, type, topic: topic.replace(/\s+/g, " ").trim() };
 }
 
 const SECTION_HEAD = /^(?:#+\s*)?(slide|scene)\s*(\d+)\s*(?:[|:—–-]\s*(.*))?$/i;
@@ -116,4 +125,23 @@ export function parseBriefOutline(paras: string[]): { headline: string | null; o
     outline.push([`${m[1][0].toUpperCase()}${m[2]}`, label, what.slice(0, 140)].filter(Boolean).join(" · "));
   });
   return { headline: firstJudul, outline };
+}
+
+/** Kunci nama file brief: huruf kecil, tanpa .docx, spasi di sekitar "_" / "-" diabaikan (tracker sering beda spasi). */
+export function briefKey(fileName: string): string {
+  return fileName
+    .toLowerCase()
+    .replace(/\.docx\s*$/, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*([_-])\s*/g, "$1")
+    .trim();
+}
+
+/** Isi kolom Instagram Link → URL post (tanpa query) atau catatan teks. */
+export function trackerLink(raw: string | null): { url: string | null; note: string | null } {
+  const s = raw?.trim() ?? "";
+  if (!s) return { url: null, note: null };
+  const m = s.match(/https?:\/\/(?:www\.)?instagram\.com\/[^\s?#]+/i);
+  if (m) return { url: m[0].endsWith("/") ? m[0] : `${m[0]}/`, note: null };
+  return { url: null, note: s };
 }

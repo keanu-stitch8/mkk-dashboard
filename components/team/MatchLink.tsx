@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { BADGE } from "@/components/log-badges";
 import type { Linked, LinkView } from "@/lib/data/team";
 
+const MATCHED: Record<LinkView["state"], { label: string; hint: string }> = {
+  confirmed: { label: "Confirmed", hint: "Confirmed by the team" },
+  tracker: { label: "Matched · Task Progress", hint: "Task Progress says it was published on this date (±1 day), and the title matches" },
+  auto: { label: "Matched · auto", hint: "Matched automatically (strong title match)" },
+  suggested: { label: "Needs confirmation", hint: "Possible match — not counted until the team confirms it" },
+};
+
 const fmtDate = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-ID", { day: "numeric", month: "short" }) : "");
 
 function Target({ v }: { v: LinkView }) {
@@ -49,8 +56,8 @@ export function MatchLink({ linked, empty }: { linked: Linked; empty: string }) 
     const m = linked.match;
     return (
       <div className="flex flex-col items-start gap-1 text-sm">
-        <Badge variant="secondary" className={BADGE.green} title={m.state === "auto" ? "Matched automatically (strong title match)" : "Confirmed by the team"}>
-          <Check /> {m.state === "auto" ? "Matched · auto" : "Confirmed"}
+        <Badge variant="secondary" className={BADGE.green} title={MATCHED[m.state].hint}>
+          <Check /> {MATCHED[m.state].label}
         </Badge>
         <Target v={m} />
       </div>
@@ -59,8 +66,8 @@ export function MatchLink({ linked, empty }: { linked: Linked; empty: string }) 
   if (!linked.suggestions.length) return <span className="text-sm text-muted-foreground">{empty}</span>;
   return (
     <div className="flex flex-col items-start gap-2 text-sm">
-      <Badge variant="secondary" className={BADGE.blue}>
-        <CircleHelp /> Needs confirmation
+      <Badge variant="secondary" className={BADGE.blue} title={MATCHED.suggested.hint}>
+        <CircleHelp /> {MATCHED.suggested.label}
       </Badge>
       {linked.suggestions.slice(0, 2).map((s) => (
         <div key={s.id} className="flex flex-col items-start gap-1">

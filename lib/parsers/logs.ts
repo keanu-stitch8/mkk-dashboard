@@ -188,6 +188,13 @@ export interface TrackerRow {
   tabMonth: string;
   submitted: string | null;
   published: string | null;
+  /** Planned Date (sel di-merge per hari → diteruskan ke baris berikutnya) */
+  planned: string | null;
+  /** nama file brief (.docx), penghubung ke Brief */
+  brief: string | null;
+  assignee: string | null;
+  /** isi kolom Instagram Link apa adanya (URL atau catatan, mis. "Unpublished by client") */
+  link: string | null;
 }
 
 /**
@@ -205,6 +212,9 @@ export function readTrackerTab(table: RawTable): { tabMonth: string; rows: Track
   const titleCol = col(/^(artikel|judul|title|konten)$/i);
   const submittedCol = col(/^submitted date$/i);
   const publishedCol = col(/^published date$/i);
+  const briefCol = col(/^brief$/i);
+  const assigneeCol = col(/^(assignee|editor)$/i);
+  const linkCol = col(/^(instagram )?link( instagram)?$/i);
   const data = table.rows.slice(h + 1).filter((r) => !header.every((c, i) => !c || str(r[i]) === c));
   // kolom format tidak berjudul (sel header di-merge dengan Artikel) → kolom dengan isi Carousel/Reel terbanyak
   const width = Math.max(0, ...data.map((r) => r.length));
@@ -217,16 +227,26 @@ export function readTrackerTab(table: RawTable): { tabMonth: string; rows: Track
   const tabMonth = dominantMonth(data.map((r) => ({ _date: parseDate(r[dateCol])?.date ?? null })));
   if (!tabMonth) return null;
   const date = (r: (typeof data)[number], i: number) => (i >= 0 ? (parseDate(r[i])?.date ?? null) : null);
-  const rows = data
-    .filter((r) => str(r[statusCol]))
-    .map((r) => ({
+  const text = (r: (typeof data)[number], i: number) => (i >= 0 ? strOrNull(r[i])?.trim() || null : null);
+  let planned: string | null = null;
+  const rows: TrackerRow[] = [];
+  for (const r of data) {
+    planned = date(r, dateCol) ?? planned;
+    // baris tanpa status tetap disimpan jika sudah ada brief-nya (mis. baru dibagikan ke editor)
+    if (!str(r[statusCol]) && !text(r, briefCol)) continue;
+    rows.push({
       format: formatCol >= 0 ? normalizeLogFormat(str(r[formatCol])) : "lainnya",
-      title: titleCol >= 0 ? strOrNull(r[titleCol]) : null,
+      title: text(r, titleCol),
       status: str(r[statusCol]).toLowerCase(),
       tabMonth,
       submitted: date(r, submittedCol),
       published: date(r, publishedCol),
-    }));
+      planned,
+      brief: text(r, briefCol),
+      assignee: text(r, assigneeCol),
+      link: text(r, linkCol),
+    });
+  }
   return { tabMonth, rows };
 }
 

@@ -1,4 +1,5 @@
-// Connector Google Drive — dokumen kerja tim: panduan liputan harian (→ Story) dan brief turunan (→ Brief).
+// Connector Google Drive — dokumen kerja tim: panduan liputan harian (→ Story), brief turunan (→ Brief), dan
+// status editor dari "Social Media - Task Progress" (→ BriefTask).
 // Memakai akun Google yang sama dengan connector Sheets (scope drive.readonly). Tidak mengisi dataset import:
 // hasilnya disimpan di tabel Story / Brief lalu dicocokkan dengan artikel & post IG (lib/team/store.ts).
 import { google } from "googleapis";
@@ -8,7 +9,7 @@ import { monthRange } from "../common";
 import { googleErrorMessage } from "../google-errors";
 import { GOOGLE_SCOPES, oauthAccount } from "../google-oauth";
 import { resolveGoogleAuth, type AuthInfo } from "../google-auth";
-import { rebuildMatches, syncTeamDocs } from "../../team/store";
+import { rebuildMatches, syncBriefTracker, syncTeamDocs } from "../../team/store";
 import { sheets } from "../sheets";
 
 async function client() {
@@ -60,6 +61,7 @@ export const drive: Connector = {
     const { drive, info } = await client();
     try {
       const r = await syncTeamDocs(drive, month);
+      const t = await syncBriefTracker(drive);
       const m = await rebuildMatches();
       const types = Object.entries(r.briefTypes).map(([t, n]) => `${n} ${t}`).join(", ");
       return {
@@ -67,8 +69,9 @@ export const drive: Connector = {
         detail: [
           `Coverage guides: ${r.panduan} file(s), ${r.stories} planned article(s)`,
           `Briefs: ${r.briefs}${types ? ` (${types})` : ""}`,
-          `Matches (all months): ${m.auto} auto, ${m.suggested} need confirmation`,
-          ...r.warnings.map((w) => `⚠ ${w}`),
+          t.file ? `Task Progress (“${t.file}”): ${t.rows} brief row(s)${t.unknown.length ? `, ${t.unknown.length} not among synced briefs (old file names or months not synced yet)` : ""}` : "Task Progress: not found",
+          `Matches (all months): ${m.auto} auto, ${m.tracker} confirmed by Task Progress, ${m.suggested} need confirmation`,
+          ...[...r.warnings, ...t.warnings].map((w) => `⚠ ${w}`),
         ],
       };
     } catch (e) {
