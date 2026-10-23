@@ -34,9 +34,19 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Data",
     items: [
-      { title: "Import Data", url: "/import", icon: Upload },
+      {
+        title: "Import Data",
+        url: "/import",
+        icon: Upload,
+        items: [{ title: "Import History", url: "/import/history" }],
+      },
       { title: "Report / PDF", url: "/report", icon: FileText },
-      { title: "Connectors API", url: "/settings/connectors", icon: Cable },
+      {
+        title: "Connectors API",
+        url: "/settings/connectors",
+        icon: Cable,
+        items: [{ title: "Sync History", url: "/settings/connectors/history" }],
+      },
       { title: "Source Logs", url: "/logs", icon: FileSpreadsheet },
     ],
   },

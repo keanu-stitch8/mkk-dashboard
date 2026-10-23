@@ -7,10 +7,10 @@ import { GoogleConnectButton } from "@/components/connectors/GoogleConnectButton
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { prisma } from "@/lib/db";
 import { REGISTRY, lastFullMonth } from "@/lib/connectors";
-import { CONNECTORS, connectorLabel } from "@/lib/connectors/catalog";
+import { CONNECTORS } from "@/lib/connectors/catalog";
 import { OAUTH_ONLY } from "@/lib/connectors/google-oauth";
 import { currentMonth, lastMonths, monthLabel } from "@/lib/month";
 
@@ -22,8 +22,7 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
   const sp = await searchParams;
   const connected = typeof sp.connected === "string" ? sp.connected : null;
   const oauthError = typeof sp.error === "string" ? sp.error : null;
-  const [logs, lastPerConnector, locks] = await Promise.all([
-    prisma.syncLog.findMany({ orderBy: { startedAt: "desc" }, take: 50 }),
+  const [lastPerConnector, locks] = await Promise.all([
     Promise.all(CONNECTORS.map((c) => prisma.syncLog.findFirst({ where: { connector: c.id, status: { not: "running" } }, orderBy: { startedAt: "desc" } }))),
     prisma.monthLock.findMany(),
   ]);
@@ -157,44 +156,6 @@ export default async function ConnectorsPage({ searchParams }: PageProps<"/setti
             })}
           </TableBody>
         </Table>
-      </Section>
-
-      <Section title="Sync history" subtitle="Last 50 syncs">
-        {logs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No syncs yet.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Connector</TableHead>
-                <TableHead>Month</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Rows</TableHead>
-                <TableHead>Details</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="text-xs whitespace-nowrap text-muted-foreground">{fmtTime(l.startedAt)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{connectorLabel(l.connector)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{monthLabel(l.month)}</TableCell>
-                  <TableCell>
-                    {l.status === "success" && <Badge className="border-transparent bg-success-soft text-success" variant="outline">Succeeded</Badge>}
-                    {l.status === "error" && <Badge className="border-transparent bg-danger-soft text-danger" variant="outline">Failed</Badge>}
-                    {l.status === "running" && <Badge variant="secondary">Running</Badge>}
-                    {l.trigger !== "manual" && <span className="ml-1 text-xs text-muted-foreground">({l.trigger})</span>}
-                  </TableCell>
-                  <TableCell className="num text-right">{l.rows.toLocaleString("en-ID")}</TableCell>
-                  <TableCell className="max-w-md text-xs whitespace-normal">
-                    {l.error ? <span className="text-danger">{l.error}</span> : <span className="text-muted-foreground">{l.detail?.split("\n").join(" · ")}</span>}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
       </Section>
     </div>
   );
