@@ -473,3 +473,60 @@ model PageMeta {
   ogImage   String?
   fetchedAt DateTime @default(now())
 }
+
+/// Rencana artikel dari panduan liputan harian (Drive: "YYMMDD_PANDUAN LIPUTAN WAWANCARA SHOTLIST.docx").
+/// Satu "Artikel N" = satu Story; code = "YYMMDD-N" dipakai sebagai kunci liputan di seluruh tahap.
+model Story {
+  code      String   @id
+  date      String // YYYY-MM-DD (tanggal panduan)
+  month     String
+  n         Int
+  title     String
+  angle     String?
+  fileId    String
+  fileName  String
+  updatedAt DateTime @updatedAt
+
+  @@index([month])
+}
+
+/// Brief turunan (carousel / reel) dari Content & Creative (Drive: "YYMMDD_Brief Carousel - Topik.docx").
+model Brief {
+  fileId       String  @id
+  fileName     String
+  date         String // YYYY-MM-DD dari nama file
+  month        String
+  type         String // carousel | reel | lainnya
+  topic        String
+  /// judul utama / cover (Judul: …), dasar pencocokan dengan post IG
+  headline     String?
+  /// outline per slide/scene, satu baris per item: "S1 · Cover · Judul"
+  outline      String?
+  webViewLink  String?
+  modifiedTime String?
+  updatedAt    DateTime @updatedAt
+
+  @@index([month])
+}
+
+/// Pasangan antar tahap (Story → artikel, Brief → artikel / post IG). Ditebak otomatis dari judul:
+/// auto = sangat yakin, suggested = ambigu (TIDAK dihitung sampai dikonfirmasi), confirmed / rejected = keputusan tim
+/// (dipertahankan saat pencocokan diulang; rejected tidak disarankan lagi).
+model TeamMatch {
+  id        String   @id @default(cuid())
+  fromType  String // story | brief
+  fromKey   String // Story.code | Brief.fileId
+  toType    String // article | social
+  /// kunci stabil target: URL jika ada, selain itu "tanggal|format|judul"
+  toKey     String
+  toTitle   String
+  toDate    String?
+  toFormat  String?
+  toUrl     String?
+  score     Float
+  status    String // auto | suggested | confirmed | rejected
+  updatedAt DateTime @updatedAt
+
+  @@unique([fromType, fromKey, toType, toKey])
+  @@index([fromType, fromKey])
+}

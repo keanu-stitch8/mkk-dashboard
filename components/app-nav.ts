@@ -1,4 +1,4 @@
-import { Cable, FileSpreadsheet, FileText, Globe, LayoutDashboard, MessagesSquare, Newspaper, Upload } from "lucide-react";
+import { Cable, ClipboardList, FileSpreadsheet, FileText, Globe, LayoutDashboard, MessagesSquare, Newspaper, NotebookPen, Upload } from "lucide-react";
 import { SiYoutube } from "./icons";
 
 export type NavLink = { title: string; url: string };
@@ -29,6 +29,13 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         icon: SiYoutube,
         items: [{ title: "Publishing Log", url: "/youtube/logs" }],
       },
+    ],
+  },
+  {
+    label: "Team",
+    items: [
+      { title: "Stories", url: "/team/stories", icon: NotebookPen },
+      { title: "Briefs", url: "/team/briefs", icon: ClipboardList },
     ],
   },
   {

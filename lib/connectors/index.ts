@@ -11,8 +11,10 @@ import { gsc } from "./gsc";
 import { youtube } from "./youtube";
 import { meta } from "./meta";
 import { sheets } from "./sheets";
+import { drive } from "./drive";
+import { rebuildMatches } from "../team/store";
 
-export const REGISTRY: Partial<Record<ConnectorId, Connector>> = { ga4, gsc, youtube, meta, sheets };
+export const REGISTRY: Partial<Record<ConnectorId, Connector>> = { ga4, gsc, youtube, meta, sheets, drive };
 
 export function getConnector(id: string): Connector {
   const c = REGISTRY[id as ConnectorId];
@@ -40,21 +42,37 @@ export async function syncConnector(id: ConnectorId, month: string, trigger: "ma
     const connector = getConnector(id);
     const status = await connector.status();
     if (!status.configured) throw new ConnectorError(`Connector not configured: ${status.missing.join(", ") || status.account || "credentials incomplete"}.`);
-    const datasets = await connector.fetchMonth(month);
-    const detail: string[] = [];
     let rows = 0;
-    for (const ds of datasets) {
-      const res = await commitDataset(prisma, ds, month);
-      rows += res.rows;
-      const inReview = ds.key.endsWith("_review") ? ds.metrics[0]?.value : undefined;
-      detail.push(`${DATASETS[ds.key].label}: ${inReview != null ? `${inReview} items` : res.skipped ? "0 rows (not saved)" : `${res.rows.toLocaleString("en-ID")} rows`}`);
+    let lines: string[];
+    if (connector.syncMonth) {
+      const out = await connector.syncMonth(month);
+      rows = out.rows;
+      lines = out.detail;
+    } else {
+      const datasets = await connector.fetchMonth(month);
+      const detail: string[] = [];
+      for (const ds of datasets) {
+        const res = await commitDataset(prisma, ds, month);
+        rows += res.rows;
+        const inReview = ds.key.endsWith("_review") ? ds.metrics[0]?.value : undefined;
+        detail.push(`${DATASETS[ds.key].label}: ${inReview != null ? `${inReview} items` : res.skipped ? "0 rows (not saved)" : `${res.rows.toLocaleString("en-ID")} rows`}`);
+      }
+      lines = [...detail, ...[...new Set(datasets.flatMap((d) => d.warnings))].map((w) => `⚠ ${w}`)];
+      // artikel & post IG baru → pasangan Story / Brief perlu dihitung ulang
+      if (id === "sheets") {
+        try {
+          const m = await rebuildMatches();
+          lines.push(`Story & brief matches: ${m.auto} auto, ${m.suggested} need confirmation`);
+        } catch (e) {
+          lines.push(`⚠ Story & brief matching failed: ${(e as Error)?.message ?? e}`);
+        }
+      }
     }
-    const warnings = [...new Set(datasets.flatMap((d) => d.warnings))];
     await prisma.syncLog.update({
       where: { id: log.id },
-      data: { status: "success", rows, detail: [...detail, ...warnings.map((w) => `⚠ ${w}`)].join("\n"), finishedAt: new Date() },
+      data: { status: "success", rows, detail: lines.join("\n"), finishedAt: new Date() },
     });
-    return { connector: id, month, ok: true, rows, detail: [...detail, ...warnings.map((w) => `⚠ ${w}`)] };
+    return { connector: id, month, ok: true, rows, detail: lines };
   } catch (e) {
     const error = e instanceof ConnectorError ? e.message : `Terjadi kesalahan: ${(e as Error)?.message ?? e}`;
     const raw = e instanceof ConnectorError ? e.raw : String((e as Error)?.stack ?? e);

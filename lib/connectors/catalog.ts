@@ -1,6 +1,6 @@
 // Katalog connector (aman dipakai di client maupun server).
 
-export type ConnectorId = "ga4" | "gsc" | "youtube" | "meta" | "sheets";
+export type ConnectorId = "ga4" | "gsc" | "youtube" | "meta" | "sheets" | "drive";
 
 export interface ConnectorInfo {
   id: ConnectorId;
@@ -46,6 +46,13 @@ export const CONNECTORS: ConnectorInfo[] = [
     label: "Google Sheets (Publishing Log)",
     description: "Monthly Publishing Logs from Google Drive: News Content Logs, Socmed Content Logs, and the YouTube Publishing Log (from the performance report). Found automatically by file name + month.",
     fills: "News content log, social publishing log, YouTube publishing log",
+    available: true,
+  },
+  {
+    id: "drive",
+    label: "Google Drive (Coverage guides & Briefs)",
+    description: "Daily coverage guides (YYMMDD_PANDUAN LIPUTAN …) and Content & Creative briefs (YYMMDD_Brief Carousel / Reel - Topic) from Google Drive, matched to articles and Instagram posts. Uses the Google Sheets account.",
+    fills: "Stories (planned articles) & Briefs, plus their matches",
     available: true,
   },
 ];

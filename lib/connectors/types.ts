@@ -30,6 +30,14 @@ export interface Connector {
   testConnection(): Promise<TestResult>;
   /** Ambil data satu bulan dalam bentuk Dataset yang sama dengan hasil parser CSV. */
   fetchMonth(month: string): Promise<Dataset[]>;
+  /** Untuk connector yang menyimpan ke tabelnya sendiri (bukan dataset import); dipakai menggantikan fetchMonth. */
+  syncMonth?(month: string): Promise<SyncOutput>;
+}
+
+export interface SyncOutput {
+  rows: number;
+  /** baris ringkasan untuk SyncLog.detail (awali "⚠ " untuk peringatan) */
+  detail: string[];
 }
 
 /** Error dengan pesan Bahasa Indonesia yang siap ditampilkan ke user. */
