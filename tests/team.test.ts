@@ -191,6 +191,12 @@ describe("Task Progress kontributor", () => {
       [3, 46267, null, null, null, null, null, null, "-", null, null, null, "-", null, null, null, "-", null, null, null, "-", null, null, null],
     ],
   };
+  it("hanya tab bernama bulan yang dibaca (salinan kerja diabaikan)", async () => {
+    const { readContributorTab, isMonthTab } = await import("../src/modules/team/ingest/contributors");
+    expect(["September", "Oktober", "Okt", "May", "Mei", "Desember"].every(isMonthTab)).toBe(true);
+    expect(readContributorTab({ ...table, sheet: "September (cek Drive)" })).toBeNull();
+    expect(readContributorTab({ ...table, sheet: "Copy of September" })).toBeNull();
+  });
   it("baris, aset, Planned Date & file panduan diteruskan", async () => {
     const { readContributorTab, assetSummary } = await import("../src/modules/team/ingest/contributors");
     const tab = readContributorTab(table)!;

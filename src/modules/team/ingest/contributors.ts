@@ -48,9 +48,13 @@ function assetState(c: Cell): AssetState {
   return null;
 }
 
+/** Nama tab bulan ("September", "Okt", …). Tab lain — mis. salinan "September (cek Drive)" — diabaikan supaya bulan tidak terbaca dua kali. */
+export const isMonthTab = (name: string) => /^(jan|feb|mar|apr|mei|may|jun|jul|aug|agu|sep|oct|okt|nov|dec|des)[a-z]*$/i.test(name.trim());
+
 /** Satu tab bulan → baris liputan. null jika bukan tab Task Progress kontributor. */
 export function readContributorTab(table: RawTable): { tab: string; rows: ContributorRow[] } | null {
-  const h = table.rows.slice(0, 10).findIndex((r) => r.some((c) => /^planned date$/i.test(str(c))) && r.some((c) => /^artikel$/i.test(str(c))));
+  if (table.sheet !== undefined && !isMonthTab(table.sheet)) return null;
+  const h =table.rows.slice(0, 10).findIndex((r) => r.some((c) => /^planned date$/i.test(str(c))) && r.some((c) => /^artikel$/i.test(str(c))));
   if (h < 0) return null;
   const top = table.rows[h].map((c) => str(c).trim());
   const sub = (table.rows[h + 1] ?? []).map((c) => str(c).trim());
