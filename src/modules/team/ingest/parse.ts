@@ -34,7 +34,8 @@ function yymmdd(s: string): string | null {
 
 // ── Panduan liputan ─────────────────────────────────────────────────────────
 
-const PANDUAN_NAME = /^(\d{6})_\s*PANDUAN LIPUTAN/i;
+// "PANDUANN" = salah ketik nama file yang pernah ada di Drive
+const PANDUAN_NAME = /^(\d{6})_\s*PANDUAN+\s+LIPUTAN/i;
 
 /** Tanggal panduan dari nama file "YYMMDD_PANDUAN LIPUTAN …" (null = bukan panduan harian). */
 export function panduanDate(fileName: string): string | null {
@@ -48,14 +49,31 @@ export interface PlannedArticle {
   angle: string | null;
 }
 
-// "Artikel 1 — Judul", "Artikel 1: Judul", "ARTIKEL 1 | Judul", "Panduan Liputan Artikel 1" (judul di baris berikutnya)
-const ARTICLE_HEAD = /^(?:panduan liputan\s+)?artikel\s*(\d+)\s*(?:[—–\-:|.]\s*(.*))?$/i;
+// "Artikel 1 — Judul", "Artikel 1: Judul", "ARTIKEL 1 | Judul", "Panduan Liputan Artikel 1" (judul di baris berikutnya),
+// "Panduan Liputan 15/10Artikel 1 — Judul" (line break di docx tidak menjadi paragraf baru)
+const ARTICLE_HEAD = /^(?:panduan liputan(?:\s+\d{1,2}\/\d{1,2})?\s*)?artikel\s*(\d+)\s*(?:[—–\-:|.]\s*(.*))?$/i;
+const DOC_HEAD = /^panduan liputan\b/i;
+const FILE_ARTICLE = /\bartikel\s*(\d+)\b/i;
 // label sel tabel (format Juli) yang bukan judul
 const LABEL = /^(judul( kerja)?|keterangan|detail|artikel \d+)\s*:?\s*$/i;
 const stripJudul = (s: string) => s.replace(/^(usulan\s+)?judul( kerja)?\s*:\s*/i, "").replace(/^[“"]|[”"]$/g, "").trim();
 
-/** Rencana artikel ("Artikel N") di satu panduan. Nomor yang muncul lagi di isi dokumen diabaikan. */
-export function parsePanduan(paras: string[]): PlannedArticle[] {
+/**
+ * Rencana artikel ("Artikel N") di satu panduan. Nomor yang muncul lagi di isi dokumen diabaikan.
+ * File tambahan "… - ARTIKEL 3.docx" kadang tanpa heading: nomor dari nama file, judul = baris pertama setelah "Panduan Liputan".
+ */
+export function parsePanduan(paras: string[], fileName = ""): PlannedArticle[] {
+  const out = parseHeadings(paras);
+  const fromFile = fileName.match(FILE_ARTICLE);
+  if (out.length || !fromFile) return out;
+  const start = paras.findIndex((p) => DOC_HEAD.test(p));
+  const title = paras.slice(start + 1, start + 4).find((p) => p.length < 200 && !/^(lokasi|waktu|angle|narasumber|pertanyaan)\b/i.test(p) && !LABEL.test(p));
+  if (!title) return out;
+  const a = paras.find((p) => /^angle\b/i.test(p));
+  return [{ n: Number(fromFile[1]), title: stripJudul(title), angle: a ? a.replace(/^angle\s*:?\s*/i, "").slice(0, 500) || null : null }];
+}
+
+function parseHeadings(paras: string[]): PlannedArticle[] {
   const out: PlannedArticle[] = [];
   const seen = new Set<number>();
   paras.forEach((p, i) => {

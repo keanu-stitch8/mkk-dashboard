@@ -14,6 +14,8 @@ describe("docx & nama file", () => {
   it("tanggal panduan & brief", () => {
     expect(panduanDate("260922_PANDUAN LIPUTAN WAWANCARA SHOTLIST.docx")).toBe("2026-09-22");
     expect(panduanDate("22 JUNI_PANDUAN WAWANCARA.docx")).toBeNull();
+    // salah ketik di Drive (2 Okt)
+    expect(panduanDate("261002_PANDUANN LIPUTAN WAWANCARA SHOTLIST.docx")).toBe("2026-10-02");
     expect(parseBriefName("261022_ Brief Carousel - Berlian Sports Centre.docx")).toEqual({ date: "2026-10-22", type: "carousel", topic: "Berlian Sports Centre" });
     expect(parseBriefName("261021_Brief Reel - Entok Rica-rica Mbak Ngatri.docx")?.type).toBe("reel");
     expect(parseBriefName("260715_Brief Carousel Instagram - Kopi.docx")?.type).toBe("carousel");
@@ -46,6 +48,16 @@ describe("parsePanduan", () => {
       { n: 1, title: "Nasi Pindang", angle: null },
       { n: 2, title: "Ojek Muria", angle: "Ojek di lereng" },
     ]);
+  });
+  it("heading yang menempel di judul dokumen (line break, 15 Okt)", () => {
+    const p = parsePanduan(["Panduan Liputan 15/10Artikel 1 — Cari Aneka Es Segar di Kudus? Cobain Ini!", "Angle: Tiga tempat es", "Artikel 2 - Warung di Dalam Gang"]);
+    expect(p.map((a) => [a.n, a.title])).toEqual([[1, "Cari Aneka Es Segar di Kudus? Cobain Ini!"], [2, "Warung di Dalam Gang"]]);
+  });
+  it("file tambahan “- ARTIKEL N” tanpa heading: nomor dari nama file, judul baris pertama (25 Sep)", () => {
+    const paras = ["Panduan Liputan 25/09", "Lapangan Tenis Indoor Angga Sasana Krida Disulap Jadi Tempat Nobar", "Lokasi: Lapangan Tenis Indoor", "Angle: Nobar Timnas", "Narasumber:"];
+    expect(parsePanduan(paras, "260925_PANDUAN LIPUTAN WAWANCARA SHOTLIST - ARTIKEL 3.docx")).toEqual([{ n: 3, title: "Lapangan Tenis Indoor Angga Sasana Krida Disulap Jadi Tempat Nobar", angle: "Nobar Timnas" }]);
+    // tanpa "ARTIKEL N" di nama file tetap tidak menebak
+    expect(parsePanduan(paras, "260925_PANDUAN LIPUTAN WAWANCARA SHOTLIST.docx")).toEqual([]);
   });
 });
 

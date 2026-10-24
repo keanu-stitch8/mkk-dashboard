@@ -62,7 +62,7 @@ export async function syncTeamDocs(drive: drive_v3.Drive, month: string): Promis
   const stories: { code: string; date: string; month: string; n: number; title: string; angle: string | null; fileId: string; fileName: string }[] = [];
   for (const f of panduan) {
     const date = panduanDate(f.name)!;
-    const planned = parsePanduan(docxParagraphs(await download(drive, f.id)));
+    const planned = parsePanduan(docxParagraphs(await download(drive, f.id)), f.name);
     if (!planned.length) warnings.push(`${f.name}: no “Artikel N” heading found — skipped.`);
     for (const a of planned) {
       // file tambahan di hari yang sama (mis. "… - ARTIKEL 3") bisa memakai nomor yang sudah ada
