@@ -518,9 +518,9 @@ model Brief {
 /// (dipertahankan saat pencocokan diulang; rejected tidak disarankan lagi).
 model TeamMatch {
   id        String   @id @default(cuid())
-  fromType  String // story | brief
-  fromKey   String // Story.code | Brief.fileId
-  toType    String // article | social
+  fromType  String // story | brief | igstory
+  fromKey   String // Story.code | Brief.fileId | kunci log IG story
+  toType    String // article | social | story
   /// kunci stabil target: URL jika ada, selain itu "tanggal|format|judul"
   toKey     String
   toTitle   String
@@ -528,7 +528,10 @@ model TeamMatch {
   toFormat  String?
   toUrl     String?
   score     Float
-  status    String // auto | suggested | confirmed | rejected
+  status    String // dibuat mesin: coded | tracker | auto | suggested · keputusan tim: confirmed | rejected
+  /// nama dari sesi login saat Confirm / Not this
+  decidedBy String?
+  decidedAt DateTime?
   updatedAt DateTime @updatedAt
 
   @@unique([fromType, fromKey, toType, toKey])

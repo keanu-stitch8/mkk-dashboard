@@ -233,3 +233,45 @@ describe("Team Scorecard", () => {
     expect(onTarget(backlog, null)).toBeNull();
   });
 });
+
+describe("login tim", () => {
+  const env = { ...process.env };
+  const setEnv = (pw: string | undefined) => {
+    process.env.DASHBOARD_PASSWORD = pw;
+    process.env.SESSION_SECRET = "test-secret";
+  };
+  it("token sah, dipalsukan, kedaluwarsa, password diganti", async () => {
+    const auth = await import("../lib/auth");
+    setEnv("rahasia-tim");
+    const t = auth.createSessionToken("Indah", 1_000);
+    expect(auth.readSession(t, 2_000)).toEqual({ name: "Indah" });
+    const [body, sig] = t.split(".");
+    const forged = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(body, "base64url").toString()), name: "Admin" })).toString("base64url");
+    expect(auth.readSession(`${forged}.${sig}`, 2_000)).toBeNull();
+    expect(auth.readSession(t, 1_000 + 31 * 864e5)).toBeNull();
+    setEnv("password-baru");
+    expect(auth.readSession(t, 2_000)).toBeNull();
+    expect(auth.checkPassword("password-baru")).toBe(true);
+    expect(auth.checkPassword("rahasia-tim")).toBe(false);
+    process.env = env;
+  });
+  it("tujuan setelah login hanya path internal; batas percobaan", async () => {
+    const auth = await import("../lib/auth");
+    expect(auth.safeNext("/team/briefs?m=2026-10")).toBe("/team/briefs?m=2026-10");
+    expect(auth.safeNext("//evil.example")).toBe("/");
+    expect(auth.safeNext("https://evil.example")).toBe("/");
+    expect(auth.safeNext("/login?next=/x")).toBe("/");
+    expect(auth.cleanName("  Indah   Permata ")).toBe("Indah Permata");
+    for (let i = 0; i < 10; i++) auth.recordFailedLogin("1.2.3.4", 0);
+    expect(auth.loginAllowed("1.2.3.4", 1_000)).toBe(false);
+    expect(auth.loginAllowed("1.2.3.4", 16 * 60_000)).toBe(true);
+  });
+  it("tanpa password: terbuka di dev, tertutup di produksi", async () => {
+    const auth = await import("../lib/auth");
+    setEnv(undefined);
+    expect(auth.authConfigured()).toBe(false);
+    expect(auth.readSession("x.y")).toBeNull();
+    expect(auth.authRequired()).toBe(process.env.NODE_ENV === "production");
+    process.env = env;
+  });
+});

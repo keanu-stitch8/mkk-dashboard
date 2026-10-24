@@ -392,8 +392,8 @@ export async function rebuildMatches(): Promise<MatchSummary> {
 }
 
 /** Keputusan tim atas satu pasangan. Konfirmasi menyingkirkan saran lain untuk item yang sama. */
-export async function decideMatch(id: string, decision: "confirmed" | "rejected"): Promise<void> {
-  const m = await prisma.teamMatch.update({ where: { id }, data: { status: decision } });
+export async function decideMatch(id: string, decision: "confirmed" | "rejected", by: string | null = null): Promise<void> {
+  const m = await prisma.teamMatch.update({ where: { id }, data: { status: decision, decidedBy: by, decidedAt: new Date() } });
   if (decision === "confirmed") {
     await prisma.teamMatch.deleteMany({
       where: { id: { not: id }, status: { in: GENERATED }, toType: m.toType, fromType: m.fromType, OR: [{ fromKey: m.fromKey }, { toKey: m.toKey }] },

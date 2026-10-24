@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, LogOut, UserRound } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -23,7 +24,7 @@ import { NAV_GROUPS } from "@/components/app-nav";
 import { MkkLogo } from "@/components/MkkLogo";
 
 // Layout sidebar mengikuti shadcnstore dashboard template (variant inset, offcanvas, grup + sub-menu yang bisa dilipat lewat panah).
-export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user?: string | null }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const { setOpenMobile } = useSidebar();
@@ -102,6 +103,21 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         ))}
       </SidebarContent>
+      {user && (
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <form action="/api/auth/logout" method="post">
+                <SidebarMenuButton type="submit" tooltip={`Sign out (${user})`}>
+                  <UserRound />
+                  <span className="truncate">{user}</span>
+                  <LogOut className="ml-auto text-muted-foreground" />
+                </SidebarMenuButton>
+              </form>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }

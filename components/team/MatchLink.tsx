@@ -16,6 +16,7 @@ const MATCHED: Record<LinkView["state"], { label: string; hint: string }> = {
   suggested: { label: "Needs confirmation", hint: "Possible match — not counted until the team confirms it" },
 };
 
+const fmtWhen = (d: Date | string) => new Date(d).toLocaleDateString("en-ID", { day: "numeric", month: "short", year: "numeric" });
 const fmtDate = (d: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-ID", { day: "numeric", month: "short" }) : "");
 
 function Target({ v }: { v: LinkView }) {
@@ -57,8 +58,8 @@ export function MatchLink({ linked, empty }: { linked: Linked; empty: string }) 
     const m = linked.match;
     return (
       <div className="flex flex-col items-start gap-1 text-sm">
-        <Badge variant="secondary" className={BADGE.green} title={MATCHED[m.state].hint}>
-          <Check /> {MATCHED[m.state].label}
+        <Badge variant="secondary" className={BADGE.green} title={m.state === "confirmed" && m.decidedBy ? `Confirmed by ${m.decidedBy}${m.decidedAt ? ` · ${fmtWhen(m.decidedAt)}` : ""}` : MATCHED[m.state].hint}>
+          <Check /> {m.state === "confirmed" && m.decidedBy ? `Confirmed · ${m.decidedBy}` : MATCHED[m.state].label}
         </Badge>
         <Target v={m} />
       </div>

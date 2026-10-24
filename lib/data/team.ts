@@ -14,6 +14,9 @@ export interface LinkView {
   date: string | null;
   format: string | null;
   url: string | null;
+  /** siapa & kapan (keputusan tim) */
+  decidedBy: string | null;
+  decidedAt: Date | null;
 }
 
 /** Pasangan terpakai: confirmed/auto (satu), atau daftar saran jika belum ada. */
@@ -28,7 +31,7 @@ export const COUNTED = ["confirmed", "coded", "tracker", "auto"] as const;
 type MatchRow = Awaited<ReturnType<typeof prisma.teamMatch.findMany>>[number];
 
 function linked(rows: MatchRow[]): Linked {
-  const view = (m: MatchRow): LinkView => ({ id: m.id, key: m.toKey, state: m.status as MatchState, title: m.toTitle, date: m.toDate, format: m.toFormat, url: m.toUrl });
+  const view = (m: MatchRow): LinkView => ({ id: m.id, key: m.toKey, state: m.status as MatchState, title: m.toTitle, date: m.toDate, format: m.toFormat, url: m.toUrl, decidedBy: m.decidedBy, decidedAt: m.decidedAt });
   const match = COUNTED.map((st) => rows.find((m) => m.status === st)).find(Boolean);
   return { match: match ? view(match) : null, suggestions: match ? [] : rows.filter((m) => m.status === "suggested").map(view) };
 }
