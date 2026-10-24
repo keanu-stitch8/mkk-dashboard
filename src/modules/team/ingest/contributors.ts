@@ -139,3 +139,17 @@ export function assetSummary(a: Record<AssetKey, AssetCell>) {
 
 /** Tanggal panduan dari nama file di kolom Brief (fallback: Planned Date). */
 export const rowGuideDate = (r: ContributorRow) => (r.guideFile ? panduanDate(r.guideFile) : null) ?? r.planned;
+
+/** ID baris "<tab>#<No>" harus unik; No. dobel di sheet tidak boleh membuang baris — diberi akhiran "~2" dan dilaporkan. */
+export function uniqueRowIds<T extends { id: string }>(rows: T[]): { rows: T[]; duplicates: string[] } {
+  const seen = new Map<string, number>();
+  const duplicates: string[] = [];
+  const out = rows.map((r) => {
+    const n = (seen.get(r.id) ?? 0) + 1;
+    seen.set(r.id, n);
+    if (n === 1) return r;
+    if (n === 2) duplicates.push(r.id);
+    return { ...r, id: `${r.id}~${n}` };
+  });
+  return { rows: out, duplicates };
+}

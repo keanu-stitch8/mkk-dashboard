@@ -203,6 +203,12 @@ describe("Task Progress kontributor", () => {
       [3, 46267, null, null, null, null, null, null, "-", null, null, null, "-", null, null, null, "-", null, null, null, "-", null, null, null],
     ],
   };
+  it("No. dobel tidak membuang baris (dulu Nyi Wandansari hilang tertimpa No. 51)", async () => {
+    const { uniqueRowIds } = await import("../src/modules/team/ingest/contributors");
+    const r = uniqueRowIds([{ id: "2026-09#50" }, { id: "2026-09#51", t: "Lapangan Tenis" }, { id: "2026-09#51", t: "Nyi Wandansari" }]);
+    expect(r.rows.map((x) => x.id)).toEqual(["2026-09#50", "2026-09#51", "2026-09#51~2"]);
+    expect(r.duplicates).toEqual(["2026-09#51"]);
+  });
   it("hanya tab bernama bulan yang dibaca (salinan kerja diabaikan)", async () => {
     const { readContributorTab, isMonthTab } = await import("../src/modules/team/ingest/contributors");
     expect(["September", "Oktober", "Okt", "May", "Mei", "Desember"].every(isMonthTab)).toBe(true);

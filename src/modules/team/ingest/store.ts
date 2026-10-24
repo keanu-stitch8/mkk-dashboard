@@ -8,7 +8,7 @@ import { readTrackerTab } from "@/modules/import/parsers/logs";
 import { pickTrackerFile } from "@/modules/connectors/sources/sheets/map";
 import { briefKey, docxParagraphs, panduanDate, parseBriefName, parseBriefOutline, parsePanduan, trackerLink } from "./parse";
 import { GENERATED_MATCH_STATUSES, matchItems, tokens, withTracker, type MatchItem, type TrackedResult, type TrackerHint } from "./match";
-import { readContributorNames, readContributorTab, rowGuideDate, type ContributorRow } from "./contributors";
+import { readContributorNames, readContributorTab, rowGuideDate, uniqueRowIds, type ContributorRow } from "./contributors";
 
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -224,8 +224,7 @@ export async function syncContributors(drive: drive_v3.Drive): Promise<Contribut
       storyCode: linkContributorStory(r, stories),
     })),
   ) as Prisma.ContributorTaskCreateManyInput[];
-  const ids = new Set<string>();
-  const unique = rows.filter((r) => !ids.has(r.id) && ids.add(r.id));
+  const { rows: unique, duplicates } = uniqueRowIds(rows);
 
   await prisma.$transaction([
     prisma.contributorTask.deleteMany(),
@@ -239,7 +238,10 @@ export async function syncContributors(drive: drive_v3.Drive): Promise<Contribut
     tabs: tabs.filter((t) => t.rows.length).map((t) => t.tab),
     rows: unique.length,
     linked: unique.filter((r) => r.storyCode).length,
-    warnings: empty.length ? [`Local Contributor - Task Progress: no stories filled in yet for ${empty.join(", ")}.`] : [],
+    warnings: [
+      ...(empty.length ? [`Local Contributor - Task Progress: no stories filled in yet for ${empty.join(", ")}.`] : []),
+      ...duplicates.map((id) => `Local Contributor - Task Progress: No. ${id.split("#")[1]} is used more than once in ${id.split("#")[0]} — all rows kept; please renumber the sheet.`),
+    ],
   };
 }
 
