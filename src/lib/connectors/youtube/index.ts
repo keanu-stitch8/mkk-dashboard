@@ -15,7 +15,7 @@ import { PACIFIC, addDays, dateIn } from "../../tz";
 import { googleErrorMessage, isRetryableGoogleError } from "../google-errors";
 import { GOOGLE_SCOPES, oauthAccount, oauthClientConfigured } from "../google-oauth";
 import { resolveGoogleAuth, type AuthInfo } from "../google-auth";
-import { aggregateReach, isoDuration, keepUniqueViewers, mapYoutubeMonth, parseReachCsv, wibDate, type VideoMeta } from "./map";
+import { aggregateReach, isoDuration, keepUniqueViewers, mapYoutubeMonth, parseReachCsv, splitByPrivacy, wibDate, type VideoMeta } from "./map";
 
 const REACH_REPORT_TYPE = "channel_reach_basic_a1";
 /** Durasi maksimum YouTube Shorts (detik). Video lebih panjang pasti bukan Shorts. */
@@ -76,10 +76,10 @@ async function monthUploads(c: Clients, uploads: string, month: string): Promise
   }
   const out: VideoMeta[] = [];
   for (let i = 0; i < ids.length; i += 50) {
-    const { data } = await retry(() => c.yt.videos.list({ id: ids.slice(i, i + 50), part: ["snippet", "contentDetails"], maxResults: 50 }));
+    const { data } = await retry(() => c.yt.videos.list({ id: ids.slice(i, i + 50), part: ["snippet", "contentDetails", "status"], maxResults: 50 }));
     for (const v of data.items ?? []) {
       if (!v.id || !v.snippet?.publishedAt) continue;
-      out.push({ id: v.id, title: v.snippet.title ?? v.id, publishedAt: v.snippet.publishedAt, durationSec: isoDuration(v.contentDetails?.duration) });
+      out.push({ id: v.id, title: v.snippet.title ?? v.id, publishedAt: v.snippet.publishedAt, durationSec: isoDuration(v.contentDetails?.duration), privacy: v.status?.privacyStatus ?? null });
     }
   }
   return out;
@@ -182,11 +182,15 @@ export const youtube: Connector = {
       // hari YouTube Analytics & Reporting API = Pacific Time (dokumentasi dimensi day; terverifikasi pada laporan Reach)
       const { start, end, partial } = monthRange(month, new Date(), PACIFIC);
       const ch = await myChannel(c);
-      const all = await monthUploads(c, ch.uploads, month);
+      const { listed, hidden } = splitByPrivacy(await monthUploads(c, ch.uploads, month));
       const shorts = new Set<string>();
-      for (const v of all) if (await isShort(v)) shorts.add(v.id);
-      const videos = all.filter((v) => !shorts.has(v.id));
+      for (const v of listed) if (await isShort(v)) shorts.add(v.id);
+      const videos = listed.filter((v) => !shorts.has(v.id));
       const warnings: string[] = [];
+      if (hidden.length)
+        warnings.push(
+          `${hidden.length} video(s) not public, not counted (e.g. replaced by a re-upload): ${hidden.map((v) => `“${v.title}” (${v.privacy}, ${v.id})`).join(", ")}.`,
+        );
       if (shorts.size) warnings.push(`${shorts.size} YouTube Shorts not counted (they mirror Reels; the report only covers long-form videos).`);
       if (!videos.length) warnings.push(`No long-form videos published in ${month} on channel “${ch.title}”.`);
 

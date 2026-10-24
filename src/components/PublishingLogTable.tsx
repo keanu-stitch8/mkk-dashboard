@@ -58,6 +58,28 @@ const valueOf = (r: LogRow, key: string) => (key === "date" || key === "title" |
 const collator = new Intl.Collator("en-ID", { sensitivity: "base", numeric: true });
 
 /** Tabel Publishing Log: klik header untuk sort A-Z / Z-A, default per tanggal. Nilai kosong selalu di bawah. */
+/** Thumbnail baris log; gambar yang gagal dimuat (mis. video YouTube lama yang sudah private/dihapus setelah re-upload) → placeholder. */
+function LogThumb({ row }: { row: LogRow }) {
+  const [failed, setFailed] = useState(false);
+  const box = RATIO_CLASS[row.thumbRatio ?? "16:9"];
+  if (!row.thumb || failed) {
+    return (
+      <div
+        className={`flex ${box} items-center justify-center rounded-md bg-muted text-muted-foreground/60`}
+        title={failed ? "Thumbnail unavailable — the linked video may be private or deleted. Check the link in the log." : "No thumbnail yet"}
+      >
+        <ImageOff className="size-6" aria-hidden />
+      </div>
+    );
+  }
+  return (
+    <a href={row.url ?? row.thumb} target="_blank" rel="noreferrer" className="block w-fit">
+      {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail eksternal kecil, tanpa optimasi next/image */}
+      <img src={row.thumb} alt="" loading="lazy" onError={() => setFailed(true)} className={`${box} rounded-md bg-muted object-cover`} />
+    </a>
+  );
+}
+
 export function PublishingLogTable({ rows, columns, thumbnails = false }: { rows: LogRow[]; columns: LogColumn[]; thumbnails?: boolean }) {
   const [sort, setSort] = useState<{ key: string; dir: SortDir }>({ key: "date", dir: "asc" });
   const headers = [{ key: "date", label: "Date" }, { key: "title", label: "Title" }, ...columns, { key: "status", label: "Status" }];
@@ -108,16 +130,7 @@ export function PublishingLogTable({ rows, columns, thumbnails = false }: { rows
               <TableCell className="align-top whitespace-nowrap">{fmtDate(r.date)}</TableCell>
               {thumbnails && (
                 <TableCell className="align-top">
-                  {r.thumb ? (
-                    <a href={r.url ?? r.thumb} target="_blank" rel="noreferrer" className="block w-fit">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- thumbnail eksternal kecil, tanpa optimasi next/image */}
-                      <img src={r.thumb} alt="" loading="lazy" className={`${RATIO_CLASS[r.thumbRatio ?? "16:9"]} rounded-md bg-muted object-cover`} />
-                    </a>
-                  ) : (
-                    <div className={`flex ${RATIO_CLASS[r.thumbRatio ?? "16:9"]} items-center justify-center rounded-md bg-muted text-muted-foreground/60`} title="No thumbnail yet">
-                      <ImageOff className="size-6" aria-hidden />
-                    </div>
-                  )}
+                  <LogThumb row={r} />
                 </TableCell>
               )}
               <TableCell className="align-top whitespace-normal">

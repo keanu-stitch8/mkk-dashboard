@@ -32,6 +32,20 @@ export interface VideoMeta {
   title: string;
   publishedAt: string; // ISO UTC
   durationSec: number | null;
+  /** status.privacyStatus: public | unlisted | private (kosong = tidak diketahui) */
+  privacy?: string | null;
+}
+
+/**
+ * Hanya video public yang masuk laporan. Re-upload membuat video lama jadi private/unlisted (atau dihapus — video
+ * terhapus sudah tidak dikembalikan videos.list), jadi tanpa filter ini video yang sama terhitung dua kali.
+ * Status tidak diketahui tetap dihitung supaya tidak ada video yang hilang diam-diam.
+ */
+export function splitByPrivacy(videos: VideoMeta[]): { listed: VideoMeta[]; hidden: VideoMeta[] } {
+  const listed: VideoMeta[] = [];
+  const hidden: VideoMeta[] = [];
+  for (const v of videos) (v.privacy == null || v.privacy === "public" ? listed : hidden).push(v);
+  return { listed, hidden };
 }
 
 export interface ReachRow {
