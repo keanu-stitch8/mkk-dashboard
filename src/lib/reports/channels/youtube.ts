@@ -1,7 +1,7 @@
 // Data laporan YouTube: angka KPI dari summary dashboard (identik dengan dashboard) + daftar video dari Publishing Log
 // digabung metrik video YouTube Analytics, + progres seri produksi (lib/reports/youtube-series.ts).
-import { prisma } from "../../db";
-import { getMonthAndPrev } from "../../data/summary";
+import { findPublishedYoutubeLogTitles } from "@/modules/youtube/shared/repositories/youtube-repository";
+import { getYoutubeSummary } from "@/modules/youtube/overview/services/youtube-summary-service";
 import { daysInMonth, prevMonth } from "../../month";
 import { fmtDurationEn, kpiData, YOUTUBE_KPIS } from "../kpi";
 import { enMonth } from "../month";
@@ -43,9 +43,8 @@ export function ytCategorySlots(categories: (string | null)[], warnings: string[
 
 export async function buildYoutube(month: string): Promise<ReportData> {
   const prev = prevMonth(month);
-  const { cur, prev: prevBundle } = await getMonthAndPrev(month);
-  const y = cur.youtube;
-  const p = prevBundle.youtube.hasData ? prevBundle.youtube : null;
+  const [y, prevYoutube] = await Promise.all([getYoutubeSummary(month), getYoutubeSummary(prev)]);
+  const p = prevYoutube.hasData ? prevYoutube : null;
   const kpi = kpiData(YOUTUBE_KPIS, y, p);
   const quota = y.quota.value;
 
@@ -61,7 +60,7 @@ export async function buildYoutube(month: string): Promise<ReportData> {
 
   const series = seriesFor(month);
   const seriesLogs = series
-    ? await prisma.ytLog.findMany({ where: { status: "publish", month: { gte: series.from, lte: month } }, select: { month: true, title: true, format: true } })
+    ? await findPublishedYoutubeLogTitles(series.from, month)
     : [];
   const prog = series ? seriesProgress(series, month, seriesLogs) : null;
 

@@ -1,19 +1,17 @@
 import { Suspense } from "react";
-import { monthLabel } from "@/lib/month";
+import { ChannelOverviewSkeleton } from "@/modules/shared/components/skeletons/channel-overview-skeleton";
 import { PageHeaderSkeleton } from "@/modules/shared/components/skeletons/page-header-skeleton";
 import { MonthHeaderSection } from "@/modules/shared/sections/month-header-section";
-import { YoutubeOverviewSection } from "../sections/youtube-overview-section";
-import { YoutubeOverviewSectionSkeleton } from "../sections/youtube-overview-section-skeleton";
+import { describeYoutubeOverviewHeader, YoutubeOverviewSection } from "../sections/youtube-overview-section";
 
-const describe = (month: string) => `Videos published in ${monthLabel(month)} · performance during ${monthLabel(month)}`;
 
 export function YoutubeOverviewView({ monthParam }: { monthParam: string | undefined }) {
   return (
     <div className="flex flex-col gap-6">
       <Suspense fallback={<PageHeaderSkeleton />}>
-        <MonthHeaderSection title="YouTube" monthParam={monthParam} description={describe} />
+        <MonthHeaderSection title="YouTube" monthParam={monthParam} description={describeYoutubeOverviewHeader} />
       </Suspense>
-      <Suspense fallback={<YoutubeOverviewSectionSkeleton />}>
+      <Suspense fallback={<ChannelOverviewSkeleton />}>
         <YoutubeOverviewSection monthParam={monthParam} />
       </Suspense>
     </div>

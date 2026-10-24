@@ -1,25 +1,28 @@
 # Data-flow audit
 
-Migration debt against the [global data flow](./data-flow.md). Tick an item when its domain moves
-to `src/modules/` and gets a domain document. Last review: 2026-10-24.
+Compliance with the [global data flow](./data-flow.md). Last review: 2026-10-24.
 
 ## Done
 
-- [x] Code moved under `src/`; `server-only` + Vitest/tsx setup.
-- [x] `modules/shared`: month resolution (`resolveMonth` with `cache()`), manual metrics, `QuotaSummary`, `groupStats`.
-- [x] YouTube overview + Publishing Log — [YouTube data flow](../youtube-data-flow.md).
+- [x] Application code under `src/`; `server-only` on every query, service and repository; Vitest and tsx
+      (`--conditions=react-server`) set up for it.
+- [x] Every page route is a thin entry (8–10 lines) that forwards normalized params to a module.
+- [x] No Prisma import in `src/app`, `src/components` or `src/lib/reports`; API routes call services.
+- [x] `src/lib/data` removed: channel summaries, bundle, trend, audience, quotas, Team read side, history,
+      og:image and IG thumbnails live in modules with explicit canonical types.
+- [x] Channel pages load only their channel; Overview loads each month once.
+- [x] Route error boundary `src/app/(dashboard)/error.tsx` (failed ≠ empty).
+- [x] Domain documents: [Channels](../channels-data-flow.md), [YouTube](../youtube-data-flow.md),
+      [Team](../team-data-flow.md), [Operations](../operations-data-flow.md).
+- [x] Verified against the pre-refactor commit: service output (all channels, bundle, trend, audience, Team),
+      monthly report data (byte-identical), 78 rendered pages, and the non-mutating API responses.
 
-## Open
+## Open (small, deliberate)
 
-| Area | Current violation | Target |
+| Area | Current state | Why it is acceptable for now / target |
 | --- | --- | --- |
-| `src/lib/data/summary.ts` (Website, News, Social, bundle, trend, audience) | Prisma reads, derivation, and `Awaited<ReturnType<…>>` types in one 900-line file; storage rows (`logs`, posts) escape to pages | One service + `lib` builder + explicit types per channel under `modules/<channel>/overview`, like YouTube |
-| `/` Overview, `/website`, `/news`, `/social`, `/report` pages | Route does fetching and derivation; loads the full `MonthBundle` (+ six-month four-channel trend) | Module per page; channel pages load only their channel (`channelRecommendations`) |
-| `/news/logs`, `/social/logs`, `/logs` | Prisma in the route | Same shape as `modules/youtube/logs` |
-| `src/lib/data/quota.ts` | Prisma read + defaults in one function | `shared/repositories` + `shared/services` |
-| Team pages (`/team/*`), `src/lib/data/{team,pipeline,contributors,scorecard,recap}.ts`, `src/lib/team/store.ts` | Prisma + derivation mixed; types inferred from DB functions | `modules/team/<feature>` |
-| `/import`, `/import/history`, `/settings/connectors*` | Prisma in routes | Modules; API routes keep calling services |
-| `src/app/api/**` | Some routes call Prisma directly | Parse input → service |
-| `src/lib/reports/channels/*` | Read `MonthBundle` via `getMonthAndPrev` (loads all channels for one channel's report) | Call the channel service directly |
-| Error boundaries | No `error.tsx` in `(dashboard)` | Add a route error state so "failed" is distinct from "empty" |
-| `tests/` | Old tests import through `src/lib/data/summary.ts` | Move next to the migrated `lib/` files |
+| `getQuotas` per summary | Each channel summary loads quotas for its month, so a bundle runs the same quota query four times. | Correct, cheap on SQLite. Target: pass quotas into the services from the bundle/query. |
+| Team `?show=` filters | Validated and applied inside the content components. | Pure UI selection over already-loaded rows; the filter keys and labels live together. |
+| `channelRecommendations` cast | The rule engine is typed over `MonthBundle`; channel contexts are cast. | Guarded by `channel-recommendations.test.ts` (equality with the full bundle, no failing rule). Target: per-channel rule typing. |
+| Tests in `tests/` | Ingest, parser, report-pipeline and Team-ingest tests stay in the root folder. | They test `src/lib` (ingest / outbound pipelines), not modules. New module tests live next to the file. |
+| Report pipeline builders | `src/lib/reports/channels/*` still shape report rows themselves. | Outbound pipeline; reads go through module services/repositories. |

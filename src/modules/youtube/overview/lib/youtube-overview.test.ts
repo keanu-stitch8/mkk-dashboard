@@ -1,24 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { input, video } from "./youtube-fixtures.test-utils";
-import { buildYoutubeOverview, youtubeOverviewMonths } from "./youtube-overview";
+import { channelPageMonths } from "@/modules/shared/lib/trend-months";
+import { buildYoutubeOverview } from "./youtube-overview";
 import { buildYoutubeSummary } from "./youtube-summary";
 
 const summaries = (data: Record<string, Parameters<typeof input>[0]>) =>
-  new Map(youtubeOverviewMonths("2026-09").map((m) => [m, buildYoutubeSummary(input({ month: m, ...data[m] }))]));
+  new Map(channelPageMonths("2026-09").map((m) => [m, buildYoutubeSummary(input({ month: m, ...data[m] }))]));
 
 afterEach(() => vi.restoreAllMocks());
 
 describe("buildYoutubeOverview", () => {
   it("bulan tren dipotong di bulan launching + bulan lalu ikut dimuat sekali", () => {
-    expect(youtubeOverviewMonths("2026-09")).toEqual(["2026-06", "2026-07", "2026-08", "2026-09"]);
-    expect(youtubeOverviewMonths("2026-06")).toEqual(["2026-06", "2026-05"]);
+    expect(channelPageMonths("2026-09")).toEqual(["2026-06", "2026-07", "2026-08", "2026-09"]);
+    expect(channelPageMonths("2026-06")).toEqual(["2026-06", "2026-05"]);
   });
 
   it("tren null untuk bulan tanpa data; prev null jika bulan lalu kosong", () => {
     const o = buildYoutubeOverview("2026-09", summaries({ "2026-09": { sources: ["yt_videos"], videos: [video({ videoId: "a", title: "A", views: 10 })] } }));
     expect(o.prev).toBeNull();
     expect(o.prevQuota).toBeNull();
-    expect(o.trend.map((t) => [t.label, t.views])).toEqual([["Jun 26", null], ["Jul 26", null], ["Aug 26", null], ["Sep 26", 10]]);
+    expect(o.trend.map((t) => [t.label, t.ytViews])).toEqual([["Jun 26", null], ["Jul 26", null], ["Aug 26", null], ["Sep 26", 10]]);
   });
 
   it("rekomendasi YouTube jalan dengan data YouTube saja (rule tidak membaca channel lain)", () => {

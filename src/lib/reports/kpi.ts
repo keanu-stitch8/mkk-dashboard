@@ -149,7 +149,7 @@ export const YOUTUBE_KPIS: KpiDef<YoutubeKpiSource>[] = [
   { key: "subs_net", label: "Subscribers (net)", kind: "count", get: (s) => s.subsNet, display: (s) => signed(s.subsNet) },
 ];
 
-/** Field kartu KPI Social (lib/data/summary.ts socialKpiSources). */
+/** Field kartu KPI Social (modules/social/overview/lib/social-compare.ts socialKpiSources). */
 export interface SocialKpiSource {
   published: number;
   delivered: number;

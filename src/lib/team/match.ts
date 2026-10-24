@@ -24,6 +24,9 @@ export function tokens(s: string): Set<string> {
   );
 }
 
+/** Status yang dibuat mesin — dihapus & dibuat ulang tiap rebuild; confirmed/rejected (keputusan tim) tidak pernah ditimpa. */
+export const GENERATED_MATCH_STATUSES = ["coded", "auto", "tracker", "suggested"];
+
 export interface MatchItem {
   key: string;
   /** YYYY-MM-DD */

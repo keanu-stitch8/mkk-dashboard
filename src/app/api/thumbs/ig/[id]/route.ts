@@ -1,6 +1,6 @@
-// GET /api/thumbs/ig/{mediaId} — thumbnail post Instagram yang sudah diunduh (lib/data/ig-thumbs.ts).
+// GET /api/thumbs/ig/{mediaId} — thumbnail post Instagram yang sudah diunduh (modules/social/shared/services/ig-thumb-service.ts).
 import { readFile } from "node:fs/promises";
-import { findIgThumb } from "@/lib/data/ig-thumbs";
+import { findIgThumb } from "@/modules/social/shared/services/ig-thumb-service";
 
 export async function GET(_req: Request, ctx: RouteContext<"/api/thumbs/ig/[id]">) {
   const { id } = await ctx.params;

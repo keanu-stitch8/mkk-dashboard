@@ -366,20 +366,25 @@ Engine ada di [`src/lib/recommendations.ts`](src/lib/recommendations.ts). Setiap
 
 Rule yang tersedia: impressions GSC naik tapi CTR turun · query posisi 4–10 · halaman CTR rendah · engagement rate website turun >10% · perubahan sesi signifikan · ketergantungan satu sumber traffic · kuota artikel < 90% · kategori dengan views per artikel tertinggi · artikel tidak cocok GA4 / 0 views · hari tanpa artikel · views per artikel turun · CTR thumbnail YouTube < 4% · retensi video rendah · kuota video · views YouTube turun · kuota IG Reels/Carousel < 90% · engagement rate sosmed turun >10% per platform · format dengan reach/post jauh lebih tinggi (mis. Reels vs Feeds) · kategori sosmed terbaik · hari publish kosong berturut-turut.
 
-Menambah rule: tambahkan objek baru ke array `RULES`. Data yang bisa dipakai ada di `ctx.cur` / `ctx.prev` (lihat tipe `MonthBundle` di `src/lib/data/summary.ts`). Halaman satu channel memakai `channelRecommendations(channel, …)` dengan data channel itu saja — rule hanya boleh membaca channel-nya sendiri.
+Menambah rule: tambahkan objek baru ke array `RULES`. Data yang bisa dipakai ada di `ctx.cur` / `ctx.prev` (lihat tipe `MonthBundle` di `src/modules/channels/types/month-bundle.ts`). Halaman satu channel memakai `channelRecommendations(channel, …)` dengan data channel itu saja — rule hanya boleh membaca channel-nya sendiri.
 
 ---
 
 ## Struktur kode
 
 ```
-docs/architecture/data-flow.md   kontrak alur data (wajib dibaca sebelum mengubah data flow) + audit migrasi
+docs/architecture/data-flow.md   kontrak alur data (wajib dibaca sebelum mengubah data flow) + audit; docs/*-data-flow.md per domain
 prisma/schema.prisma        schema DB (portable SQLite ↔ PostgreSQL)
 prisma/seed.ts              import ./data-samples
 src/app/(dashboard)/        route halaman (tipis: teruskan ?m= ke modul) · src/app/api/ API route
 src/modules/<domain>/<fitur>/   index → views → sections → queries → services → repositories (Prisma)
                                 + mappers/ lib/ types/ components/ (lihat docs/architecture/data-flow.md)
-src/modules/shared/         resolusi bulan, input manual, tipe kuota bersama
+  website/ news/ social/ youtube/   halaman channel + Publishing Log (ringkasan per channel = services/*-summary-service.ts)
+  channels/                 MonthBundle, tren lintas channel, kuota konten
+  overview/ report/         halaman Overview & Report (+ status laporan Google Sheets)
+  team/                     Stories, Briefs, Pipeline, Contributors, Scorecard, Recap (sisi baca; ingest di src/lib/team)
+  import/ connectors/ source-logs/   Import (+ History), Connectors API (+ Sync History), Source Logs
+  shared/                   resolusi bulan, input manual, kuota, helper murni, skeleton
 src/lib/parsers/            parser file → dataset
   tabular.ts                baca CSV (blok + komentar #), XLSX, ZIP
   headers.ts                pencocokan header fleksibel + alias
@@ -387,7 +392,6 @@ src/lib/parsers/            parser file → dataset
   ga4.ts gsc.ts youtube.ts meta.ts logs.ts
   index.ts                  deteksi otomatis, merge, filter bulan
 src/lib/import/commit.ts    simpan dataset (replace per bulan+sumber)
-src/lib/data/summary.ts     ringkasan channel yang belum dimigrasi ke modules/, tren, MoM
 src/lib/recommendations.ts  engine rekomendasi
 src/lib/connectors/         connector API (GA4, …) → Dataset yang sama dengan parser CSV
   index.ts                  registry + sync (SyncLog)
@@ -402,7 +406,6 @@ src/components/ui/          komponen shadcn/ui (hasil `npx shadcn add …`, jang
 src/components/blocks.tsx   KPI card, delta MoM, tabel, empty state (di atas shadcn)
 src/components/charts.tsx   grafik tren & breakdown (shadcn Chart + Recharts)
 src/components/AppSidebar.tsx   navigasi (shadcn Sidebar)
-src/components/import/      form import, input manual, kuota
 tests/                      tes lama (parser, connector, laporan, team); tes baru di samping file: src/**/*.test.ts
 ```
 

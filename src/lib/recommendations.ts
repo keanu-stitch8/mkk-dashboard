@@ -1,7 +1,7 @@
 // Engine rekomendasi rule-based.
 // Tambah rule baru: push objek ke array RULES. Rule dengan `mom: true` hanya dijalankan
 // jika data bulan sebelumnya untuk channel tersebut tersedia.
-import type { MonthBundle } from "./data/summary";
+import type { MonthBundle } from "@/modules/channels/types/month-bundle";
 import type { Channel } from "./parsers/types";
 import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "./format";
 import { monthLabel } from "./month";
@@ -385,9 +385,9 @@ export function generateRecommendations(ctx: RuleContext): Recommendation[] {
 
 /**
  * Rekomendasi satu channel dari data channel itu saja (halaman channel tidak perlu memuat MonthBundle penuh).
- * Rule channel C hanya membaca `cur[C]` / `prev[C]` — dijaga tes di modules/youtube/overview/lib.
+ * Rule channel C hanya membaca `cur[C]` / `prev[C]` (+ `month`) — dijaga modules/channels/lib/channel-recommendations.test.ts.
  */
-export function channelRecommendations<C extends Channel>(channel: C, ctx: { cur: Pick<MonthBundle, C>; prev: Pick<MonthBundle, C> | null }): Recommendation[] {
+export function channelRecommendations<C extends Channel>(channel: C, ctx: { cur: Pick<MonthBundle, C | "month">; prev: Pick<MonthBundle, C | "month"> | null }): Recommendation[] {
   return runRules(
     RULES.filter((r) => r.channel === channel),
     ctx as unknown as RuleContext,

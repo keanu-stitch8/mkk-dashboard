@@ -95,15 +95,29 @@ Do not bypass a layer to save a short import. In particular:
 | `types/` | Canonical internal contracts | Define query, service, and UI models explicitly — not `Awaited<ReturnType<…>>` of a function that reads the database. |
 | `components/` | Typed rendering and local interaction | Render canonical models. Add `'use client'` only when browser state or browser APIs are required. |
 | `components/skeletons/`, `sections/*-skeleton.tsx` | Streaming fallbacks | Mirror the layout of the matching section; no data access. |
-| `src/modules/shared/` | Cross-domain pieces | Month resolution, manual metrics, quota/summary types used by more than one domain. |
+| `src/modules/shared/` | Cross-domain pieces | Month resolution, manual metrics, quotas, pure helpers (`by-month`, `history`, `math`), skeletons, `MonthHeaderSection`. MUST NOT import from any feature module. |
+| `src/modules/channels/` | Cross-channel composition | `MonthBundle`, trend, `contentQuota`. Depends on the four channel modules; channel modules never import it. |
+
+Modules (one folder per domain, one sub-folder per page; `shared/` inside a domain = used by several of its pages):
+
+| Module | Pages | Domain document |
+| --- | --- | --- |
+| `website/overview` | `/website` | [Channels](../channels-data-flow.md) |
+| `news/{overview,logs}` | `/news`, `/news/logs` | [Channels](../channels-data-flow.md) |
+| `social/{overview,logs}` | `/social`, `/social/logs` | [Channels](../channels-data-flow.md) |
+| `youtube/{overview,logs}` | `/youtube`, `/youtube/logs` | [YouTube](../youtube-data-flow.md) |
+| `overview`, `report`, `channels` | `/`, `/report` | [Channels](../channels-data-flow.md) |
+| `team/{stories,briefs,pipeline,contributors,scorecard,recap}` | `/team/*` | [Team](../team-data-flow.md) |
+| `import/{data,history}`, `connectors/{settings,history}`, `source-logs` | `/import*`, `/settings/connectors*`, `/logs` | [Operations](../operations-data-flow.md) |
 
 Repository-wide folders outside `modules/`:
 
 | Folder | Owns |
 | --- | --- |
 | `src/components/` | Design-system building blocks (`ui/` from shadcn — extend, never edit), shared dashboard blocks (`blocks.tsx`, `ChartCard`, `PageHeader`). Rendering only. |
-| `src/lib/connectors/`, `src/lib/parsers/`, `src/lib/import/` | Ingest pipeline. |
-| `src/lib/reports/` | Monthly report generation (Sheets + PDF). Reads canonical summaries through services, never Prisma rows from a module. |
+| `src/lib/connectors/`, `src/lib/parsers/`, `src/lib/import/`, `src/lib/team/` | Ingest pipeline (API/Sheets/Drive sync, CSV parsing, commit, Team matching rebuild). |
+| `src/lib/reports/` | Outbound pipeline: monthly report generation (Google Sheets + PDF). Reads channel summaries through module services and detail rows through module repositories; writes `GeneratedReport` through `modules/report/repositories`. No Prisma import. |
+| `src/lib/recommendations.ts` | Pure rule engine over `MonthBundle`. Channel pages call `channelRecommendations(channel, { cur: { month, [channel]: … }, prev })`; every rule may read only its own channel and `month`. |
 | `src/lib/` (other files) | Pure helpers shared by every layer (`format`, `month`, `tz`, `taxonomy`, `sources`) and the Prisma client (`db`). |
 
 ## Runtime boundaries
@@ -132,6 +146,15 @@ committing. At render time the ownership split is:
 4. Pure domain functions derive display-ready structures from canonical models.
 5. Components render those structures without knowledge of the Prisma schema.
 
+### Headers that depend on data
+
+A page header normally streams on its own (`MonthHeaderSection`, which only needs the month list). When its
+description depends on the page data (for example "Posts published in October 2026 · Instagram", or the default
+"Monthly report · …" when the month is empty), the description is an async function exported from the page's
+section file; it awaits the same `cache()`-wrapped query as the content section, so the data is loaded once.
+Pages whose header carries counts (Import History, Sync History, Team) render the header inside their single
+section instead.
+
 ### Cache ownership
 
 - React `cache()` deduplicates identical orchestration during one request (for example, the month
@@ -150,8 +173,9 @@ cannot cross months.
 - **Missing:** an invalid or absent `?m=` falls back to the latest month with data (current product
   contract; the dashboard has no per-resource 404s yet).
 - **Empty:** the month exists but a channel has no imports; render `EmptyState`.
-- **Failed:** a database or derivation failure propagates to the route error boundary. Do not
-  convert failures into empty success payloads.
+- **Failed:** a database or derivation failure propagates to the route error boundary
+  (`src/app/(dashboard)/error.tsx`). Because pages stream, the HTTP status is already 200 when a section fails;
+  the boundary is what tells the user it failed. Do not convert failures into empty success payloads.
 
 Ingest has its own failure contract: a failed connector sync is recorded in Sync History and leaves
 the previous rows in place.
@@ -164,7 +188,8 @@ trust boundaries into rendering code. Examples:
 - A static page can stop at the view/component layer.
 - A query can call one service directly; it does not need artificial fan-out.
 - A section may render one large component when the whole page depends on one query result (for
-  example the channel pages, where the empty state replaces everything below the header).
+  example the channel pages, where the empty state replaces everything below the header, or the Team pages,
+  whose header month list comes from the same data).
 
 When a feature needs an exception, document it beside that feature's concrete data flow, including
 why the global rule is insufficient and which boundary remains responsible.
@@ -184,8 +209,21 @@ Before changing a data flow:
 6. Update this global contract only for repository-wide rules; update a domain document for
    feature-specific behavior, and tick the item in the audit.
 
+## Verifying a data-flow change
+
+Refactors of an existing flow are verified against the previous commit, not only by unit tests:
+
+1. Dump the old and new service output for every month in `dev.db` (plus one empty month) and compare after
+   dropping storage-only fields (`id`, `importId`, `updatedAt`).
+2. For pages, build the old commit in a worktree (`git worktree add`, `cp -cR node_modules`, absolute
+   `DATABASE_URL`) and the new tree, run both with a temporary `DASHBOARD_PASSWORD`, and compare the text of every
+   page per month. Word order may differ because of streaming; the word multiset must not.
+
 ## Domain data-flow documents
 
 | Domain | Document | Scope |
 | --- | --- | --- |
-| YouTube | [YouTube data flow](../youtube-data-flow.md) | Overview page, Publishing Log, summary consumers (overview, reports, recommendations, scorecard). |
+| Channels | [Channels data flow](../channels-data-flow.md) | Website, News, Social pages and logs, Overview, Report, `MonthBundle`, trend, quotas, recommendations, report pipeline reads. |
+| YouTube | [YouTube data flow](../youtube-data-flow.md) | Overview page, Publishing Log, non-public videos at ingest. |
+| Team | [Team data flow](../team-data-flow.md) | Stories, Briefs, Pipeline, Contributors, Scorecard, Recap, match decisions. |
+| Operations | [Operations data flow](../operations-data-flow.md) | Import, Import History, Connectors, Sync History, Source Logs, manual input & quota mutations. |

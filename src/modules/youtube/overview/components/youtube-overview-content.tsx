@@ -22,9 +22,9 @@ export function YoutubeOverviewContent({ overview }: { overview: YoutubeOverview
         <ChartCard title="Delivered vs quota" description="Videos per month · delivered = published + in review" className="lg:col-span-2"
             data={trend}
             series={[
-              { key: "published", name: "Published" },
-              { key: "delivered", name: "Delivered (+ review)" },
-              { key: "quota", name: "Quota", reference: true },
+              { key: "ytPublished", name: "Published" },
+              { key: "ytDelivered", name: "Delivered (+ review)" },
+              { key: "ytQuota", name: "Quota", reference: true },
             ]} />
       </div>
 
@@ -63,7 +63,7 @@ export function YoutubeOverviewContent({ overview }: { overview: YoutubeOverview
 
       {/* 3. Performa & aktivitas */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <ChartCard title="Views" data={trend} series={[{ key: "views", name: "Views" }]} />
+        <ChartCard title="Views" data={trend} series={[{ key: "ytViews", name: "Views" }]} />
         {y.daily.length ? (
           <ChartCard
             title="Daily · watch time (hours)"

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CircleCheck, Info, TriangleAlert } from "lucide-react";
 import { DataTable, Section, StatusBadge } from "@/components/blocks";
-import type { SocialRecon as Recon, SocialSummary } from "@/lib/data/summary";
+import type { SocialRecon as Recon, SocialSummary } from "@/modules/social/overview/types/social-summary";
 import { fmtDate, fmtNum, fmtPct, truncate } from "@/lib/format";
 import { FORMAT_LABEL, PLATFORM_LABEL } from "@/lib/sources";
 import { cn } from "@/lib/utils";

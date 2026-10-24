@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchLogsToPosts, reconcileSocial } from "../src/lib/data/summary";
+import { matchLogsToPosts, reconcileSocial } from "../src/modules/social/shared/lib/social-match";
 
 const post = (id: string, permalink: string, format = "reels", caption = "") => ({ id, date: "2026-07-18", platform: "instagram", format, caption, permalink });
 const log = (id: string, url: string | null, format = "reels", title: string | null = url) => ({

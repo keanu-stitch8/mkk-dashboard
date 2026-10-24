@@ -16,7 +16,7 @@ export async function setMonthLock(month: string, locked: boolean, note?: string
   else await prisma.monthLock.deleteMany({ where: { month } });
   // Team Scorecard ikut final (atau kembali live saat kunci dibuka); gagal di sini tidak membatalkan kunci
   try {
-    const { snapshotScorecard, clearScorecard } = await import("../data/scorecard");
+    const { snapshotScorecard, clearScorecard } = await import("@/modules/team/scorecard/services/scorecard-service");
     await (locked ? snapshotScorecard(month) : clearScorecard(month));
   } catch (e) {
     console.error(`[lock] Team Scorecard ${month}:`, e);

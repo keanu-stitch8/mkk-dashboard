@@ -1,6 +1,15 @@
 // Data laporan Website: angka KPI dari summary dashboard (identik dengan dashboard) + tabel detail dari DB.
-import { prisma } from "../../db";
-import { getMonthAndPrev } from "../../data/summary";
+import {
+  findReportCities,
+  findReportGa4Channels,
+  findReportGa4Landings,
+  findReportGa4Pages,
+  findReportGscBreakdown,
+  findReportGscDaily,
+  findReportTopGscPages,
+  findReportTopQueries,
+} from "@/modules/website/shared/repositories/website-report-repository";
+import { getWebsiteSummary } from "@/modules/website/overview/services/website-summary-service";
 import { daysInMonth, prevMonth } from "../../month";
 import { kpiData, WEBSITE_KPIS } from "../kpi";
 import { enMonth } from "../month";
@@ -13,22 +22,22 @@ const sec = (v: number | null | undefined) => (v == null ? null : Math.round(v))
 
 export async function buildWebsite(month: string): Promise<ReportData> {
   const prev = prevMonth(month);
-  const [{ cur, prev: prevBundle }, channels, prevChannels, pages, landings, cityRows, prevCityRows, gscDaily, queries, gscPages, devices, countries] = await Promise.all([
-    getMonthAndPrev(month),
-    prisma.ga4Channel.findMany({ where: { month }, orderBy: { sessions: "desc" } }),
-    prisma.ga4Channel.findMany({ where: { month: prev } }),
-    prisma.ga4Page.findMany({ where: { month } }),
-    prisma.ga4Landing.findMany({ where: { month }, orderBy: { sessions: "desc" } }),
-    prisma.ga4City.findMany({ where: { month }, orderBy: { activeUsers: "desc" } }),
-    prisma.ga4City.findMany({ where: { month: prev, country: "Indonesia" } }),
-    prisma.gscDaily.findMany({ where: { month }, orderBy: { date: "asc" } }),
-    prisma.gscQuery.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 10 }),
-    prisma.gscPage.findMany({ where: { month }, orderBy: [{ clicks: "desc" }, { impressions: "desc" }], take: 10 }),
-    prisma.breakdown.findMany({ where: { month, channel: "website", dimension: "device" } }),
-    prisma.breakdown.findMany({ where: { month, channel: "website", dimension: "country" } }),
+  const [w, prevWebsite, channels, prevChannels, pages, landings, cityRows, prevCityRows, gscDaily, queries, gscPages, devices, countries] = await Promise.all([
+    getWebsiteSummary(month),
+    getWebsiteSummary(prev),
+    findReportGa4Channels(month),
+    findReportGa4Channels(prev),
+    findReportGa4Pages(month),
+    findReportGa4Landings(month),
+    findReportCities(month),
+    findReportCities(prev, "Indonesia"),
+    findReportGscDaily(month),
+    findReportTopQueries(month),
+    findReportTopGscPages(month),
+    findReportGscBreakdown(month, "device"),
+    findReportGscBreakdown(month, "country"),
   ]);
-  const w = cur.website;
-  const p = prevBundle.website.hasData ? prevBundle.website : null;
+  const p = prevWebsite.hasData ? prevWebsite : null;
   const kpi = kpiData(WEBSITE_KPIS, w, p);
 
   const totalSessions = sumOf(channels.map((c) => c.sessions));

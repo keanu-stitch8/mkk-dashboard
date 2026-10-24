@@ -1,5 +1,5 @@
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { pageNumbers } from "@/lib/data/history";
+import { pageNumbers } from "@/modules/shared/lib/history";
 
 /** Pager halaman riwayat: link ?page=N, parameter lain (mis. filter) dipertahankan. */
 export function HistoryPager({ page, pages, path, params = {} }: { page: number; pages: number; path: string; params?: Record<string, string | undefined> }) {

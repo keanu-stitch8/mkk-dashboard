@@ -1,6 +1,6 @@
 // POST /api/team/matches/{id} { decision: "confirmed" | "rejected" } — keputusan tim atas satu pasangan Story/Brief.
 import { currentUser } from "@/lib/session";
-import { decideMatch } from "@/lib/team/store";
+import { decideMatch } from "@/modules/team/shared/services/match-decision-service";
 
 export async function POST(req: Request, ctx: RouteContext<"/api/team/matches/[id]">) {
   const { id } = await ctx.params;

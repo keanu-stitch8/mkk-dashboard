@@ -1,4 +1,4 @@
-import type { QuotaValue } from "@/lib/data/quota";
+import type { QuotaValue } from "@/modules/shared/types/quota";
 import type { GroupStat } from "@/modules/shared/lib/group-stats";
 import type { YoutubeDailyPoint, YoutubeLogEntry, YoutubeVideoMetrics } from "../../shared/types/youtube";
 

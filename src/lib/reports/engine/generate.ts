@@ -1,6 +1,6 @@
 // Generate laporan: salin master template → isi → catat. Laporan lama (buatan app) diberi akhiran "(lama …)";
 // salinan yang gagal diisi diberi akhiran "(GAGAL …)" supaya tidak tertukar dengan laporan jadi.
-import { prisma } from "../../db";
+import { createGeneratedReport, findPreviousReports } from "@/modules/report/repositories/report-repository";
 import { reportChannel } from "../channels";
 import { enMonth } from "../month";
 import { planFill } from "./tokens";
@@ -27,7 +27,7 @@ export async function generateReport(channelId: string, month: string, trigger: 
     if (!tpl) throw new ReportError(`${ch.templateEnv} isn't set in .env.local (master template file ID).`);
     const c = await reportClients();
     const data = await ch.build(month);
-    const previous = await prisma.generatedReport.findMany({ where: { channel: ch.id, month, status: "success", fileId: { not: null } } });
+    const previous = await findPreviousReports(ch.id, month);
     const file = await copyFile(c, tpl, reportName(ch.title, month), process.env.REPORT_FOLDER_ID?.trim() || undefined);
     fileId = file.id;
     url = file.url;
@@ -43,12 +43,10 @@ export async function generateReport(channelId: string, month: string, trigger: 
       await renameFile(c, p.fileId!, `${reportName(ch.title, month)} (lama ${today()})`).catch(() => undefined);
       if (p.pdfFileId) await renameFile(c, p.pdfFileId, `${reportName(ch.title, month)} (lama ${today()}).pdf`).catch(() => undefined);
     }
-    return prisma.generatedReport.create({
-      data: { channel: ch.id, month, fileId, url, pdfFileId: pdf.id, pdfUrl: pdf.url, status: "success", trigger, warnings: plan.warnings.length ? plan.warnings.join("\n") : null },
-    });
+    return createGeneratedReport({ channel: ch.id, month, fileId, url, pdfFileId: pdf.id, pdfUrl: pdf.url, status: "success", trigger, warnings: plan.warnings.length ? plan.warnings.join("\n") : null });
   } catch (e) {
     const error = e instanceof ReportError ? e.message : `Failed to generate the report: ${(e as Error)?.message ?? e}`;
     if (fileId && ch) await reportClients().then((c) => renameFile(c, fileId!, `${reportName(ch.title, month)} (FAILED ${today()})`)).catch(() => undefined);
-    return prisma.generatedReport.create({ data: { channel: channelId, month, fileId, url, status: "error", trigger, error } });
+    return createGeneratedReport({ channel: channelId, month, fileId, url, status: "error", trigger, error });
   }
 }

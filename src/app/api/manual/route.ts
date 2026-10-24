@@ -1,8 +1,8 @@
 // POST /api/manual — { month, channel, values: { key: number | null } }; null = hapus override.
-import { prisma } from "@/lib/db";
 import { isMonth } from "@/lib/month";
 import { MANUAL_FIELDS } from "@/lib/sources";
 import type { Channel } from "@/lib/parsers/types";
+import { saveManualMetrics } from "@/modules/shared/services/manual-metric-service";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +12,6 @@ export async function POST(req: Request) {
   if (!isMonth(month) || !channel || !(channel in MANUAL_FIELDS) || !values) {
     return Response.json({ error: "Invalid data." }, { status: 400 });
   }
-  const allowed = new Set(MANUAL_FIELDS[channel].map((f) => f.key));
-  for (const [key, value] of Object.entries(values)) {
-    if (!allowed.has(key)) continue;
-    if (value == null || !Number.isFinite(value)) {
-      await prisma.manualMetric.deleteMany({ where: { month, channel, key } });
-    } else {
-      await prisma.manualMetric.upsert({
-        where: { month_channel_key: { month, channel, key } },
-        update: { value },
-        create: { month, channel, key, value },
-      });
-    }
-  }
+  await saveManualMetrics(month, channel, values);
   return Response.json({ ok: true });
 }

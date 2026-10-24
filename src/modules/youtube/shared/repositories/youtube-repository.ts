@@ -14,3 +14,7 @@ export const findYoutubeImports = (month: string) => prisma.import.findMany({ wh
 /** video Review/Approved per akhir bulan dari Gantt Calendar Timeline (connector Sheets) */
 export const findYoutubeReviewItems = (month: string) =>
   prisma.breakdown.findMany({ where: { month, channel: "youtube", dimension: "yt_in_review", import: { source: "yt_review" } }, select: { label: true } });
+
+/** video tayang dalam rentang bulan (progres seri produksi di laporan YouTube) */
+export const findPublishedYoutubeLogTitles = (from: string, to: string) =>
+  prisma.ytLog.findMany({ where: { status: "publish", month: { gte: from, lte: to } }, select: { month: true, title: true, format: true } });

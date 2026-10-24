@@ -1,5 +1,5 @@
 import "server-only";
-import { getQuotas } from "@/lib/data/quota";
+import { getQuotas } from "@/modules/shared/services/quota-service";
 import { toMetricMap } from "@/modules/shared/mappers/metric-mapper";
 import { getManualMetrics } from "@/modules/shared/services/manual-metric-service";
 import { toYoutubeDailyPoint, toYoutubeLogEntry, toYoutubeVideoMetrics } from "../../shared/mappers/youtube-mapper";

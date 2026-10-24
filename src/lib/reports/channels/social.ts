@@ -1,6 +1,7 @@
 // Data laporan Social (Instagram saja): kartu KPI = insight akun selama bulan (sama dengan dashboard, socialKpiSources),
 // tabel per post = metrik lifetime post feed/Reels yang dipublish bulan ini, jumlah & format dari Publishing Log.
-import { getMonthAndPrev, socialKpiSources } from "../../data/summary";
+import { socialKpiSources } from "@/modules/social/overview/lib/social-compare";
+import { getSocialSummary } from "@/modules/social/overview/services/social-summary-service";
 import { daysInMonth, prevMonth } from "../../month";
 import { kpiData, SOCIAL_KPIS } from "../kpi";
 import { enMonth } from "../month";
@@ -57,9 +58,8 @@ export function socCategorySlots(categories: (string | null)[], warnings: string
 
 export async function buildSocial(month: string): Promise<ReportData> {
   const prev = prevMonth(month);
-  const { cur, prev: prevBundle } = await getMonthAndPrev(month);
-  const s = cur.social;
-  const ps = prevBundle.social.hasData ? prevBundle.social : null;
+  const [s, prevSocial] = await Promise.all([getSocialSummary(month), getSocialSummary(prev)]);
+  const ps = prevSocial.hasData ? prevSocial : null;
   const src = socialKpiSources(s, ps);
   const kpi = kpiData(SOCIAL_KPIS, src.cur, src.prev);
   const quota = src.cur.quota.value;

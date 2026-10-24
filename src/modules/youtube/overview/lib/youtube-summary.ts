@@ -1,9 +1,8 @@
 import { categoryLabel } from "@/lib/taxonomy";
 import { groupStats } from "@/modules/shared/lib/group-stats";
+import { safeDiv, sum } from "@/modules/shared/lib/math";
 import type { YoutubeSummary, YoutubeSummaryInput } from "../types/youtube-summary";
 
-const sum = (xs: (number | null | undefined)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
-const safeDiv = (a: number | null | undefined, b: number | null | undefined) => (a == null || !b ? null : a / b);
 
 /**
  * Ringkasan YouTube satu bulan. Urutan sumber tiap angka: input manual → total import/connector →

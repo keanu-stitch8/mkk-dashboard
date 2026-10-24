@@ -223,7 +223,7 @@ describe("Task Progress kontributor", () => {
 
 describe("Team Scorecard", () => {
   it("target naik / turun", async () => {
-    const { onTarget, SCORE_DEFS } = await import("../src/lib/data/scorecard");
+    const { onTarget, SCORE_DEFS } = await import("../src/modules/team/scorecard/lib/scorecard");
     const repurpose = SCORE_DEFS.find((d) => d.key === "repurpose")!;
     const backlog = SCORE_DEFS.find((d) => d.key === "backlog")!;
     expect(onTarget(repurpose, 80)).toBe(true);

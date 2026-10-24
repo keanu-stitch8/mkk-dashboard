@@ -7,7 +7,7 @@ import { readTables } from "../parsers/tabular";
 import { readTrackerTab } from "../parsers/logs";
 import { pickTrackerFile } from "../connectors/sheets/map";
 import { briefKey, docxParagraphs, panduanDate, parseBriefName, parseBriefOutline, parsePanduan, trackerLink } from "./parse";
-import { matchItems, tokens, withTracker, type MatchItem, type TrackedResult, type TrackerHint } from "./match";
+import { GENERATED_MATCH_STATUSES, matchItems, tokens, withTracker, type MatchItem, type TrackedResult, type TrackerHint } from "./match";
 import { readContributorNames, readContributorTab, rowGuideDate, type ContributorRow } from "./contributors";
 
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -265,7 +265,6 @@ export interface MatchSummary {
 }
 
 /** Status yang dibuat mesin (dihapus & dihitung ulang tiap rebuild); confirmed / rejected adalah keputusan tim. */
-const GENERATED = ["coded", "auto", "tracker", "suggested"];
 
 type CodedResult = { fromKey: string; toKey: string; score: number; status: "coded" };
 
@@ -386,17 +385,7 @@ export async function rebuildMatches(): Promise<MatchSummary> {
     });
   });
 
-  await prisma.$transaction([prisma.teamMatch.deleteMany({ where: { status: { in: GENERATED } } }), prisma.teamMatch.createMany({ data: rows })]);
+  await prisma.$transaction([prisma.teamMatch.deleteMany({ where: { status: { in: GENERATED_MATCH_STATUSES } } }), prisma.teamMatch.createMany({ data: rows })]);
   const count = (s: string) => rows.filter((r) => r.status === s).length;
   return { coded: count("coded"), auto: count("auto"), tracker: count("tracker"), suggested: count("suggested") };
-}
-
-/** Keputusan tim atas satu pasangan. Konfirmasi menyingkirkan saran lain untuk item yang sama. */
-export async function decideMatch(id: string, decision: "confirmed" | "rejected", by: string | null = null): Promise<void> {
-  const m = await prisma.teamMatch.update({ where: { id }, data: { status: decision, decidedBy: by, decidedAt: new Date() } });
-  if (decision === "confirmed") {
-    await prisma.teamMatch.deleteMany({
-      where: { id: { not: id }, status: { in: GENERATED }, toType: m.toType, fromType: m.fromType, OR: [{ fromKey: m.fromKey }, { toKey: m.toKey }] },
-    });
-  }
 }

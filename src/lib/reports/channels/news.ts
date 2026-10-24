@@ -1,5 +1,5 @@
 // Data laporan News: angka KPI dari summary dashboard (identik dengan dashboard) + daftar artikel dari Publishing Log.
-import { getMonthAndPrev } from "../../data/summary";
+import { getNewsSummary } from "@/modules/news/overview/services/news-summary-service";
 import { daysInMonth, prevMonth } from "../../month";
 import { fmtDurationEn, kpiData, NEWS_KPIS } from "../kpi";
 import { enMonth } from "../month";
@@ -41,9 +41,8 @@ export function categorySlots(counts: { label: string; count: number }[], names:
 
 export async function buildNews(month: string): Promise<ReportData> {
   const prev = prevMonth(month);
-  const { cur, prev: prevBundle } = await getMonthAndPrev(month);
-  const n = cur.news;
-  const p = prevBundle.news.hasData ? prevBundle.news : null;
+  const [n, prevNews] = await Promise.all([getNewsSummary(month), getNewsSummary(prev)]);
+  const p = prevNews.hasData ? prevNews : null;
   const kpi = kpiData(NEWS_KPIS, n, p);
   const quota = n.quota.value;
 

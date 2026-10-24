@@ -1,16 +1,9 @@
 import type { Recommendation } from "@/lib/recommendations";
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";
+import type { YoutubeTrendFields } from "../lib/youtube-trend";
 import type { YoutubeSummary } from "./youtube-summary";
 
-/** Satu titik grafik tren (ChartCard butuh `label`). null = bulan tanpa data YouTube. `type`, bukan interface: ChartCard menerima Record. */
-export type YoutubeTrendPoint = {
-  month: string;
-  label: string;
-  published: number | null;
-  delivered: number | null;
-  quota: number;
-  views: number | null;
-};
+export type YoutubeTrendPoint = { month: string; label: string } & YoutubeTrendFields;
 
 export interface YoutubeOverview {
   month: string;

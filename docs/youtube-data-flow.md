@@ -22,7 +22,7 @@ src/app/(dashboard)/youtube/page.tsx          ?m= → firstParam → monthParam
        -> shared/sections/month-header-section  resolveMonth (cache)
        -> sections/youtube-overview-section     resolveMonth (same cache entry) → getYoutubeOverview
   -> queries/youtube-overview-query.ts         cache(); one getYoutubeSummary per month, in parallel
-       months = trend (last 6, from LAUNCH_MONTH) ∪ {month, prev month}
+       months = channelPageMonths: trend (last 6, from LAUNCH_MONTH) ∪ {month, prev month}
   -> services/youtube-summary-service.ts       repositories + getQuotas + manual metrics → mappers → buildYoutubeSummary
   -> shared/repositories/youtube-repository.ts Prisma reads
 ```
@@ -35,13 +35,12 @@ Number precedence in `buildYoutubeSummary`: manual input → imported channel to
 (→ sum over days for watch time). `published` comes from the log when it has rows, otherwise from
 video publish dates. `delivered = published + in review`.
 
-Recommendations use `channelRecommendations("youtube", …)` with YouTube summaries only. The previous
-page loaded the full four-channel `MonthBundle` for this month and last month plus a six-month
-four-channel trend; the page now loads at most seven YouTube summaries and nothing else. A test in
-`lib/youtube-overview.test.ts` guards that YouTube rules read nothing but `cur.youtube`/`prev.youtube`.
+Recommendations use `channelRecommendations("youtube", { cur: { month, youtube }, prev })`. The page
+loads at most seven YouTube summaries and nothing else; `modules/channels/lib/channel-recommendations.test.ts`
+guards that the result equals the full-bundle recommendations filtered to YouTube.
 
 States: **empty** (`summary.hasData === false`, i.e. no `yt*` import and no manual input) →
-`EmptyState`; the header still renders with the month description. **Failed** → route error boundary.
+`EmptyState` and the default header description. **Failed** → route error boundary.
 
 ## Publishing Log (`/youtube/logs`)
 
@@ -57,13 +56,13 @@ appended without a date. Empty = no rows after that merge.
 
 ## Other consumers of `getYoutubeSummary`
 
-`src/lib/data/summary.ts` (`getMonthBundle`, `getTrend`, `contentQuota` → `youtubeQuota`) imports the
-module service, so Overview, the monthly report (`lib/reports/channels/youtube.ts`), Team Scorecard
-and the 2026 recap read the same canonical `YoutubeSummary`. Those consumers are still migration debt
-(see the audit).
+`modules/channels` (bundle, trend, `contentQuota` → `youtubeQuota`), so Overview, Report, Team Scorecard and Recap
+read the same canonical `YoutubeSummary`. The monthly YouTube report (`lib/reports/channels/youtube.ts`) calls
+`getYoutubeSummary` for the month and the previous month, and `findPublishedYoutubeLogTitles` for series progress.
 
 ## Exceptions
 
 - No persistent cache (global exception, see the contract).
-- One content section instead of one per block: the empty state replaces everything below the
-  header, and every block depends on the same query result.
+- One content section instead of one per block: the empty state replaces everything below the header, and every
+  block depends on the same query result. The header description awaits the same query (empty month → default
+  description).
