@@ -49,7 +49,8 @@ data-samples/
 
 Dashboard membuat laporan untuk client sebagai **file Google Sheets baru** dari master template per channel
 (Website, News). File laporan/template buatan user tidak pernah diubah — app hanya bisa menulis ke file yang
-dibuatnya sendiri (scope `drive.file`).
+dibuatnya sendiri (scope `drive.file`). Satu-satunya pengecualian: kolom Artikel/Brief di tracker kontributor
+("Local Contributor - Task Progress") diisi dari panduan liputan atas permintaan tim (scope `spreadsheets`).
 
 1. Aktifkan **Google Sheets API** di project Google Cloud OAuth client, lalu hubungkan ulang akun Google di kartu
    Google Sheets (Pengaturan → Connectors) dan centang semua izin.
@@ -231,7 +232,7 @@ File di-export ke XLSX lewat Drive API lalu diparse. Jika ada beberapa file yang
 
 Setup:
 1. Aktifkan **Google Drive API**: https://console.cloud.google.com/apis/library/drive.googleapis.com
-2. OAuth consent screen → **Data access** → tambahkan scope `…/auth/drive.readonly` (lihat semua file Google Drive — hanya baca; dibutuhkan untuk mencari file by nama & export ke XLSX).
+2. OAuth consent screen → **Data access** → tambahkan scope `…/auth/drive.readonly` (lihat semua file Google Drive — hanya baca; dibutuhkan untuk mencari file by nama & export ke XLSX). Tambahkan juga `…/auth/spreadsheets` (edit spreadsheet — dipakai hanya untuk mengisi kolom Artikel/Brief tracker kontributor) dan aktifkan **Google Sheets API**.
 3. Halaman **Connectors API** → kartu **Google Sheets** → **Hubungkan akun Google** → login dengan akun yang bisa membuka semua spreadsheet log (mis. pemilik log News dan akun yang dibagikan log Sosmed) → centang izin Drive.
 4. **Test koneksi** menampilkan file log yang ditemukan untuk bulan ini & bulan lalu (✓/✗).
 

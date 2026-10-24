@@ -16,7 +16,8 @@ export const GOOGLE_SCOPES: Record<GoogleOAuthConnector, string[]> = {
   youtube: ["https://www.googleapis.com/auth/yt-analytics.readonly", "https://www.googleapis.com/auth/youtube.readonly"],
   // drive.readonly: cari file by nama + export ke XLSX (Publishing Log).
   // drive.file: buat & edit file milik app ini (laporan hasil generate) — tidak bisa menyentuh file user lain.
-  sheets: ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/drive.file"],
+  // spreadsheets: isi kolom Artikel/Brief di tracker kontributor dari panduan liputan (atas permintaan tim).
+  sheets: ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/spreadsheets"],
 };
 
 /** Connector yang hanya bisa lewat login akun Google (service account tidak punya akses ke file/channel milik akun). */
@@ -94,6 +95,7 @@ export async function oauthAccount(connector: GoogleOAuthConnector): Promise<{ c
 }
 
 export const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+export const SHEETS_WRITE_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 
 /** Scope yang benar-benar diberikan user saat menghubungkan akun (kosong jika belum terhubung). */
 export async function grantedScopes(connector: GoogleOAuthConnector): Promise<string[]> {
