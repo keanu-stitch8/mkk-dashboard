@@ -1,7 +1,7 @@
-// Semua halaman & API butuh login (lihat lib/auth.ts), kecuali halaman login itu sendiri dan aset statis.
+// Semua halaman & API butuh login (lihat modules/auth/auth.ts), kecuali halaman login itu sendiri dan aset statis.
 // Pemeriksaan cukup di sini: cookie diverifikasi tanda tangannya (tanpa database), jadi tidak bisa dipalsukan.
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, authRequired, readSession } from "@/lib/auth";
+import { SESSION_COOKIE, authRequired, readSession } from "@/modules/auth/auth";
 
 const PUBLIC = ["/login", "/api/auth/login"];
 

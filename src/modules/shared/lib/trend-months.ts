@@ -1,4 +1,4 @@
-import { LAUNCH_MONTH, lastMonths, prevMonth } from "@/lib/month";
+import { LAUNCH_MONTH, lastMonths, prevMonth } from "@/modules/shared/lib/month";
 
 /** Bulan grafik tren: n bulan terakhir, dipotong di bulan launching. */
 export const trendMonths = (month: string, n = 6) => lastMonths(month, n).filter((m) => m >= LAUNCH_MONTH);

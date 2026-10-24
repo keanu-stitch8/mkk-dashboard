@@ -10,9 +10,9 @@ import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 async function main() {
-  const { backfillMonths, configuredConnectors, lastFullMonth, syncMany } = await import("../src/lib/connectors");
-  const { CONNECTORS } = await import("../src/lib/connectors/catalog");
-  const { isMonth, monthLabel } = await import("../src/lib/month");
+  const { backfillMonths, configuredConnectors, lastFullMonth, syncMany } = await import("../src/modules/connectors/sources");
+  const { CONNECTORS } = await import("../src/modules/connectors/sources/catalog");
+  const { isMonth, monthLabel } = await import("../src/modules/shared/lib/month");
   const { prisma } = await import("../src/lib/db");
 
   const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1];

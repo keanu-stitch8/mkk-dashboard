@@ -1,4 +1,4 @@
-import type { DatasetKey, MetricOut } from "@/lib/parsers/types";
+import type { DatasetKey, MetricOut } from "@/modules/import/parsers/types";
 
 /** Pratinjau satu dataset hasil parse file upload (sebelum disimpan). */
 export interface UploadPreviewDataset {

@@ -1,5 +1,5 @@
 import "server-only";
-import { currentMonth } from "@/lib/month";
+import { currentMonth } from "@/modules/shared/lib/month";
 import { getTrend } from "@/modules/channels/services/trend-service";
 import { getAudience } from "@/modules/overview/services/audience-service";
 import { SCORECARD_FROM } from "../../scorecard/lib/scorecard";

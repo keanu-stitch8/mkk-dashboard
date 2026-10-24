@@ -1,5 +1,5 @@
 import "server-only";
-import type { Channel } from "@/lib/parsers/types";
+import type { Channel } from "@/modules/import/parsers/types";
 import { audienceTotal, type AudienceKeys } from "../lib/audience";
 import { findLatestMetric, findMetricHistory, findMonthMetric } from "../repositories/audience-repository";
 import type { Audience, AudienceTotal } from "../types/audience";

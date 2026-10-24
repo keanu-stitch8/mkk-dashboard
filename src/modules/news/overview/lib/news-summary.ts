@@ -1,6 +1,6 @@
-import { daysInMonth } from "@/lib/month";
-import { categoryLabel, newsFormat } from "@/lib/taxonomy";
-import { WIB, addDays, dateIn } from "@/lib/tz";
+import { daysInMonth } from "@/modules/shared/lib/month";
+import { categoryLabel, newsFormat } from "@/modules/shared/lib/taxonomy";
+import { WIB, addDays, dateIn } from "@/modules/shared/lib/tz";
 import { longestEmptyStreak } from "@/modules/shared/lib/empty-streak";
 import { groupStats } from "@/modules/shared/lib/group-stats";
 import { safeDiv, sum } from "@/modules/shared/lib/math";

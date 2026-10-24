@@ -1,5 +1,5 @@
-import { isRecap } from "@/lib/reports/youtube-series";
-import { categoryLabel, youtubeFormat } from "@/lib/taxonomy";
+import { isRecap } from "@/modules/report/pipeline/youtube-series";
+import { categoryLabel, youtubeFormat } from "@/modules/shared/lib/taxonomy";
 import type { YoutubeLogEntry } from "../../shared/types/youtube";
 import type { YoutubeLogRow, YoutubeLogs } from "../types/youtube-log";
 

@@ -1,5 +1,5 @@
-import { fmtNum, fmtPct } from "@/lib/format";
-import { FORMAT_LABEL } from "@/lib/sources";
+import { fmtNum, fmtPct } from "@/modules/shared/lib/format";
+import { FORMAT_LABEL } from "@/modules/shared/lib/sources";
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";
 import type { SocialSummary } from "../types/social-summary";
 

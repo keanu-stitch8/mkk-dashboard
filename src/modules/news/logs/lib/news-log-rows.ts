@@ -1,4 +1,4 @@
-import { categoryLabel, newsFormat } from "@/lib/taxonomy";
+import { categoryLabel, newsFormat } from "@/modules/shared/lib/taxonomy";
 import type { NewsArticleEntry } from "../../shared/types/news";
 import type { NewsLogs } from "../types/news-log";
 

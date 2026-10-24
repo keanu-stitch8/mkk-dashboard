@@ -1,4 +1,4 @@
-import { fmtNum, fmtPct } from "@/lib/format";
+import { fmtNum, fmtPct } from "@/modules/shared/lib/format";
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";
 import type { NewsSummary } from "../types/news-summary";
 

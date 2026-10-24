@@ -1,5 +1,5 @@
-import { isMonth } from "@/lib/month";
-import { briefKey } from "@/lib/team/parse";
+import { isMonth } from "@/modules/shared/lib/month";
+import { briefKey } from "@/modules/team/ingest/parse";
 import type { BriefEntry, BriefRow, BriefState, BriefTaskEntry, Linked, LinkView, MatchState, StoryEntry, StoryRow, TaskStage, TeamMatchEntry } from "../types/team";
 
 // "Matched" hanya confirmed / coded / tracker / auto; suggested ditampilkan sebagai saran dan tidak pernah dihitung.

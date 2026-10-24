@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Circle, CircleCheck, CircleX, Clock, I
 import { Badge } from "@/components/ui/badge";
 import { BADGE, FORMAT_BADGES } from "@/components/log-badges";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { fmtDate } from "@/lib/format";
+import { fmtDate } from "@/modules/shared/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Satu baris log konten. Kolom tambahan (reporter, kategori, format, …) dibaca dari `fields`. */

@@ -1,7 +1,7 @@
 // Debug: npx tsx scripts/inspect.ts <file...>  → ringkasan hasil parsing
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { parseFiles, rowCount } from "../src/lib/parsers";
+import { parseFiles, rowCount } from "../src/modules/import/parsers";
 
 const files = process.argv.slice(2).map((p) => ({ name: p.includes("Content 20") ? p.split("/").slice(-2).join("/") : basename(p), data: new Uint8Array(readFileSync(p)) }));
 const res = parseFiles(files);

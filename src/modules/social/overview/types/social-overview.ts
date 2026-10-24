@@ -1,5 +1,5 @@
-import type { SocialKpiSource } from "@/lib/reports/kpi";
-import type { Recommendation } from "@/lib/recommendations";
+import type { SocialKpiSource } from "@/modules/report/pipeline/kpi";
+import type { Recommendation } from "@/modules/recommendations/lib/recommendations";
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";
 import type { SocialComparable } from "../lib/social-compare";
 import type { SocialTrendFields } from "../lib/social-trend";

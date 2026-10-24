@@ -1,6 +1,6 @@
 // POST /api/auth/login — form login (name, password, next) → cookie sesi, lalu kembali ke halaman tujuan.
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, SESSION_DAYS, authConfigured, checkPassword, cleanName, clearFailedLogins, createSessionToken, loginAllowed, recordFailedLogin, safeNext } from "@/lib/auth";
+import { SESSION_COOKIE, SESSION_DAYS, authConfigured, checkPassword, cleanName, clearFailedLogins, createSessionToken, loginAllowed, recordFailedLogin, safeNext } from "@/modules/auth/auth";
 
 export const dynamic = "force-dynamic";
 

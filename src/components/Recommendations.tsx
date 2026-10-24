@@ -1,6 +1,6 @@
 import { Lightbulb } from "lucide-react";
-import type { Recommendation } from "@/lib/recommendations";
-import { CHANNEL_LABEL } from "@/lib/sources";
+import type { Recommendation } from "@/modules/recommendations/lib/recommendations";
+import { CHANNEL_LABEL } from "@/modules/shared/lib/sources";
 import { Badge } from "@/components/ui/badge";
 import { Section, StatusBadge } from "./blocks";
 
@@ -16,7 +16,7 @@ export function Recommendations({ items, title = "Recommendations", showChannel 
           {title}
         </span>
       }
-      subtitle={note ?? "Generated automatically from the rules in lib/recommendations.ts"}
+      subtitle={note ?? "Generated automatically from the rules in modules/recommendations/lib/recommendations.ts"}
       action={items.length > 0 ? <Badge variant="secondary">{items.length}</Badge> : undefined}
     >
       {items.length === 0 ? (

@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import type { Channel } from "@/lib/parsers/types";
+import type { Channel } from "@/modules/import/parsers/types";
 
 const where = (channel: Channel, key: string, source?: string) => ({ channel, key, ...(source ? { import: { source } } : {}) });
 

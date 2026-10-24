@@ -2,9 +2,9 @@ import { ChartCard } from "@/components/ChartCard";
 import { CompareTable, DataTable, KpiCard, KpiGrid, Notice, QuotaHero, Section } from "@/components/blocks";
 import { BreakdownBars } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
-import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
-import { monthLabel } from "@/lib/month";
-import { YOUTUBE_KPIS } from "@/lib/reports/kpi";
+import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/modules/shared/lib/format";
+import { monthLabel } from "@/modules/shared/lib/month";
+import { YOUTUBE_KPIS } from "@/modules/report/pipeline/kpi";
 import type { YoutubeOverview } from "../types/youtube-overview";
 
 export function YoutubeOverviewContent({ overview }: { overview: YoutubeOverview }) {
@@ -28,7 +28,7 @@ export function YoutubeOverviewContent({ overview }: { overview: YoutubeOverview
             ]} />
       </div>
 
-      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (lib/reports/kpi.ts) */}
+      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (modules/report/pipeline/kpi.ts) */}
       <KpiGrid cols={4}>
         {YOUTUBE_KPIS.map((k) => {
           const cur = k.get(y);

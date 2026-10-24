@@ -1,5 +1,5 @@
 import "server-only";
-import { socialKey } from "@/lib/team/store";
+import { socialKey } from "@/modules/team/ingest/store";
 import { briefLite, SOCIAL_KIND } from "../lib/pipeline";
 import type { ArticleDerivatives } from "../types/pipeline";
 import { COUNTED } from "../../shared/lib/team-links";

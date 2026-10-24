@@ -1,6 +1,6 @@
-import type { ConnectorInfo } from "@/lib/connectors/catalog";
-import type { ConnectorStatus, EnvVar } from "@/lib/connectors/types";
-import { lastMonths } from "@/lib/month";
+import type { ConnectorInfo } from "@/modules/connectors/sources/catalog";
+import type { ConnectorStatus, EnvVar } from "@/modules/connectors/sources/types";
+import { lastMonths } from "@/modules/shared/lib/month";
 import type { ConnectorCard, MonthLockRow } from "../types/connector-settings";
 
 type LastSync = { month: string; status: string; startedAt: Date; finishedAt: Date | null } | null;

@@ -1,4 +1,4 @@
-import type { DatasetKey } from "@/lib/parsers/types";
+import type { DatasetKey } from "@/modules/import/parsers/types";
 
 /** File log Google Sheets yang tersimpan untuk satu bulan + sumber. */
 export interface SourceLogImport {

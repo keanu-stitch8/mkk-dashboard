@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CHANNEL_LABEL, MANUAL_FIELDS } from "@/lib/sources";
-import { parseNumber } from "@/lib/parsers/values";
-import type { Channel } from "@/lib/parsers/types";
-import { monthLabel } from "@/lib/month";
+import { CHANNEL_LABEL, MANUAL_FIELDS } from "@/modules/shared/lib/sources";
+import { parseNumber } from "@/modules/import/parsers/values";
+import type { Channel } from "@/modules/import/parsers/types";
+import { monthLabel } from "@/modules/shared/lib/month";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -1,5 +1,5 @@
-import { prevMonth } from "@/lib/month";
-import { channelRecommendations } from "@/lib/recommendations";
+import { prevMonth } from "@/modules/shared/lib/month";
+import { channelRecommendations } from "@/modules/recommendations/lib/recommendations";
 import { atMonth, trendPoints } from "@/modules/shared/lib/by-month";
 import { trendMonths } from "@/modules/shared/lib/trend-months";
 import type { YoutubeOverview } from "../types/youtube-overview";

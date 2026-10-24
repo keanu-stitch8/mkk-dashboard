@@ -1,4 +1,4 @@
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 
 /** Ringkasan bulan m dari hasil query; bulan yang tidak dimuat = bug orkestrasi, bukan data kosong. */
 export function atMonth<S>(byMonth: Map<string, S>, m: string): S {

@@ -1,4 +1,4 @@
-import type { Recommendation } from "@/lib/recommendations";
+import type { Recommendation } from "@/modules/recommendations/lib/recommendations";
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";
 import type { NewsTrendFields } from "../lib/news-trend";
 import type { NewsSummary } from "./news-summary";

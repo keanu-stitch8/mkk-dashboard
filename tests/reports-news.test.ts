@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { categorySlots, NEWS_CATEGORY_SLOTS, sheetDate } from "../src/lib/reports/channels/news";
-import { newsFindings, type NewsNarrativeInput } from "../src/lib/reports/channels/news-narrative";
-import { kpiData, NEWS_KPIS, type NewsKpiSource } from "../src/lib/reports/kpi";
+import { categorySlots, NEWS_CATEGORY_SLOTS, sheetDate } from "../src/modules/report/pipeline/channels/news";
+import { newsFindings, type NewsNarrativeInput } from "../src/modules/report/pipeline/channels/news-narrative";
+import { kpiData, NEWS_KPIS, type NewsKpiSource } from "../src/modules/report/pipeline/kpi";
 
 // angka September 2026 (dashboard News)
 const sep: NewsNarrativeInput = {

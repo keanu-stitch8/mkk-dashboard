@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { typeBreakdown } from "../src/lib/connectors/meta/map";
+import { typeBreakdown } from "../src/modules/connectors/sources/meta/map";
 
 describe("typeBreakdown", () => {
   it("membaca breakdown media_product_type per metrik dari insight akun", () => {

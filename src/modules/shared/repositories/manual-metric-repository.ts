@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import type { Channel } from "@/lib/parsers/types";
+import type { Channel } from "@/modules/shared/types/dataset";
 
 export const findManualMetrics = (month: string, channel: Channel) => prisma.manualMetric.findMany({ where: { month, channel } });
 

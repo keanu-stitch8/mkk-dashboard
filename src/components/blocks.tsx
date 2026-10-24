@@ -10,9 +10,9 @@ import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader,
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { delta, fmtDeltaPct, fmtDeltaPp, fmtNum, fmtPct, DASH } from "@/lib/format";
+import { delta, fmtDeltaPct, fmtDeltaPp, fmtNum, fmtPct, DASH } from "@/modules/shared/lib/format";
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";
-import { monthLabel, prevMonth } from "@/lib/month";
+import { monthLabel, prevMonth } from "@/modules/shared/lib/month";
 
 /** Card dengan judul + deskripsi (wrapper Card shadcn). */
 export function Section({ title, subtitle, action, children, className }: { title?: ReactNode; subtitle?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {

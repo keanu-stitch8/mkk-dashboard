@@ -1,5 +1,5 @@
-import { ASSETS, assetSummary, type AssetCell, type AssetKey, type AssetState } from "@/lib/team/contributors";
-import { daysInMonth } from "@/lib/month";
+import { ASSETS, assetSummary, type AssetCell, type AssetKey, type AssetState } from "@/modules/team/ingest/contributors";
+import { daysInMonth } from "@/modules/shared/lib/month";
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";
 import type { ArticleDerivatives } from "../../pipeline/types/pipeline";
 import { dayDiff, median } from "../../shared/lib/team-links";

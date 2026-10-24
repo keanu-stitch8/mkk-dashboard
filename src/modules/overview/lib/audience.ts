@@ -1,4 +1,4 @@
-import { prevMonth } from "@/lib/month";
+import { prevMonth } from "@/modules/shared/lib/month";
 import type { AudienceTotal } from "../types/audience";
 
 export interface AudienceKeys {

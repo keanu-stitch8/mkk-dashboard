@@ -1,5 +1,5 @@
 // POST /api/quota — { month: "default" | "YYYY-MM", values: { key: number | null } }; null = hapus override bulan.
-import { isMonth } from "@/lib/month";
+import { isMonth } from "@/modules/shared/lib/month";
 import { saveQuotas } from "@/modules/shared/services/quota-service";
 
 export const dynamic = "force-dynamic";

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { MonthSelect } from "./MonthSelect";
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 
 type Props = { title: string; actions?: ReactNode } & (
   | { month: string; months: string[]; description?: ReactNode }

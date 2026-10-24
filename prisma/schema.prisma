@@ -326,7 +326,7 @@ model NewsView {
 }
 
 /// Kredensial connector yang didapat lewat OAuth (mis. refresh token YouTube).
-/// `data` = JSON terenkripsi AES-256-GCM (lib/crypto.ts) dengan ENCRYPTION_KEY.
+/// `data` = JSON terenkripsi AES-256-GCM (modules/auth/crypto.ts) dengan ENCRYPTION_KEY.
 model ConnectorCredential {
   id        String   @id @default(cuid())
   connector String   @unique // ga4 | gsc | youtube | meta
@@ -541,7 +541,7 @@ model TeamMatch {
 /// Baris "Social Media - Task Progress" (tracker editor) yang menyebut file brief. Diganti utuh setiap sync.
 /// Status & link IG di sini ditulis tim, jadi dipakai sebagai bukti — tapi link ke post log tetap harus cocok judulnya.
 model BriefTask {
-  briefKey  String   @id // nama file brief yang dinormalkan (lihat briefKey di lib/team/parse.ts)
+  briefKey  String   @id // nama file brief yang dinormalkan (lihat briefKey di modules/team/ingest/parse.ts)
   briefName String
   tab       String // bulan tab, YYYY-MM
   planned   String?

@@ -5,8 +5,8 @@
 // npx tsx scripts/report-template-youtube.ts --fit-widths=<ID template>        → samakan lebar kolom semua sheet (PDF penuh)
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
-import type { ReportClients } from "../src/lib/reports/engine/sheets";
-import type { RowStyleSpec } from "../src/lib/reports/engine/template-tools";
+import type { ReportClients } from "../src/modules/report/pipeline/engine/sheets";
+import type { RowStyleSpec } from "../src/modules/report/pipeline/engine/template-tools";
 
 type Req = Record<string, unknown>;
 
@@ -251,8 +251,8 @@ async function restructure(c: ReportClients, id: string) {
 }
 
 async function main() {
-  const { reportClients, copyFile } = await import("../src/lib/reports/engine/sheets");
-  const { applyRowStyles, assertAnchors, ensureReviewRow, fitWidths } = await import("../src/lib/reports/engine/template-tools");
+  const { reportClients, copyFile } = await import("../src/modules/report/pipeline/engine/sheets");
+  const { applyRowStyles, assertAnchors, ensureReviewRow, fitWidths } = await import("../src/modules/report/pipeline/engine/template-tools");
   const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1];
   const c = await reportClients();
   if (arg("fit-widths")) return fitWidths(c, arg("fit-widths")!);

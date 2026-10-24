@@ -4,8 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChartCard } from "@/components/ChartCard";
 import { KpiCard, KpiGrid, Notice, QuotaMini } from "@/components/blocks";
 import { Recommendations } from "@/components/Recommendations";
-import { fmtNum } from "@/lib/format";
-import { monthLabel, prevMonth } from "@/lib/month";
+import { fmtNum } from "@/modules/shared/lib/format";
+import { monthLabel, prevMonth } from "@/modules/shared/lib/month";
 import type { AudienceTotal } from "../types/audience";
 import type { Overview } from "../types/overview";
 

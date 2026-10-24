@@ -1,4 +1,4 @@
-import type { AssetCell, AssetKey, AssetState } from "@/lib/team/contributors";
+import type { AssetCell, AssetKey, AssetState } from "@/modules/team/ingest/contributors";
 
 /** Baris tab Task Progress kontributor lokal (satu rencana liputan). */
 export interface ContributorTaskEntry {

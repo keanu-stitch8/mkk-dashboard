@@ -1,7 +1,7 @@
 // GET /api/auth/google?connector=ga4|gsc|youtube → redirect ke halaman consent Google.
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { authUrl, isGoogleOAuthConnector } from "@/lib/connectors/google-oauth";
+import { authUrl, isGoogleOAuthConnector } from "@/modules/connectors/sources/google-oauth";
 
 export const dynamic = "force-dynamic";
 

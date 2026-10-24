@@ -1,6 +1,6 @@
 // POST /api/reports/generate — { channel: "website", month: "YYYY-MM" } → buat laporan Google Sheets baru.
-import { generateReport } from "@/lib/reports/engine/generate";
-import { isMonth } from "@/lib/month";
+import { generateReport } from "@/modules/report/pipeline/engine/generate";
+import { isMonth } from "@/modules/shared/lib/month";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;

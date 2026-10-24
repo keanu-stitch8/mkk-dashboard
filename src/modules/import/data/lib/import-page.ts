@@ -1,4 +1,4 @@
-import { QUOTA_DEFAULTS } from "@/lib/sources";
+import { QUOTA_DEFAULTS } from "@/modules/shared/lib/sources";
 import type { QuotaValue } from "@/modules/shared/types/quota";
 import type { QuotaFormRow } from "../types/import-page";
 

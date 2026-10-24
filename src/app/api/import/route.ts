@@ -1,5 +1,5 @@
 // POST /api/import — multipart: files[], group, month, action=preview|commit, keys (opsional, dipisah koma)
-import type { InputFile, SourceGroup } from "@/lib/parsers";
+import type { InputFile, SourceGroup } from "@/modules/import/parsers";
 import { commitUpload, previewUpload } from "@/modules/import/data/services/upload-service";
 
 export const dynamic = "force-dynamic";

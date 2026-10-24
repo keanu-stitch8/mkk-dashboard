@@ -1,4 +1,4 @@
-import { categoryLabel } from "@/lib/taxonomy";
+import { categoryLabel } from "@/modules/shared/lib/taxonomy";
 import { groupStats } from "@/modules/shared/lib/group-stats";
 import { safeDiv, sum } from "@/modules/shared/lib/math";
 import type { YoutubeSummary, YoutubeSummaryInput } from "../types/youtube-summary";

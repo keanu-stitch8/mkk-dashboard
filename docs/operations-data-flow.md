@@ -23,12 +23,12 @@ Client widgets live with their module: `import/data/components/{import-form,manu
 
 | Route | Service |
 | --- | --- |
-| `POST /api/import` (preview / commit) | `import/data/services/upload-service.ts` → `lib/parsers` + `lib/import/commit` (ingest); preview shape from `lib/upload-preview.ts` |
+| `POST /api/import` (preview / commit) | `import/data/services/upload-service.ts` → `modules/import/parsers` + `modules/import/ingest/commit` (ingest); preview shape from `lib/upload-preview.ts` |
 | `DELETE /api/imports?id=` | `import/history/services/import-history-service.ts` `removeImport` |
 | `POST /api/manual` | `shared/services/manual-metric-service.ts` `saveManualMetrics` |
 | `POST /api/quota` | `shared/services/quota-service.ts` `saveQuotas` |
 | `POST /api/team/matches/[id]` | `team/shared/services/match-decision-service.ts` |
-| `POST /api/connectors/sync`, `/lock`, `/test`, `/api/reports/generate` | ingest / report pipeline (`lib/connectors`, `lib/reports`) |
+| `POST /api/connectors/sync`, `/lock`, `/test`, `/api/reports/generate` | ingest / report pipeline (`modules/connectors/sources`, `modules/report/pipeline`) |
 
 Routes only parse and validate HTTP input. `shared/lib/overrides.ts` decides which submitted keys are saved or
 cleared (unknown keys ignored; empty / invalid = clear; quotas also reject negatives and never clear "default").

@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { ChartCard } from "@/components/ChartCard";
 import { KpiCard, KpiGrid, Section } from "@/components/blocks";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 import type { Recap } from "../types/recap";
 
 const num = (v: number | null) => (v == null ? "—" : v.toLocaleString("id-ID"));

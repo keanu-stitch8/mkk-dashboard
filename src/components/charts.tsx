@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { fmtDuration, fmtNum, fmtPct } from "@/lib/format";
+import { fmtDuration, fmtNum, fmtPct } from "@/modules/shared/lib/format";
 
 export type ValueFormat = "num" | "pct" | "hours" | "dur" | "dec";
 

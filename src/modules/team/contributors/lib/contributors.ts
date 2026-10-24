@@ -1,4 +1,4 @@
-import { ASSETS, assetSummary, type AssetCell, type AssetKey } from "@/lib/team/contributors";
+import { ASSETS, assetSummary, type AssetCell, type AssetKey } from "@/modules/team/ingest/contributors";
 import { dayDiff, median } from "../../shared/lib/team-links";
 import type { ContributorPerson, ContributorsData, ContributorTaskEntry } from "../types/contributors";
 

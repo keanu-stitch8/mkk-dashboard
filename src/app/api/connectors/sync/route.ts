@@ -1,9 +1,9 @@
 // POST /api/connectors/sync — { connectors?: ConnectorId[], month?: "YYYY-MM", backfill?: number, force?: boolean }
 // Bulan terkunci (MonthLock) dilewati untuk connector metrik kecuali force.
 // Tanpa `connectors` → semua connector yang sudah dikonfigurasi. Tanpa `month` → bulan berjalan.
-import { backfillMonths, configuredConnectors, syncMany } from "@/lib/connectors";
-import { CONNECTORS, type ConnectorId } from "@/lib/connectors/catalog";
-import { currentMonth, isMonth } from "@/lib/month";
+import { backfillMonths, configuredConnectors, syncMany } from "@/modules/connectors/sources";
+import { CONNECTORS, type ConnectorId } from "@/modules/connectors/sources/catalog";
+import { currentMonth, isMonth } from "@/modules/shared/lib/month";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;

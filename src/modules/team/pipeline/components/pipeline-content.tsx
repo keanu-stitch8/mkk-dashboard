@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BADGE } from "@/components/log-badges";
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 import type { PipelinePage } from "../types/pipeline-page";
 import { MatchLink } from "../../shared/components/match-link";
 import type { DerivKind, Derivative, PipelineStage } from "../types/pipeline";

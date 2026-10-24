@@ -1,7 +1,7 @@
 // POST /api/manual — { month, channel, values: { key: number | null } }; null = hapus override.
-import { isMonth } from "@/lib/month";
-import { MANUAL_FIELDS } from "@/lib/sources";
-import type { Channel } from "@/lib/parsers/types";
+import { isMonth } from "@/modules/shared/lib/month";
+import { MANUAL_FIELDS } from "@/modules/shared/lib/sources";
+import type { Channel } from "@/modules/import/parsers/types";
 import { saveManualMetrics } from "@/modules/shared/services/manual-metric-service";
 
 export const dynamic = "force-dynamic";

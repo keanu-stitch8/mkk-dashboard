@@ -1,6 +1,6 @@
 // POST /api/connectors/lock — { month: "YYYY-MM", locked: boolean } → kunci / buka kunci bulan final.
-import { setMonthLock } from "@/lib/connectors/lock";
-import { currentMonth, isMonth } from "@/lib/month";
+import { setMonthLock } from "@/modules/connectors/sources/lock";
+import { currentMonth, isMonth } from "@/modules/shared/lib/month";
 
 export const dynamic = "force-dynamic";
 

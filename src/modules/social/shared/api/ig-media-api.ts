@@ -1,5 +1,5 @@
 import "server-only";
-import { graphGet } from "@/lib/connectors/meta/graph";
+import { graphGet } from "@/modules/connectors/sources/meta/graph";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 

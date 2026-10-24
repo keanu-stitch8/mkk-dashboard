@@ -1,6 +1,6 @@
-import { ASSETS, type AssetKey } from "@/lib/team/contributors";
-import { LAUNCH_MONTH, addMonths } from "@/lib/month";
-import { articleKey } from "@/lib/team/store";
+import { ASSETS, type AssetKey } from "@/modules/team/ingest/contributors";
+import { LAUNCH_MONTH, addMonths } from "@/modules/shared/lib/month";
+import { articleKey } from "@/modules/team/ingest/store";
 import type { TrendPoint } from "@/modules/channels/types/trend";
 import type { Audience } from "@/modules/overview/types/audience";
 import type { Score } from "../../scorecard/types/scorecard";

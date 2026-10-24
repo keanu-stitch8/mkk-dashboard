@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { currentMonth } from "@/lib/month";
+import { currentMonth } from "@/modules/shared/lib/month";
 import { pickTeamMonth } from "../../shared/lib/team-links";
 import { teamMonths } from "../../shared/services/team-month-service";
 import { buildContributorsPage } from "../lib/contributors-page";

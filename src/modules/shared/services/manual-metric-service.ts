@@ -1,7 +1,7 @@
 import "server-only";
-import type { Channel } from "@/lib/parsers/types";
+import type { Channel } from "@/modules/shared/types/dataset";
 import { toMetricMap } from "../mappers/metric-mapper";
-import { MANUAL_FIELDS } from "@/lib/sources";
+import { MANUAL_FIELDS } from "@/modules/shared/lib/sources";
 import { planOverrides } from "../lib/overrides";
 import { deleteManualMetric, findManualMetrics, upsertManualMetric } from "../repositories/manual-metric-repository";
 

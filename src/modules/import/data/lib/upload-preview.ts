@@ -1,5 +1,5 @@
-import { applyMonth, rowCount, type ParseResult } from "@/lib/parsers";
-import { DATASETS } from "@/lib/sources";
+import { applyMonth, rowCount, type ParseResult } from "@/modules/import/parsers";
+import { DATASETS } from "@/modules/shared/lib/sources";
 import type { UploadPreviewDataset } from "../types/upload";
 
 const clip = (v: unknown): unknown => (typeof v === "string" && v.length > 80 ? v.slice(0, 79) + "…" : v);

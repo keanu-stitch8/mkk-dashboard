@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { monthLabel } from "@/lib/month";
-import { parseNumber } from "@/lib/parsers/values";
+import { monthLabel } from "@/modules/shared/lib/month";
+import { parseNumber } from "@/modules/import/parsers/values";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

@@ -5,7 +5,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { TrendChart, type SeriesDef, type ValueFormat } from "@/components/charts";
-import { LAUNCH_MONTH, monthLabel } from "@/lib/month";
+import { LAUNCH_MONTH, monthLabel } from "@/modules/shared/lib/month";
 import { cn } from "@/lib/utils";
 
 /**

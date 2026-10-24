@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { KpiCard, KpiGrid, Section } from "@/components/blocks";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 import type { StoriesPage } from "../types/stories-page";
 import { MatchLink } from "../../shared/components/match-link";
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planFill, type SheetGrid } from "../src/lib/reports/engine/tokens";
+import { planFill, type SheetGrid } from "../src/modules/report/pipeline/engine/tokens";
 
 const grid = (rows: string[][], merges: SheetGrid["merges"] = []): SheetGrid => ({ sheetId: 7, title: "01 Summary", rows, merges });
 

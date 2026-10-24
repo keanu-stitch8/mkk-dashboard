@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { briefKey, docxParagraphs, panduanDate, parseBriefName, parseBriefOutline, parsePanduan, trackerLink } from "../src/lib/team/parse";
-import { matchItems, withTracker } from "../src/lib/team/match";
-import { readTrackerTab } from "../src/lib/parsers/logs";
+import { briefKey, docxParagraphs, panduanDate, parseBriefName, parseBriefOutline, parsePanduan, trackerLink } from "../src/modules/team/ingest/parse";
+import { matchItems, withTracker } from "../src/modules/team/ingest/match";
+import { readTrackerTab } from "../src/modules/import/parsers/logs";
 
 const docx = (paras: string[]) =>
   zipSync({ "word/document.xml": strToU8(`<w:document><w:body>${paras.map((p) => `<w:p><w:r><w:t>${p}</w:t></w:r></w:p>`).join("")}</w:body></w:document>`) });
@@ -157,7 +157,7 @@ describe("Task Progress", () => {
 
 describe("kolom Story & IG story", () => {
   it("kode Story dari sel log", async () => {
-    const { parseStoryCode } = await import("../src/lib/parsers/logs");
+    const { parseStoryCode } = await import("../src/modules/import/parsers/logs");
     expect(parseStoryCode("261022-1")).toBe("261022-1");
     expect(parseStoryCode("Story 261022 - 2")).toBe("261022-2");
     expect(parseStoryCode("261022-1B")).toBe("261022-1b");
@@ -192,7 +192,7 @@ describe("Task Progress kontributor", () => {
     ],
   };
   it("baris, aset, Planned Date & file panduan diteruskan", async () => {
-    const { readContributorTab, assetSummary } = await import("../src/lib/team/contributors");
+    const { readContributorTab, assetSummary } = await import("../src/modules/team/ingest/contributors");
     const tab = readContributorTab(table)!;
     expect(tab.tab).toBe("2026-09");
     expect(tab.rows).toHaveLength(2);
@@ -207,8 +207,8 @@ describe("Task Progress kontributor", () => {
     expect(assetSummary(b.assets)).toMatchObject({ complete: false, reelReady: true });
   });
   it("alias kontributor & sambungan ke panduan hanya lewat judul", async () => {
-    const { readContributorNames, readContributorTab } = await import("../src/lib/team/contributors");
-    const { linkContributorStory } = await import("../src/lib/team/store");
+    const { readContributorNames, readContributorTab } = await import("../src/modules/team/ingest/contributors");
+    const { linkContributorStory } = await import("../src/modules/team/ingest/store");
     expect(readContributorNames({ file: "c", sheet: "Ref", blockCount: 1, comments: [], rows: [["Journalist", "Journalist Alias", "Status"], ["Yasril Faza Aftoni", "YSR", "Draft"]] })?.get("YSR")).toBe("Yasril Faza Aftoni");
     const [a, b] = readContributorTab(table)!.rows;
     const stories = [
@@ -241,7 +241,7 @@ describe("login tim", () => {
     process.env.SESSION_SECRET = "test-secret";
   };
   it("token sah, dipalsukan, kedaluwarsa, password diganti", async () => {
-    const auth = await import("../src/lib/auth");
+    const auth = await import("../src/modules/auth/auth");
     setEnv("rahasia-tim");
     const t = auth.createSessionToken("Indah", 1_000);
     expect(auth.readSession(t, 2_000)).toEqual({ name: "Indah" });
@@ -256,7 +256,7 @@ describe("login tim", () => {
     process.env = env;
   });
   it("tujuan setelah login hanya path internal; batas percobaan", async () => {
-    const auth = await import("../src/lib/auth");
+    const auth = await import("../src/modules/auth/auth");
     expect(auth.safeNext("/team/briefs?m=2026-10")).toBe("/team/briefs?m=2026-10");
     expect(auth.safeNext("//evil.example")).toBe("/");
     expect(auth.safeNext("https://evil.example")).toBe("/");
@@ -267,7 +267,7 @@ describe("login tim", () => {
     expect(auth.loginAllowed("1.2.3.4", 16 * 60_000)).toBe(true);
   });
   it("tanpa password: terbuka di dev, tertutup di produksi", async () => {
-    const auth = await import("../src/lib/auth");
+    const auth = await import("../src/modules/auth/auth");
     setEnv(undefined);
     expect(auth.authConfigured()).toBe(false);
     expect(auth.readSession("x.y")).toBeNull();

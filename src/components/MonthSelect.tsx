@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addMonths, monthLabel } from "@/lib/month";
+import { addMonths, monthLabel } from "@/modules/shared/lib/month";
 
 /** Selector bulan: daftar bulan yang punya data + 1 bulan setelah yang terakhir. */
 export function MonthSelect({ month, months }: { month: string; months: string[] }) {

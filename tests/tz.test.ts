@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { PACIFIC, WIB, addDays, dateIn, zonedInstant, zonedParts } from "../src/lib/tz";
-import { monthRange } from "../src/lib/connectors/common";
-import { cronSlot } from "../src/lib/connectors/cron";
+import { PACIFIC, WIB, addDays, dateIn, zonedInstant, zonedParts } from "../src/modules/shared/lib/tz";
+import { monthRange } from "../src/modules/connectors/sources/common";
+import { cronSlot } from "../src/modules/connectors/sources/cron";
 
 describe("tz", () => {
   it("startTime laporan Reach (00:00 Pacific) → tanggal yang sama, PDT maupun PST", () => {

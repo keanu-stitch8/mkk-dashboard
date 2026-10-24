@@ -1,4 +1,4 @@
-import { CONNECTORS } from "@/lib/connectors/catalog";
+import { CONNECTORS } from "@/modules/connectors/sources/catalog";
 import { groupSessions, paginate } from "@/modules/shared/lib/history";
 import type { SyncHistory, SyncRun, SyncTrigger } from "../types/sync-history";
 

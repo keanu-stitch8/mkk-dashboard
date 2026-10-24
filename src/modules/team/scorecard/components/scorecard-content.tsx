@@ -2,7 +2,7 @@ import { Lock } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { KpiCard, KpiGrid, Notice, Section, StatusBadge } from "@/components/blocks";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 import { onTarget, SCORE_DEFS, SCORECARD_FROM } from "../lib/scorecard";
 import type { ScoreDef, ScorecardMonth } from "../types/scorecard";
 

@@ -1,5 +1,5 @@
 import { Section } from "@/components/blocks";
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 import { SyncControls } from "@/modules/connectors/shared/components/sync-controls";
 import type { ImportPage } from "../types/import-page";
 import { ImportForm } from "./import-form";

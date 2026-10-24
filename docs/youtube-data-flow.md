@@ -57,7 +57,7 @@ appended without a date. Empty = no rows after that merge.
 ## Other consumers of `getYoutubeSummary`
 
 `modules/channels` (bundle, trend, `contentQuota` → `youtubeQuota`), so Overview, Report, Team Scorecard and Recap
-read the same canonical `YoutubeSummary`. The monthly YouTube report (`lib/reports/channels/youtube.ts`) calls
+read the same canonical `YoutubeSummary`. The monthly YouTube report (`modules/report/pipeline/channels/youtube.ts`) calls
 `getYoutubeSummary` for the month and the previous month, and `findPublishedYoutubeLogTitles` for series progress.
 
 ## Exceptions

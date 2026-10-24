@@ -1,4 +1,4 @@
-import type { Recommendation } from "@/lib/recommendations";
+import type { Recommendation } from "@/modules/recommendations/lib/recommendations";
 import type { WebsiteTrendFields } from "../lib/website-trend";
 import type { WebsiteSummary } from "./website-summary";
 

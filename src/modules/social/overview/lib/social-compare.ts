@@ -1,4 +1,4 @@
-import type { SocialKpiSource } from "@/lib/reports/kpi";
+import type { SocialKpiSource } from "@/modules/report/pipeline/kpi";
 import { safeDiv, sum } from "@/modules/shared/lib/math";
 import type { SocialSummary } from "../types/social-summary";
 

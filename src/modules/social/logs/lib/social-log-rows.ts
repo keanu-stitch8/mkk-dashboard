@@ -1,4 +1,4 @@
-import { platformLabels, socialFormatLabel } from "@/lib/taxonomy";
+import { platformLabels, socialFormatLabel } from "@/modules/shared/lib/taxonomy";
 import type { SocialLogLink } from "../../overview/types/social-summary";
 import type { SocialLogRow, SocialLogs } from "../types/social-log";
 

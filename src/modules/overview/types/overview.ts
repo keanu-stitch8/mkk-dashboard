@@ -1,4 +1,4 @@
-import type { Recommendation } from "@/lib/recommendations";
+import type { Recommendation } from "@/modules/recommendations/lib/recommendations";
 import type { MonthBundle } from "@/modules/channels/types/month-bundle";
 import type { TrendPoint } from "@/modules/channels/types/trend";
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";

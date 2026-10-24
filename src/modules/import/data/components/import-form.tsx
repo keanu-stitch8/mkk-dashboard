@@ -3,8 +3,8 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, CircleX, FileSpreadsheet, Loader2, TriangleAlert } from "lucide-react";
-import { SOURCE_GROUPS } from "@/lib/sources";
-import { monthLabel } from "@/lib/month";
+import { SOURCE_GROUPS } from "@/modules/shared/lib/sources";
+import { monthLabel } from "@/modules/shared/lib/month";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

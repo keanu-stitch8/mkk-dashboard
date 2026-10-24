@@ -1,6 +1,6 @@
 // POST /api/connectors/test — { connector } → { ok, message }
-import { getConnector } from "@/lib/connectors";
-import { ConnectorError } from "@/lib/connectors/types";
+import { getConnector } from "@/modules/connectors/sources";
+import { ConnectorError } from "@/modules/connectors/sources/types";
 
 export const dynamic = "force-dynamic";
 

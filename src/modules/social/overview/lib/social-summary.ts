@@ -1,6 +1,6 @@
-import { daysInMonth } from "@/lib/month";
-import { OWN_SOCIAL_ACCOUNTS } from "@/lib/sources";
-import { socialFormatKey } from "@/lib/taxonomy";
+import { daysInMonth } from "@/modules/shared/lib/month";
+import { OWN_SOCIAL_ACCOUNTS } from "@/modules/shared/lib/sources";
+import { socialFormatKey } from "@/modules/shared/lib/taxonomy";
 import { longestEmptyStreak } from "@/modules/shared/lib/empty-streak";
 import { safeDiv, sum } from "@/modules/shared/lib/math";
 import { matchLogsToPosts, NOT_IN_LOG_LABEL, reconcileSocial } from "../../shared/lib/social-match";

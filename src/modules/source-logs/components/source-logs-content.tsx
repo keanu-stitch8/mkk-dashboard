@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { Section } from "@/components/blocks";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 import { sourceLogKey } from "../lib/source-logs";
 import type { SourceLogs } from "../types/source-logs";
 

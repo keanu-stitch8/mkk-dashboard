@@ -1,8 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import { ACTIVE_SOCIAL_PLATFORMS } from "@/lib/sources";
+import { ACTIVE_SOCIAL_PLATFORMS } from "@/modules/shared/lib/sources";
 
-/** hanya platform aktif (lib/sources.ts) yang dihitung ke performa */
+/** hanya platform aktif (modules/shared/lib/sources.ts) yang dihitung ke performa */
 export const findActiveSocialPosts = (month: string) =>
   prisma.socialPost.findMany({ where: { month, platform: { in: ACTIVE_SOCIAL_PLATFORMS } }, orderBy: { publishedAt: "asc" } });
 

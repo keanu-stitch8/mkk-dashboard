@@ -1,4 +1,4 @@
-import { daysInMonth } from "@/lib/month";
+import { daysInMonth } from "@/modules/shared/lib/month";
 
 export interface EmptyStreak {
   length: number;

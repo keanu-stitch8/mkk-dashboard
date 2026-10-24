@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { currentUser } from "@/lib/session";
+import { currentUser } from "@/modules/auth/session";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/">) {
   const [store, user] = await Promise.all([cookies(), currentUser()]);

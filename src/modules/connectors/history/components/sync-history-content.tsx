@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BADGE } from "@/components/log-badges";
-import { monthLabel } from "@/lib/month";
-import { CONNECTORS, connectorLabel } from "@/lib/connectors/catalog";
+import { monthLabel } from "@/modules/shared/lib/month";
+import { CONNECTORS, connectorLabel } from "@/modules/connectors/sources/catalog";
 import { isTrigger, TRIGGERS } from "../lib/sync-history";
 import type { SyncHistory, SyncTrigger } from "../types/sync-history";
 

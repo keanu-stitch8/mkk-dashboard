@@ -1,5 +1,5 @@
-import { PLATFORM_LABEL } from "@/lib/sources";
-import { monthLabel } from "@/lib/month";
+import { PLATFORM_LABEL } from "@/modules/shared/lib/sources";
+import { monthLabel } from "@/modules/shared/lib/month";
 import { MonthHeaderSection } from "@/modules/shared/sections/month-header-section";
 import { getSocialOverview } from "../queries/social-overview-query";
 

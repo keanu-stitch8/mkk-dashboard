@@ -4,9 +4,9 @@ import { Section } from "@/components/blocks";
 import { HistoryPager } from "@/components/HistoryPager";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CHANNEL_LABEL, DATASETS } from "@/lib/sources";
-import { monthLabel } from "@/lib/month";
-import type { DatasetKey } from "@/lib/parsers/types";
+import { CHANNEL_LABEL, DATASETS } from "@/modules/shared/lib/sources";
+import { monthLabel } from "@/modules/shared/lib/month";
+import type { DatasetKey } from "@/modules/import/parsers/types";
 import type { ImportHistory } from "../types/import-history";
 import { DeleteImportButton } from "./delete-import-button";
 

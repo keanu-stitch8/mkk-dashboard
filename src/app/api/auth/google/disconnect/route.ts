@@ -1,5 +1,5 @@
 // POST /api/auth/google/disconnect — { connector } → hapus token OAuth (dicabut di Google hanya jika akunnya tidak dipakai connector lain).
-import { disconnect, isGoogleOAuthConnector } from "@/lib/connectors/google-oauth";
+import { disconnect, isGoogleOAuthConnector } from "@/modules/connectors/sources/google-oauth";
 
 export const dynamic = "force-dynamic";
 

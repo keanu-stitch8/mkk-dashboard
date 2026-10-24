@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authConfigured, authRequired, safeNext } from "@/lib/auth";
+import { authConfigured, authRequired, safeNext } from "@/modules/auth/auth";
 
 export const metadata: Metadata = { title: "Sign in · MKK Analytics" };
 export const dynamic = "force-dynamic";

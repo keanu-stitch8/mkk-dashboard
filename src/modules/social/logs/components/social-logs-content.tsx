@@ -1,6 +1,6 @@
 import { Section } from "@/components/blocks";
 import { PublishingLogTable, type LogColumn } from "@/components/PublishingLogTable";
-import { fmtNum } from "@/lib/format";
+import { fmtNum } from "@/modules/shared/lib/format";
 import type { SocialLogs } from "../types/social-log";
 
 // kategori sosmed = pilar konten (khusus channel ini), tetap nilai Publishing Log

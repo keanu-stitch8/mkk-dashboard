@@ -2,12 +2,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { mapGa4Month, rowsOf, type Ga4MonthReports } from "../src/lib/connectors/ga4/map";
-import { monthRange } from "../src/lib/connectors/common";
-import { googleErrorMessage } from "../src/lib/connectors/google-errors";
-import { decrypt, encrypt } from "../src/lib/crypto";
-import { DATASETS } from "../src/lib/sources";
-import type { Dataset, DatasetKey } from "../src/lib/parsers/types";
+import { mapGa4Month, rowsOf, type Ga4MonthReports } from "../src/modules/connectors/sources/ga4/map";
+import { monthRange } from "../src/modules/connectors/sources/common";
+import { googleErrorMessage } from "../src/modules/connectors/sources/google-errors";
+import { decrypt, encrypt } from "../src/modules/auth/crypto";
+import { DATASETS } from "../src/modules/shared/lib/sources";
+import type { Dataset, DatasetKey } from "../src/modules/import/parsers/types";
 
 const fixture = <T>(path: string): T => JSON.parse(readFileSync(join(__dirname, "fixtures", path), "utf8")) as T;
 const get = (ds: Dataset[], key: DatasetKey) => ds.find((d) => d.key === key)!;
@@ -121,7 +121,7 @@ describe("OAuth Google", () => {
     process.env.GOOGLE_OAUTH_CLIENT_ID = "123.apps.googleusercontent.com";
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = "secret";
     delete process.env.GOOGLE_OAUTH_REDIRECT_URI;
-    const { authUrl } = await import("../src/lib/connectors/google-oauth");
+    const { authUrl } = await import("../src/modules/connectors/sources/google-oauth");
     const url = new URL(authUrl("ga4", "ga4.nonce123", "http://localhost:3000"));
     expect(url.host).toBe("accounts.google.com");
     expect(url.searchParams.get("access_type")).toBe("offline");
@@ -134,7 +134,7 @@ describe("OAuth Google", () => {
   });
 
   it("putuskan: token hanya dicabut di Google jika akunnya tidak dipakai connector lain", async () => {
-    const { shouldRevoke } = await import("../src/lib/connectors/google-oauth");
+    const { shouldRevoke } = await import("../src/modules/connectors/sources/google-oauth");
     const me = "riski@example.com";
     expect(shouldRevoke(me, [])).toEqual({ revoke: true, sharedWith: [] });
     expect(shouldRevoke(me, [{ connector: "gsc", account: "Riski@Example.com" }, { connector: "youtube", account: "owner@example.com" }])).toEqual({ revoke: false, sharedWith: ["gsc"] });
@@ -156,7 +156,7 @@ describe("OAuth Google", () => {
 
 describe("GSC connector: mapping searchanalytics → dataset", () => {
   const load = async () => {
-    const { mapGscMonth } = await import("../src/lib/connectors/gsc/map");
+    const { mapGscMonth } = await import("../src/modules/connectors/sources/gsc/map");
     const names = ["totals", "queries", "pages", "dates", "devices", "countries"] as const;
     const res = Object.fromEntries(names.map((n) => [n, fixture(`gsc/${n}.json`)]));
     return mapGscMonth(res as never, "2026-09", "API Search Console · sc-domain:mainkekudus.com");
@@ -195,7 +195,7 @@ describe("YouTube connector: mapping API → dataset", () => {
   const read = (p: string) => readFileSync(join(__dirname, "fixtures", p), "utf8");
 
   it("durasi ISO 8601 & tanggal publish WIB", async () => {
-    const { isoDuration, wibDate } = await import("../src/lib/connectors/youtube/map");
+    const { isoDuration, wibDate } = await import("../src/modules/connectors/sources/youtube/map");
     expect(isoDuration("PT5M41S")).toBe(341);
     expect(isoDuration("PT1H2M3S")).toBe(3723);
     expect(isoDuration("P1DT1S")).toBe(86401);
@@ -204,7 +204,7 @@ describe("YouTube connector: mapping API → dataset", () => {
   });
 
   it("CSV laporan Reach → impressions per video + CTR tertimbang", async () => {
-    const { aggregateReach, parseReachCsv } = await import("../src/lib/connectors/youtube/map");
+    const { aggregateReach, parseReachCsv } = await import("../src/modules/connectors/sources/youtube/map");
     const rows = parseReachCsv(read("youtube/reach.csv"));
     expect(rows).toHaveLength(4);
     expect(rows[0]).toEqual({ date: "2026-09-09", videoId: "-qgU4zJuOpU", impressions: 1000, ctr: 0.05 });
@@ -214,7 +214,7 @@ describe("YouTube connector: mapping API → dataset", () => {
   });
 
   it("yt_table & yt_daily berbentuk sama dengan import YouTube Studio", async () => {
-    const { aggregateReach, mapYoutubeMonth, parseReachCsv } = await import("../src/lib/connectors/youtube/map");
+    const { aggregateReach, mapYoutubeMonth, parseReachCsv } = await import("../src/modules/connectors/sources/youtube/map");
     const ds = mapYoutubeMonth(
       {
         videos: fixture("youtube/videos.json"),
@@ -241,7 +241,7 @@ describe("YouTube connector: mapping API → dataset", () => {
   });
 
   it("total kohort dari query agregat = baris Total YouTube Studio (avg view duration ≠ watch time ÷ views)", async () => {
-    const { mapYoutubeMonth } = await import("../src/lib/connectors/youtube/map");
+    const { mapYoutubeMonth } = await import("../src/modules/connectors/sources/youtube/map");
     const input = { videos: fixture("youtube/videos.json"), perVideo: fixture("youtube/per-video.json"), daily: { rows: [] }, reach: null } as never;
     const withTotals = get(mapYoutubeMonth({ ...(input as object), totals: fixture("youtube/totals.json") } as never, "2026-09", "API YouTube"), "yt_table");
     expect(metric(withTotals, "views")).toBe(732);
@@ -255,7 +255,7 @@ describe("YouTube connector: mapping API → dataset", () => {
   });
 
   it("unique viewers dari import sebelumnya: per video jika sama, total hanya jika daftar video persis sama", async () => {
-    const { keepUniqueViewers, mapYoutubeMonth } = await import("../src/lib/connectors/youtube/map");
+    const { keepUniqueViewers, mapYoutubeMonth } = await import("../src/modules/connectors/sources/youtube/map");
     const prev = [
       { videoId: "-qgU4zJuOpU", uniqueViewers: 180 },
       { videoId: "w6jFZhBhHpI", uniqueViewers: 60 },
@@ -282,7 +282,7 @@ describe("YouTube connector: mapping API → dataset", () => {
   });
 
   it("tanpa data Reach: impressions & CTR kosong (bukan 0)", async () => {
-    const { mapYoutubeMonth } = await import("../src/lib/connectors/youtube/map");
+    const { mapYoutubeMonth } = await import("../src/modules/connectors/sources/youtube/map");
     const ds = mapYoutubeMonth({ videos: fixture("youtube/videos.json"), perVideo: fixture("youtube/per-video.json"), daily: { rows: [] }, reach: null }, "2026-09", "API YouTube");
     const table = get(ds, "yt_table");
     expect(table.rows[0].impressions).toBeNull();
@@ -300,25 +300,25 @@ describe("Meta connector: mapping Graph API → dataset", () => {
   const insightsMap = (path: string) => new Map(Object.entries(fixture<Record<string, unknown>>(path)).map(([id, res]) => [id, insightValuesOf(res)]));
   let insightValuesOf: (res: unknown) => Record<string, number>;
   beforeAll(async () => {
-    const { insightValues } = await import("../src/lib/connectors/meta/map");
+    const { insightValues } = await import("../src/modules/connectors/sources/meta/map");
     insightValuesOf = (res) => insightValues(res as never);
   });
 
   it("wibDateTime: offset +0000 Graph API → WIB (bisa pindah tanggal/bulan)", async () => {
-    const { wibDateTime } = await import("../src/lib/connectors/meta/map");
+    const { wibDateTime } = await import("../src/modules/connectors/sources/meta/map");
     expect(wibDateTime("2026-09-30T20:00:00+0000")).toEqual({ date: "2026-10-01", publishedAt: "2026-10-01 03:00" });
     expect(wibDateTime("2026-08-31T18:30:00+0000")).toEqual({ date: "2026-09-01", publishedAt: "2026-09-01 01:30" });
   });
 
   it("insightValues: bentuk values[0].value, total_value, dan breakdown objek", async () => {
-    const { insightValues } = await import("../src/lib/connectors/meta/map");
+    const { insightValues } = await import("../src/modules/connectors/sources/meta/map");
     expect(insightValues(fixture("meta/ig-account.json"))).toEqual({ reach: 15800, views: 48200, total_interactions: 1390, accounts_engaged: 610 });
     expect(insightValues({ data: [{ name: "x", values: [{ value: { a: 2, b: 3 } }] }] })).toEqual({ x: 5 });
     expect(insightValues(undefined)).toEqual({});
   });
 
   it("insightValues: metrik muncul dua kali (lifetime + harian) → nilai lifetime yang dipakai", async () => {
-    const { insightValues } = await import("../src/lib/connectors/meta/map");
+    const { insightValues } = await import("../src/modules/connectors/sources/meta/map");
     // bentuk respons asli Graph API v26.0 untuk post FB saat dua metrik diminta sekaligus
     const res = {
       data: [
@@ -333,7 +333,7 @@ describe("Meta connector: mapping Graph API → dataset", () => {
   });
 
   it("followBreakdown: follows_and_unfollows (breakdown follow_type) → follow & unfollow", async () => {
-    const { followBreakdown } = await import("../src/lib/connectors/meta/map");
+    const { followBreakdown } = await import("../src/modules/connectors/sources/meta/map");
     // bentuk respons asli Graph API v26.0 (akun main_ke_kudus, 1–16 Sep 2026)
     const res = {
       data: [
@@ -350,7 +350,7 @@ describe("Meta connector: mapping Graph API → dataset", () => {
   });
 
   it("metrik insight IG per jenis media: REELS tanpa follows, tanpa metrik deprecated", async () => {
-    const { igMetricsFor, igPostType } = await import("../src/lib/connectors/meta/map");
+    const { igMetricsFor, igPostType } = await import("../src/modules/connectors/sources/meta/map");
     const reel = { id: "1", timestamp: "", media_type: "VIDEO", media_product_type: "REELS" };
     const carousel = { id: "2", timestamp: "", media_type: "CAROUSEL_ALBUM", media_product_type: "FEED" };
     expect(igMetricsFor(reel)).toEqual(["reach", "views", "likes", "comments", "shares", "saved", "total_interactions"]);
@@ -360,8 +360,8 @@ describe("Meta connector: mapping Graph API → dataset", () => {
   });
 
   it("Instagram: baris sama dengan import CSV, format & interaksi, filter bulan WIB, metrik akun", async () => {
-    const { mapInstagram, insightValues } = await import("../src/lib/connectors/meta/map");
-    const { applyMonth } = await import("../src/lib/parsers");
+    const { mapInstagram, insightValues } = await import("../src/modules/connectors/sources/meta/map");
+    const { applyMonth } = await import("../src/modules/import/parsers");
     const media = fixture<{ data: never[] }>("meta/ig-media.json").data;
     const ds = mapInstagram(media, insightsMap("meta/ig-insights.json"), "2026-09", "API Meta", insightValues(fixture("meta/ig-account.json")));
     expect(ds.key).toBe("meta_instagram");
@@ -386,7 +386,7 @@ describe("Meta connector: mapping Graph API → dataset", () => {
   });
 
   it("snapshotRows: metrik lifetime per post untuk tabel IgMediaSnapshot", async () => {
-    const { snapshotRows } = await import("../src/lib/connectors/meta/map");
+    const { snapshotRows } = await import("../src/modules/connectors/sources/meta/map");
     const media = fixture<{ data: never[] }>("meta/ig-media.json").data;
     const rows = snapshotRows(media, insightsMap("meta/ig-insights.json"), "2026-10-19");
     expect(rows).toHaveLength(5);
@@ -409,7 +409,7 @@ describe("Meta connector: mapping Graph API → dataset", () => {
   });
 
   it("Instagram: Stories & iklan tidak ikut", async () => {
-    const { mapInstagram } = await import("../src/lib/connectors/meta/map");
+    const { mapInstagram } = await import("../src/modules/connectors/sources/meta/map");
     const ds = mapInstagram(
       [
         { id: "s", timestamp: "2026-09-02T01:00:00+0000", media_product_type: "STORY", media_type: "IMAGE" },
@@ -423,7 +423,7 @@ describe("Meta connector: mapping Graph API → dataset", () => {
   });
 
   it("Facebook: format, reactions/comments/shares, views & reach dari post_media_view", async () => {
-    const { mapFacebook } = await import("../src/lib/connectors/meta/map");
+    const { mapFacebook } = await import("../src/modules/connectors/sources/meta/map");
     const posts = fixture<{ data: never[] }>("meta/fb-posts.json").data;
     const ds = mapFacebook(posts, insightsMap("meta/fb-insights.json"), "2026-09", "API Meta", "mainkekudus");
     expect(ds.key).toBe("meta_facebook");
@@ -436,17 +436,17 @@ describe("Meta connector: mapping Graph API → dataset", () => {
 
 describe("Meta connector: Graph API client & error", () => {
   const graphError = async (code: number, message: string, subcode?: number) => {
-    const { GraphError } = await import("../src/lib/connectors/meta/errors");
+    const { GraphError } = await import("../src/modules/connectors/sources/meta/errors");
     return new GraphError(message, code, subcode, 400);
   };
 
   it("versi Graph API di satu konstanta", async () => {
-    const { GRAPH_VERSION } = await import("../src/lib/connectors/meta/graph");
+    const { GRAPH_VERSION } = await import("../src/modules/connectors/sources/meta/graph");
     expect(GRAPH_VERSION).toBe("v26.0");
   });
 
   it("error diterjemahkan ke pesan yang bisa ditindaklanjuti", async () => {
-    const { metaErrorMessage } = await import("../src/lib/connectors/meta/errors");
+    const { metaErrorMessage } = await import("../src/modules/connectors/sources/meta/errors");
     expect(metaErrorMessage(await graphError(190, "Error validating access token: Session has expired", 463))).toMatch(/expired.*Generate a new token/);
     expect(metaErrorMessage(await graphError(190, "Invalid OAuth access token."))).toMatch(/META_ACCESS_TOKEN is invalid/);
     expect(metaErrorMessage(await graphError(10, "(#10) Application does not have permission for this action"), { pageId: "123" })).toMatch(/The Meta token lacks permissions for Page 123.*instagram_manage_insights.*assigned/);
@@ -459,7 +459,7 @@ describe("Meta connector: Graph API client & error", () => {
   });
 
   it("retry hanya untuk rate limit / error sementara / 5xx / jaringan", async () => {
-    const { GraphError, isRetryableMetaError } = await import("../src/lib/connectors/meta/errors");
+    const { GraphError, isRetryableMetaError } = await import("../src/modules/connectors/sources/meta/errors");
     for (const code of [1, 2, 4, 17, 32, 341, 613, 80001]) expect(isRetryableMetaError(await graphError(code, "x"))).toBe(true);
     for (const code of [10, 100, 190, 200, 803]) expect(isRetryableMetaError(await graphError(code, "x"))).toBe(false);
     expect(isRetryableMetaError(new GraphError("x", 100, undefined, 400, true))).toBe(true);
@@ -484,7 +484,7 @@ describe("Meta connector: Graph API client & error", () => {
         }
         return respond({ data: [{ name: metric, period: "lifetime", values: [{ value: 7 }] }] });
       });
-      const { graphInsights } = await import("../src/lib/connectors/meta/graph");
+      const { graphInsights } = await import("../src/modules/connectors/sources/meta/graph");
       const res = await graphInsights("1000_2001", "tok", ["post_media_view", "post_impressions_unique"]);
       expect(res).toEqual({ values: { post_media_view: 7 }, rejected: ["post_impressions_unique"] });
       expect(calls).toHaveLength(3);
@@ -494,12 +494,12 @@ describe("Meta connector: Graph API client & error", () => {
 
     it("insights: error izin tidak ditelan", async () => {
       vi.stubGlobal("fetch", async () => respond({ error: { message: "(#10) Application does not have permission", code: 10 } }, 403));
-      const { graphInsights } = await import("../src/lib/connectors/meta/graph");
+      const { graphInsights } = await import("../src/modules/connectors/sources/meta/graph");
       await expect(graphInsights("1", "tok", ["reach", "views"])).rejects.toMatchObject({ name: "GraphError", code: 10 });
     });
 
     it("rangeChunks: bulan 30 hari = 1 potongan, 31 hari = 30 + 1 hari", async () => {
-      const { rangeChunks } = await import("../src/lib/connectors/meta");
+      const { rangeChunks } = await import("../src/modules/connectors/sources/meta");
       const t = (d: string) => Date.parse(`${d}T00:00:00+07:00`) / 1000;
       expect(rangeChunks({ since: t("2026-09-01"), until: t("2026-10-01") })).toEqual([[t("2026-09-01"), t("2026-10-01")]]);
       expect(rangeChunks({ since: t("2026-08-01"), until: t("2026-09-01") })).toEqual([
@@ -516,7 +516,7 @@ describe("Meta connector: Graph API client & error", () => {
         const follows = ranges.length === 1 ? 500 : 20;
         return respond({ data: [{ name: "follows_and_unfollows", period: "day", total_value: { breakdowns: [{ dimension_keys: ["follow_type"], results: [{ dimension_values: ["FOLLOWER"], value: follows }, { dimension_values: ["NON_FOLLOWER"], value: 3 }] }] } }] });
       });
-      const { igFollows } = await import("../src/lib/connectors/meta");
+      const { igFollows } = await import("../src/modules/connectors/sources/meta");
       const since = Date.parse("2026-07-01T00:00:00+07:00") / 1000;
       const until = Date.parse("2026-08-01T00:00:00+07:00") / 1000;
       const res = await igFollows("tok", "1784", { start: "2026-07-01", end: "2026-07-31", partial: false, since, until });
@@ -536,7 +536,7 @@ describe("Meta connector: Graph API client & error", () => {
         calls.push(input);
         return respond(input.searchParams.get("after") === "X" ? pages.second : pages.first);
       });
-      const { graphPaginate } = await import("../src/lib/connectors/meta/graph");
+      const { graphPaginate } = await import("../src/modules/connectors/sources/meta/graph");
       const items = await graphPaginate<{ id: string; t: number }>("/1784/media", "tok", { limit: 2 }, (m) => m.t < 10);
       expect(items.map((i) => i.id)).toEqual(["pin", "a", "b", "c", "d", "e"]);
       expect(calls).toHaveLength(2);
@@ -547,7 +547,7 @@ describe("Meta connector: Graph API client & error", () => {
 
 describe("Sync cron", () => {
   it("slot terakhir tanggal potong 5 jam 07:00 WIB → sync bulan sebelumnya", async () => {
-    const { cronSlot } = await import("../src/lib/connectors/cron");
+    const { cronSlot } = await import("../src/modules/connectors/sources/cron");
     const at = (iso: string) => cronSlot(new Date(iso));
     expect(at("2026-10-16T03:00:00Z")).toEqual({ slot: new Date("2026-10-05T00:00:00Z"), month: "2026-09" });
     // 5 Okt 06:59 WIB → slot masih 5 Sep
@@ -558,7 +558,7 @@ describe("Sync cron", () => {
   });
 
   it("tanggal potong bulan = tanggal 5 bulan berikutnya", async () => {
-    const { cutoffDate } = await import("../src/lib/month");
+    const { cutoffDate } = await import("../src/modules/shared/lib/month");
     expect(cutoffDate("2026-10")).toBe("2026-11-05");
     expect(cutoffDate("2026-12")).toBe("2027-01-05");
   });
@@ -576,7 +576,7 @@ describe("Google Sheets connector: cari Publishing Log per nama file + bulan", (
   ];
 
   it("nama bulan Inggris, Indonesia, singkatan, dan angka", async () => {
-    const { nameHasMonth } = await import("../src/lib/connectors/sheets/map");
+    const { nameHasMonth } = await import("../src/modules/connectors/sources/sheets/map");
     expect(nameHasMonth("MKK - News Content Logs - September 2026", "2026-09")).toBe(true);
     expect(nameHasMonth("Socmed Content Logs - Oktober 2026", "2026-10")).toBe(true);
     expect(nameHasMonth("Socmed Content Logs - October 2026", "2026-10")).toBe(true);
@@ -588,10 +588,10 @@ describe("Google Sheets connector: cari Publishing Log per nama file + bulan", (
   });
 
   it("pilih file per jenis log; performance report News tidak dipakai; salinan kalah dari asli", async () => {
-    const { pickLogFile } = await import("../src/lib/connectors/sheets/map");
+    const { pickLogFile } = await import("../src/modules/connectors/sources/sheets/map");
     expect(pickLogFile(files, "news", "2026-09").file?.id).toBe("news09");
     expect(pickLogFile(files, "news", "2026-08").file?.id).toBe("news08");
-    const { pickTrackerFile } = await import("../src/lib/connectors/sheets/map");
+    const { pickTrackerFile } = await import("../src/modules/connectors/sources/sheets/map");
     const trackers = [
       { id: "x", name: "Socmed Content Logs - September 2026" },
       { id: "tp", name: "MKK Kudus Social Media - Task Progress" },
@@ -609,7 +609,7 @@ describe("Google Sheets connector: cari Publishing Log per nama file + bulan", (
 
 describe("YouTube: video non-public (re-upload)", () => {
   it("hanya video public yang dihitung; status tidak diketahui tetap dihitung", async () => {
-    const { splitByPrivacy } = await import("../src/lib/connectors/youtube/map");
+    const { splitByPrivacy } = await import("../src/modules/connectors/sources/youtube/map");
     const v = (id: string, privacy?: string | null) => ({ id, title: id, publishedAt: "2026-10-20T03:00:00Z", durationSec: 343, privacy });
     const { listed, hidden } = splitByPrivacy([v("old", "private"), v("new", "public"), v("draft", "unlisted"), v("fixture")]);
     expect(listed.map((x) => x.id)).toEqual(["new", "fixture"]);

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Channel } from "@/lib/parsers/types";
-import { prevMonth } from "@/lib/month";
-import { channelRecommendations, generateRecommendations } from "@/lib/recommendations";
+import type { Channel } from "@/modules/shared/types/dataset";
+import { prevMonth } from "@/modules/shared/lib/month";
+import { channelRecommendations, generateRecommendations } from "@/modules/recommendations/lib/recommendations";
 import { buildNewsOverview } from "@/modules/news/overview/lib/news-overview";
 import { channelPageMonths } from "@/modules/shared/lib/trend-months";
 import { buildSocialOverview } from "@/modules/social/overview/lib/social-overview";

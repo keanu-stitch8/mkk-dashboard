@@ -1,8 +1,8 @@
 import "server-only";
-import { REGISTRY, lastFullMonth } from "@/lib/connectors";
-import { CONNECTORS } from "@/lib/connectors/catalog";
-import { OAUTH_ONLY } from "@/lib/connectors/google-oauth";
-import { currentMonth } from "@/lib/month";
+import { REGISTRY, lastFullMonth } from "@/modules/connectors/sources";
+import { CONNECTORS } from "@/modules/connectors/sources/catalog";
+import { OAUTH_ONLY } from "@/modules/connectors/sources/google-oauth";
+import { currentMonth } from "@/modules/shared/lib/month";
 import { buildConnectorCard, buildLockRows } from "../lib/connector-settings";
 import { findLastFinishedSync, findMonthLocks } from "../repositories/connector-settings-repository";
 import type { ConnectorSettings } from "../types/connector-settings";

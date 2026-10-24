@@ -2,9 +2,9 @@ import { ChartCard } from "@/components/ChartCard";
 import { Section, CompareTable, DataTable, KpiCard, KpiGrid, Notice, QuotaHero, StatusBadge } from "@/components/blocks";
 import { BreakdownBars } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
-import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
-import { monthLabel } from "@/lib/month";
-import { NEWS_KPIS } from "@/lib/reports/kpi";
+import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/modules/shared/lib/format";
+import { monthLabel } from "@/modules/shared/lib/month";
+import { NEWS_KPIS } from "@/modules/report/pipeline/kpi";
 import type { NewsOverview } from "../types/news-overview";
 
 export function NewsOverviewContent({ overview }: { overview: NewsOverview }) {
@@ -30,7 +30,7 @@ export function NewsOverviewContent({ overview }: { overview: NewsOverview }) {
             ]} />
       </div>
 
-      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (lib/reports/kpi.ts) */}
+      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (modules/report/pipeline/kpi.ts) */}
       <KpiGrid cols={4}>
         {NEWS_KPIS.map((k) => {
           const cur = k.get(n);

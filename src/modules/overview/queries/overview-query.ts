@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { prevMonth } from "@/lib/month";
+import { prevMonth } from "@/modules/shared/lib/month";
 import { getMonthBundle } from "@/modules/channels/services/month-bundle-service";
 import { loadByMonth } from "@/modules/shared/lib/by-month";
 import { channelPageMonths } from "@/modules/shared/lib/trend-months";

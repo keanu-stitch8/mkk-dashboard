@@ -1,5 +1,5 @@
 import "server-only";
-import { GENERATED_MATCH_STATUSES } from "@/lib/team/match";
+import { GENERATED_MATCH_STATUSES } from "@/modules/team/ingest/match";
 import { deleteOtherGeneratedMatches, setMatchDecision } from "../repositories/match-decision-repository";
 
 /** Keputusan tim atas satu pasangan. Konfirmasi menyingkirkan saran lain untuk item yang sama. */

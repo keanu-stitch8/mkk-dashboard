@@ -3,11 +3,11 @@
 Stories, Briefs, Content Pipeline, Contributors, Team Scorecard, Recap. Follows the
 [global data flow](./architecture/data-flow.md).
 
-## Ingest (unchanged, `src/lib/team`)
+## Ingest (`src/modules/team/ingest`)
 
 Google Drive connector → `syncTeamDocs` (Story, Brief) → `syncBriefTracker` (BriefTask) → `syncContributors`
 (ContributorTask, Contributor) → `rebuildMatches` (TeamMatch). Machine statuses (`GENERATED_MATCH_STATUSES` in
-`lib/team/match.ts`) are deleted and rebuilt; `confirmed` / `rejected` are never overwritten.
+`modules/team/ingest/match.ts`) are deleted and rebuilt; `confirmed` / `rejected` are never overwritten.
 
 ## Read side
 
@@ -44,7 +44,7 @@ Contributors defaults to the latest contributor tab (not the latest Story/Brief 
 
 ## Scorecard snapshots
 
-`lib/connectors/lock.ts` (ingest) calls `snapshotScorecard` when a month is locked and `clearScorecard` when it is
+`modules/connectors/sources/lock.ts` (ingest) calls `snapshotScorecard` when a month is locked and `clearScorecard` when it is
 unlocked. Months before `SCORECARD_FROM` (July 2026) show a notice; before the refactor they returned HTTP 500.
 
 ## Verification

@@ -110,15 +110,23 @@ Modules (one folder per domain, one sub-folder per page; `shared/` inside a doma
 | `team/{stories,briefs,pipeline,contributors,scorecard,recap}` | `/team/*` | [Team](../team-data-flow.md) |
 | `import/{data,history}`, `connectors/{settings,history}`, `source-logs` | `/import*`, `/settings/connectors*`, `/logs` | [Operations](../operations-data-flow.md) |
 
-Repository-wide folders outside `modules/`:
+Non-page modules (pipelines and cross-cutting pieces; they have no `index.tsx`/views):
+
+| Folder | Owns |
+| --- | --- |
+| `src/modules/connectors/sources/`, `src/modules/import/parsers/`, `src/modules/import/ingest/`, `src/modules/team/ingest/` | Ingest pipeline (API/Sheets/Drive sync, CSV parsing, commit, Team matching rebuild). **Deliberate exception:** ingest writes use the Prisma client directly instead of `repositories/` — they are bulk write transactions, not page reads. |
+| `src/modules/report/pipeline/` | Outbound pipeline: monthly report generation (Google Sheets + PDF). Reads channel summaries through module services and detail rows through module repositories; writes `GeneratedReport` through `modules/report/repositories`. No Prisma import. |
+| `src/modules/recommendations/lib/` | Pure rule engine over `MonthBundle`. Its own module (not `channels/`) because channel pages call `channelRecommendations(channel, { cur: { month, [channel]: … }, prev })`; every rule may read only its own channel and `month`. |
+| `src/modules/auth/` | Login (Stage 0): signed session cookie (`auth.ts`), server-side session read (`session.ts`), AES-256-GCM for stored tokens (`crypto.ts`). Used by `src/proxy.ts` and the auth API routes. |
+| `src/modules/shared/lib/`, `src/modules/shared/types/dataset.ts` | Pure helpers shared by every layer (`format`, `month`, `tz`, `taxonomy`, `sources`) and the channel/dataset keys (`Channel`, `DatasetKey`, `SourceGroup`; re-exported by `import/parsers/types`). |
+
+Repository-wide folders outside `modules/` (only what tooling pins in place):
 
 | Folder | Owns |
 | --- | --- |
 | `src/components/` | Design-system building blocks (`ui/` from shadcn — extend, never edit), shared dashboard blocks (`blocks.tsx`, `ChartCard`, `PageHeader`). Rendering only. |
-| `src/lib/connectors/`, `src/lib/parsers/`, `src/lib/import/`, `src/lib/team/` | Ingest pipeline (API/Sheets/Drive sync, CSV parsing, commit, Team matching rebuild). |
-| `src/lib/reports/` | Outbound pipeline: monthly report generation (Google Sheets + PDF). Reads channel summaries through module services and detail rows through module repositories; writes `GeneratedReport` through `modules/report/repositories`. No Prisma import. |
-| `src/lib/recommendations.ts` | Pure rule engine over `MonthBundle`. Channel pages call `channelRecommendations(channel, { cur: { month, [channel]: … }, prev })`; every rule may read only its own channel and `month`. |
-| `src/lib/` (other files) | Pure helpers shared by every layer (`format`, `month`, `tz`, `taxonomy`, `sources`) and the Prisma client (`db`). |
+| `src/lib/db.ts` | The shared Prisma client (`@/lib/db`). |
+| `src/lib/utils.ts`, `src/hooks/use-mobile.ts` | shadcn helpers, pinned by the `utils`/`hooks` aliases in `components.json` and imported by `components/ui/*`. Do not move. |
 
 ## Runtime boundaries
 

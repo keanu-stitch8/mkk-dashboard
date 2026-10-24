@@ -8,8 +8,8 @@
 // Laporan contoh berisi rumus (COUNTIF/XLOOKUP ke Publishing Log & Ref) → semuanya diganti penanda {{…}}.
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
-import type { ReportClients } from "../src/lib/reports/engine/sheets";
-import type { RowStyleSpec } from "../src/lib/reports/engine/template-tools";
+import type { ReportClients } from "../src/modules/report/pipeline/engine/sheets";
+import type { RowStyleSpec } from "../src/modules/report/pipeline/engine/template-tools";
 
 type Req = Record<string, unknown>;
 
@@ -126,9 +126,9 @@ async function patchText(c: ReportClients, id: string) {
 }
 
 async function main() {
-  const { reportClients, copyFile, readGrids } = await import("../src/lib/reports/engine/sheets");
-  const { applyRowStyles, assertAnchors, fitWidths } = await import("../src/lib/reports/engine/template-tools");
-  const { NEWS_CATEGORY_SLOTS } = await import("../src/lib/reports/channels/news");
+  const { reportClients, copyFile, readGrids } = await import("../src/modules/report/pipeline/engine/sheets");
+  const { applyRowStyles, assertAnchors, fitWidths } = await import("../src/modules/report/pipeline/engine/template-tools");
+  const { NEWS_CATEGORY_SLOTS } = await import("../src/modules/report/pipeline/channels/news");
   const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1];
   const c = await reportClients();
   if (arg("fit-widths")) return fitWidths(c, arg("fit-widths")!);

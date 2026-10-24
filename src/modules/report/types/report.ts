@@ -2,7 +2,7 @@ import type { MonthBundle } from "@/modules/channels/types/month-bundle";
 import type { OverviewComparison, OverviewKpis } from "@/modules/overview/lib/overview-kpis";
 import type { QuotaPair } from "@/modules/overview/types/overview";
 import type { SocialComparable } from "@/modules/social/overview/lib/social-compare";
-import type { Recommendation } from "@/lib/recommendations";
+import type { Recommendation } from "@/modules/recommendations/lib/recommendations";
 
 /** Satu baris tombol "Generate Google Sheets report" per channel + laporan terakhir bulan ini. */
 export interface ReportRow {

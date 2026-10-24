@@ -1,4 +1,4 @@
-import { monthLabel } from "@/lib/month";
+import { monthLabel } from "@/modules/shared/lib/month";
 import { EmptyState } from "@/components/blocks";
 import { resolveMonth } from "@/modules/shared/queries/month-query";
 import { YoutubeOverviewContent } from "../components/youtube-overview-content";

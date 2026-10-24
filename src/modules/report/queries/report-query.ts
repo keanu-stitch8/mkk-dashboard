@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { generateRecommendations } from "@/lib/recommendations";
+import { generateRecommendations } from "@/modules/recommendations/lib/recommendations";
 import { getMonthAndPrev } from "@/modules/channels/services/month-bundle-service";
 import { quotaPair } from "@/modules/overview/lib/overview";
 import { overviewComparison, overviewKpis } from "@/modules/overview/lib/overview-kpis";

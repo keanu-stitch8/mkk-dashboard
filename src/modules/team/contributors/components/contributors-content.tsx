@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BADGE } from "@/components/log-badges";
-import { ASSETS, type AssetCell } from "@/lib/team/contributors";
-import { monthLabel } from "@/lib/month";
+import { ASSETS, type AssetCell } from "@/modules/team/ingest/contributors";
+import { monthLabel } from "@/modules/shared/lib/month";
 import type { ContributorsPage } from "../types/contributors-page";
 import type { ContributorItem } from "../types/contributors";
 

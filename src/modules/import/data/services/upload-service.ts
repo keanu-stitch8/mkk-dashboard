@@ -1,9 +1,9 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import { commitDataset } from "@/lib/import/commit";
-import { isMonth } from "@/lib/month";
-import { parseFiles, suggestedMonth, type InputFile, type SourceGroup } from "@/lib/parsers";
-import { DATASETS } from "@/lib/sources";
+import { commitDataset } from "@/modules/import/ingest/commit";
+import { isMonth } from "@/modules/shared/lib/month";
+import { parseFiles, suggestedMonth, type InputFile, type SourceGroup } from "@/modules/import/parsers";
+import { DATASETS } from "@/modules/shared/lib/sources";
 import { buildUploadPreview } from "../lib/upload-preview";
 import { findMonthImports } from "../repositories/upload-repository";
 

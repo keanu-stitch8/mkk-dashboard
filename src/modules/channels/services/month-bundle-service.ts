@@ -1,5 +1,5 @@
 import "server-only";
-import { prevMonth } from "@/lib/month";
+import { prevMonth } from "@/modules/shared/lib/month";
 import { getNewsSummary } from "@/modules/news/overview/services/news-summary-service";
 import { getSocialSummary } from "@/modules/social/overview/services/social-summary-service";
 import { getWebsiteSummary } from "@/modules/website/overview/services/website-summary-service";

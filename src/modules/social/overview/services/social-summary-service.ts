@@ -1,5 +1,5 @@
 import "server-only";
-import { addMonths } from "@/lib/month";
+import { addMonths } from "@/modules/shared/lib/month";
 import { toMetricMap } from "@/modules/shared/mappers/metric-mapper";
 import { getManualMetrics } from "@/modules/shared/services/manual-metric-service";
 import { getQuotas } from "@/modules/shared/services/quota-service";

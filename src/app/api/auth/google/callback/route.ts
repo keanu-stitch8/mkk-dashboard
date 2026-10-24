@@ -1,7 +1,7 @@
 // GET /api/auth/google/callback?code=…&state=… → simpan refresh token terenkripsi, kembali ke halaman Connectors.
 import { NextResponse, type NextRequest } from "next/server";
-import { completeOAuth, isGoogleOAuthConnector } from "@/lib/connectors/google-oauth";
-import { connectorLabel } from "@/lib/connectors/catalog";
+import { completeOAuth, isGoogleOAuthConnector } from "@/modules/connectors/sources/google-oauth";
+import { connectorLabel } from "@/modules/connectors/sources/catalog";
 
 export const dynamic = "force-dynamic";
 

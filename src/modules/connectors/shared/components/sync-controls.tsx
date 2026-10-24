@@ -6,8 +6,8 @@ import { CircleCheck, CircleX, History, Loader2, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { connectorLabel } from "@/lib/connectors/catalog";
-import { monthLabel } from "@/lib/month";
+import { connectorLabel } from "@/modules/connectors/sources/catalog";
+import { monthLabel } from "@/modules/shared/lib/month";
 
 interface Result {
   connector: string;

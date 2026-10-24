@@ -1,5 +1,5 @@
 import "server-only";
-import { QUOTA_DEFAULTS } from "@/lib/sources";
+import { QUOTA_DEFAULTS } from "@/modules/shared/lib/sources";
 import { planOverrides } from "../lib/overrides";
 import { resolveQuotas } from "../lib/quota";
 import { deleteQuota, findQuotaRows, upsertQuota } from "../repositories/quota-repository";

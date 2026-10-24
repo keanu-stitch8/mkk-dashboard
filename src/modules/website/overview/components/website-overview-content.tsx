@@ -2,9 +2,9 @@ import { ChartCard } from "@/components/ChartCard";
 import { Section, CompareTable, DataTable, KpiCard, KpiGrid, Notice } from "@/components/blocks";
 import { BreakdownBars } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
-import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/lib/format";
-import { monthLabel } from "@/lib/month";
-import { WEBSITE_KPIS } from "@/lib/reports/kpi";
+import { fmtDate, fmtDuration, fmtNum, fmtPct, truncate } from "@/modules/shared/lib/format";
+import { monthLabel } from "@/modules/shared/lib/month";
+import { WEBSITE_KPIS } from "@/modules/report/pipeline/kpi";
 import type { WebsiteOverview } from "../types/website-overview";
 
 export function WebsiteOverviewContent({ overview }: { overview: WebsiteOverview }) {

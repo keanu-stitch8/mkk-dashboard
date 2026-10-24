@@ -1,7 +1,7 @@
-import { QUOTA_DEFAULTS } from "@/lib/sources";
+import { QUOTA_DEFAULTS } from "@/modules/shared/lib/sources";
 import type { QuotaValue } from "../types/quota";
 
-/** Kuota per key: nilai khusus bulan ini → default tersimpan (month "default") → default bawaan (lib/sources.ts). */
+/** Kuota per key: nilai khusus bulan ini → default tersimpan (month "default") → default bawaan (modules/shared/lib/sources.ts). */
 export function resolveQuotas(month: string, rows: { month: string; key: string; value: number }[]): Record<string, QuotaValue> {
   const out: Record<string, QuotaValue> = {};
   for (const q of QUOTA_DEFAULTS) {

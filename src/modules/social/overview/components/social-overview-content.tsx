@@ -3,11 +3,11 @@ import { Section, CompareTable, DataTable, DeltaBadge, KpiCard, KpiGrid, Notice,
 import { BreakdownBars, type SeriesDef } from "@/components/charts";
 import { Recommendations } from "@/components/Recommendations";
 import { SocialRecon } from "@/components/SocialRecon";
-import { SOCIAL_KPIS } from "@/lib/reports/kpi";
-import { fmtDate, fmtNum, fmtPct, truncate } from "@/lib/format";
-import { monthLabel, prevMonth } from "@/lib/month";
-import { FORMAT_LABEL, PLATFORM_LABEL } from "@/lib/sources";
-import { WIB, dateIn } from "@/lib/tz";
+import { SOCIAL_KPIS } from "@/modules/report/pipeline/kpi";
+import { fmtDate, fmtNum, fmtPct, truncate } from "@/modules/shared/lib/format";
+import { monthLabel, prevMonth } from "@/modules/shared/lib/month";
+import { FORMAT_LABEL, PLATFORM_LABEL } from "@/modules/shared/lib/sources";
+import { WIB, dateIn } from "@/modules/shared/lib/tz";
 import type { SocialOverview } from "../types/social-overview";
 
 const fmtLabel = (platform: string, format: string) => `${PLATFORM_LABEL[platform] ?? platform} · ${FORMAT_LABEL[format] ?? format}`;
@@ -66,7 +66,7 @@ export function SocialOverviewContent({ overview }: { overview: SocialOverview }
             ]} />
       </div>
 
-      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (lib/reports/kpi.ts) */}
+      {/* 2. KPI — definisi bersama dengan kartu KPI laporan Google Sheets (modules/report/pipeline/kpi.ts) */}
       <KpiGrid cols={4}>
         {SOCIAL_KPIS.map((k) => {
           const cur = k.get(kpi.cur);

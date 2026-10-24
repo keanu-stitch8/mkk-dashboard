@@ -1,7 +1,7 @@
 import "server-only";
-import type { AssetState } from "@/lib/team/contributors";
-import { lastMonths } from "@/lib/month";
-import { articleKey } from "@/lib/team/store";
+import type { AssetState } from "@/modules/team/ingest/contributors";
+import { lastMonths } from "@/modules/shared/lib/month";
+import { articleKey } from "@/modules/team/ingest/store";
 import { contentQuota } from "@/modules/channels/lib/content-quota";
 import { getMonthBundle } from "@/modules/channels/services/month-bundle-service";
 import { derivativesByArticle } from "../../pipeline/services/derivatives-service";

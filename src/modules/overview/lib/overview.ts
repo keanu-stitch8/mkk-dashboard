@@ -1,5 +1,5 @@
-import { monthLabel, prevMonth } from "@/lib/month";
-import { generateRecommendations } from "@/lib/recommendations";
+import { monthLabel, prevMonth } from "@/modules/shared/lib/month";
+import { generateRecommendations } from "@/modules/recommendations/lib/recommendations";
 import { contentQuota } from "@/modules/channels/lib/content-quota";
 import { buildTrendPoint } from "@/modules/channels/lib/trend";
 import type { MonthBundle } from "@/modules/channels/types/month-bundle";

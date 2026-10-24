@@ -1,5 +1,5 @@
 import type { ContributorTask } from "@prisma/client";
-import type { AssetState } from "@/lib/team/contributors";
+import type { AssetState } from "@/modules/team/ingest/contributors";
 import type { ContributorTaskEntry } from "../types/contributors";
 
 const asset = (v: string | null) => v as AssetState;

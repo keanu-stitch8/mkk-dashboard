@@ -40,7 +40,7 @@ Rencana lengkap Team Dashboard: artifact claude.ai `PdQVdjZM2yew5krRf4Tvmn` (Tah
 
 - **Render:** `src/app/(dashboard)/**/page.tsx` (8–10 baris, hanya normalisasi `?m`/`?show`/`?page`) → `src/modules/<domain>/<fitur>/index.tsx` → `views/` (Suspense) → `sections/` → `queries/` (React `cache()`) → `services/` (`import "server-only"`) → `repositories/` (Prisma saja) → `mappers/` (buang `importId`/`month`) → `lib/` (murni, dites) → `components/`.
 - **Modul:** `website/ news/ social/ youtube/` (overview + logs), `channels/` (MonthBundle, tren, `contentQuota`), `overview/`, `report/`, `team/{shared,stories,briefs,pipeline,contributors,scorecard,recap}`, `import/{data,history}`, `connectors/{settings,history,shared}`, `source-logs/`, `shared/` (resolveMonth, input manual, kuota, helper, skeleton; tidak boleh impor modul fitur).
-- **Ingest tetap di `src/lib`:** `connectors/` (sync, cron, `lock.ts`), `parsers/`, `import/commit.ts`, `team/` (sync Drive, parser .docx, `rebuildMatches`). Laporan Sheets/PDF: `src/lib/reports` (baca lewat service/repository modul, tanpa Prisma).
+- **Ingest & pipeline di modul** (bukan lagi `src/lib`): `connectors/sources/` (sync, cron, `lock.ts`), `import/parsers/`, `import/ingest/commit.ts`, `team/ingest/` (sync Drive, parser .docx, `rebuildMatches`), laporan Sheets/PDF `report/pipeline/` (tanpa Prisma), rule engine `recommendations/lib/`, login `auth/`, helper `shared/lib/`. Di `src/lib` tinggal `db.ts` + `utils.ts`; `src/hooks/use-mobile.ts` tetap (alias shadcn).
 - `src/lib/data` sudah **tidak ada**. Tempat baru yang sering dicari:
   - ringkasan channel: `src/modules/<ch>/overview/services/<ch>-summary-service.ts` + `lib/<ch>-summary.ts`
   - MonthBundle / tren / kuota: `src/modules/channels/`
@@ -53,21 +53,21 @@ Rencana lengkap Team Dashboard: artifact claude.ai `PdQVdjZM2yew5krRf4Tvmn` (Tah
 ## Team Dashboard — cara kerjanya
 
 - **Alur tim:** kontributor lokal Kudus → panduan liputan harian (Drive `.docx` "YYMMDD_PANDUAN LIPUTAN …", "Artikel N") → tim Bogor menulis artikel (News Content Logs) → Mba Indah (Content & Creative Manager) menulis brief (`YYMMDD_Brief Carousel/Reel - Topik.docx`) → editor (Nana carousel, Veno reel) → post IG (Socmed Content Logs).
-- **Connector `drive`** (`src/lib/connectors/drive`) = akun Google yang sama dengan connector Sheets. `syncMonth` menjalankan `syncTeamDocs` (Story + Brief bulan itu) → `syncBriefTracker` → `syncContributors` → `rebuildMatches`. Sync Sheets juga menjalankan `rebuildMatches`.
+- **Connector `drive`** (`src/modules/connectors/sources/drive`) = akun Google yang sama dengan connector Sheets. `syncMonth` menjalankan `syncTeamDocs` (Story + Brief bulan itu) → `syncBriefTracker` → `syncContributors` → `rebuildMatches`. Sync Sheets juga menjalankan `rebuildMatches`.
 - **Sumber:**
   - Story ← panduan liputan (kode `YYMMDD-N`, duplikat diberi akhiran `b`). 9 panduan Jul–Sep format lama dilewati (warning di Sync History).
   - Brief ← nama file + outline `.docx` (`parseBriefName` longgar: `BRIEF CAROUSEL- …`, `Brief Reel-…`, `CREATIVE BRIEF …`, tanpa topik).
   - `BriefTask` ← "MKK Kudus Social Media - Task Progress" (`1-p5K4AGNVjcGUy8sMrn1rTs6IMrwzH0lQVhQun4NOjw`), disambung lewat `briefKey(nama file)`.
   - `ContributorTask` + `Contributor` ← "MKK Kudus Local Contributor - Task Progress" (`15LY6CsihTxJsHl7Zh2F1qUJ8bqY93TI2Wo8OOoYceOE`); 4 aset Available / Not Available / kosong, alias → nama dari tab Ref. Tab Okt–Des masih kosong.
   - Kolom opsional "Story" di News & Socmed Logs → `NewsArticle.story` / `SocialLog.story` → status `coded` (sambungan pasti).
-- **Pencocokan** (`src/lib/team/match.ts`, `src/lib/team/store.ts` → `TeamMatch`; status mesin `GENERATED_MATCH_STATUSES` dihapus & dibuat ulang tiap rebuild, `confirmed`/`rejected` tidak pernah ditimpa):
+- **Pencocokan** (`src/modules/team/ingest/match.ts`, `src/modules/team/ingest/store.ts` → `TeamMatch`; status mesin `GENERATED_MATCH_STATUSES` dihapus & dibuat ulang tiap rebuild, `confirmed`/`rejected` tidak pernah ditimpa):
   - Run: story→article, brief→social (+ `withTracker`), brief→article, brief→story, igstory→article (`multiTo`), coded story→article/social.
   - Dihitung (`COUNTED`, urut bukti): confirmed > coded > tracker > auto. `suggested` = "Needs confirmation", tidak pernah dihitung.
   - auto: ≥3 kata sama, ≥60%, ≥2 kata langka, tanpa kandidat setara (setara → semua jadi suggested).
   - tracker: tanggal Task Progress ±1 hari **dan** judul sepakat. Tanggal saja → saran. Tracker bertentangan → auto turun jadi saran. Link IG dipakai 2 brief → tanda ⚠, link tidak dipakai.
   - Kontributor ↔ Story: hanya judul di hari panduan yang sama (≥2 kata, ≥50%, unik). Urutan baris bukan bukti.
-- **Scorecard** (`src/modules/team/scorecard/lib/scorecard.ts`): repurpose rate ≥80%, artikel→turunan ≤7 hari, brief→tayang ≤3 hari, backlog ≤3, aset lengkap ≥70%, kuota 100% (target masih usulan). Mulai `SCORECARD_FROM` = Juli 2026 (bulan sebelumnya tampil keterangan). Snapshot `TeamScore` dibuat di `setMonthLock` (`src/lib/connectors/lock.ts`), dihapus saat unlock.
-- **Login** (`src/lib/auth.ts`, `src/proxy.ts`): cookie `mkk_session` ditandatangani HMAC (tanpa DB), 30 hari, ganti password = semua sesi lama gugur, 10 percobaan / 15 menit per IP. Tanpa `DASHBOARD_PASSWORD`: terbuka di dev, tertutup di produksi. `currentUser()` di `src/lib/session.ts`; nama dicatat di `TeamMatch.decidedBy`.
+- **Scorecard** (`src/modules/team/scorecard/lib/scorecard.ts`): repurpose rate ≥80%, artikel→turunan ≤7 hari, brief→tayang ≤3 hari, backlog ≤3, aset lengkap ≥70%, kuota 100% (target masih usulan). Mulai `SCORECARD_FROM` = Juli 2026 (bulan sebelumnya tampil keterangan). Snapshot `TeamScore` dibuat di `setMonthLock` (`src/modules/connectors/sources/lock.ts`), dihapus saat unlock.
+- **Login** (`src/modules/auth/auth.ts`, `src/proxy.ts`): cookie `mkk_session` ditandatangani HMAC (tanpa DB), 30 hari, ganti password = semua sesi lama gugur, 10 percobaan / 15 menit per IP. Tanpa `DASHBOARD_PASSWORD`: terbuka di dev, tertutup di produksi. `currentUser()` di `src/modules/auth/session.ts`; nama dicatat di `TeamMatch.decidedBy`.
 
 Angka terakhir (sync 23 Okt): 159 auto, 30 tracker, 329 saran. Oktober: 43 Story (6 artikel ketemu), 15 brief (8 posted, 5 in review); scorecard Okt repurpose 41,7% · backlog 12 · kuota 57,8%. Rekap 2026: 108 panduan, 199 artikel, 109 brief, 379 post IG. YouTube Oktober (sync 24 Okt): 3 video public, 233 views.
 
@@ -95,7 +95,7 @@ Angka terakhir (sync 23 Okt): 159 auto, 30 tracker, 329 saran. Oktober: 43 Story
 - `ChartCard`/`TrendChart` butuh field `label` di setiap baris data. `KpiCard kind="rate"` mengharapkan pecahan 0–1. Tipe titik tren harus `type` (bukan `interface`) supaya diterima ChartCard.
 - **Cara verifikasi refactor data** (dipakai untuk `36e16df`): (1) dump output service lama vs baru untuk semua bulan di `dev.db`, abaikan `id`/`importId`/`updatedAt`; (2) worktree commit lama di scratchpad (`git worktree add --detach`), `cp -cR node_modules` (Turbopack menolak node_modules yang di-symlink), `DATABASE_URL` absolut, build, jalankan port 3101 vs 3100 dengan `DASHBOARD_PASSWORD` sementara di env proses, bandingkan multiset kata tiap halaman (urutan bisa beda karena streaming). Di zsh, variabel berisi beberapa argumen curl tidak dipecah — tulis argumennya langsung.
 - Script uji di luar repo: `npx tsx --conditions=react-server --env-file=.env <script>.mts` dengan import path absolut (`/Users/riski/Repo/dashboard/src/...`). Sync: `npm run sync -- --month=YYYY-MM --connector=youtube`. File export sementara jangan ditulis ke root repo.
-- **YouTube re-upload:** connector hanya menyimpan video **public** (`splitByPrivacy` di `src/lib/connectors/youtube/map.ts`); yang dilewati tercatat di Sync History. Thumbnail yang 404 tampil sebagai placeholder di Publishing Log.
+- **YouTube re-upload:** connector hanya menyimpan video **public** (`splitByPrivacy` di `src/modules/connectors/sources/youtube/map.ts`); yang dilewati tercatat di Sync History. Thumbnail yang 404 tampil sebagai placeholder di Publishing Log.
 - **Uji login**: `next start -p 3100` dengan `DASHBOARD_PASSWORD` sementara di env proses (jangan tulis ke `.env`), uji via curl; uji browser lewat **`127.0.0.1:3100`** (cookie tidak dibedakan per port). Chrome kadang memakan Enter setelah mengetik password — klik tombol Sign in.
 
 ## Cara kerja yang dipakai (ikuti lagi)

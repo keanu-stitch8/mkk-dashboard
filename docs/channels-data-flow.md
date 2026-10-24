@@ -59,7 +59,7 @@ both months and metrics with the same definition; `mixedPlatforms` switches the 
 - Report (`modules/report`): one section (the toolbar holds the month select); Google Sheets job rows from
   `GeneratedReport` + template env (`services/report-jobs-service.ts`).
 
-## Monthly report pipeline (`src/lib/reports`)
+## Monthly report pipeline (`src/modules/report/pipeline`)
 
 Builders call the channel services for the KPI blocks (`getXSummary(month)` and the previous month — no longer
 the full bundle) and module repositories for detail rows (`website/shared/repositories/website-report-repository.ts`,
