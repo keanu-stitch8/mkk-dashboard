@@ -6,7 +6,7 @@
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
-import type { RowStyleSpec } from "../lib/reports/engine/template-tools";
+import type { RowStyleSpec } from "../src/lib/reports/engine/template-tools";
 
 type Req = Record<string, unknown>;
 
@@ -116,7 +116,7 @@ const ANCHORS: Record<string, string> = {
 };
 
 /** Tulis TEXT + format kolom baru sheet 03 ke template yang sudah ada (desain/edit user lain tidak disentuh). */
-async function patchText(c: Awaited<ReturnType<typeof import("../lib/reports/engine/sheets").reportClients>>, id: string) {
+async function patchText(c: Awaited<ReturnType<typeof import("../src/lib/reports/engine/sheets").reportClients>>, id: string) {
   const data = Object.entries(TEXT).flatMap(([sheet, cells]) => Object.entries(cells).map(([a1, v]) => ({ range: `'${sheet.replace(/'/g, "''")}'!${a1}`, values: [[v]] })));
   await c.sheets.spreadsheets.values.batchUpdate({ spreadsheetId: id, requestBody: { valueInputOption: "RAW", data } });
   const meta = await c.sheets.spreadsheets.get({ spreadsheetId: id, fields: "sheets(properties(sheetId,title))" });
@@ -143,15 +143,15 @@ async function patchText(c: Awaited<ReturnType<typeof import("../lib/reports/eng
 async function main() {
   const fit = process.argv.find((a) => a.startsWith("--fit-widths="))?.split("=")[1];
   if (fit) {
-    const { reportClients } = await import("../lib/reports/engine/sheets");
-    const { fitWidths } = await import("../lib/reports/engine/template-tools");
+    const { reportClients } = await import("../src/lib/reports/engine/sheets");
+    const { fitWidths } = await import("../src/lib/reports/engine/template-tools");
     await fitWidths(await reportClients(), fit);
     return;
   }
   const patch = process.argv.find((a) => a.startsWith("--patch="))?.split("=")[1];
   if (patch) {
-    const { reportClients } = await import("../lib/reports/engine/sheets");
-    const { applyRowStyles, assertAnchors, fitWidths } = await import("../lib/reports/engine/template-tools");
+    const { reportClients } = await import("../src/lib/reports/engine/sheets");
+    const { applyRowStyles, assertAnchors, fitWidths } = await import("../src/lib/reports/engine/template-tools");
     const c = await reportClients();
     await assertAnchors(c, patch, ANCHORS);
     await patchText(c, patch);
@@ -162,8 +162,8 @@ async function main() {
   }
   const from = process.argv.find((a) => a.startsWith("--from="))?.split("=")[1];
   if (!from) throw new Error("--from=<ID laporan contoh> (buat template baru) atau --patch=<ID template> (perbarui teks) wajib");
-  const { reportClients, copyFile, readGrids } = await import("../lib/reports/engine/sheets");
-  const { fitWidths } = await import("../lib/reports/engine/template-tools");
+  const { reportClients, copyFile, readGrids } = await import("../src/lib/reports/engine/sheets");
+  const { fitWidths } = await import("../src/lib/reports/engine/template-tools");
   const c = await reportClients();
   const file = await copyFile(c, from, "TEMPLATE – MKK Website Monthly Performance Report");
   const id = file.id;

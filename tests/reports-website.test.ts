@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { landingPath, topLandings, websiteFindings, type WebsiteNarrativeInput } from "../lib/reports/channels/website-narrative";
+import { landingPath, topLandings, websiteFindings, type WebsiteNarrativeInput } from "../src/lib/reports/channels/website-narrative";
 
 const sep: WebsiteNarrativeInput = {
   monthLabel: "September 2026",

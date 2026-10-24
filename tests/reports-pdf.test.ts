@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pdfExportUrl } from "../lib/reports/engine/pdf";
+import { pdfExportUrl } from "../src/lib/reports/engine/pdf";
 
 describe("pdfExportUrl", () => {
   it("A4 landscape, pas lebar, tanpa gridlines, header beku diulang", () => {

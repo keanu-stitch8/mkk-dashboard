@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupSessions, pageNumbers, paginate } from "../lib/data/history";
+import { groupSessions, pageNumbers, paginate } from "../src/lib/data/history";
 
 const t = (min: number) => new Date(Date.UTC(2026, 9, 23, 0, min));
 

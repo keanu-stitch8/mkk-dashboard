@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { formatLabel, postTitle, reviewItem, socCategorySlots, SOC_CATEGORY_SLOTS } from "../lib/reports/channels/social";
-import { socialFindings, type SocialNarrativeInput } from "../lib/reports/channels/social-narrative";
-import { kpiData, SOCIAL_KPIS, type SocialKpiSource } from "../lib/reports/kpi";
+import { formatLabel, postTitle, reviewItem, socCategorySlots, SOC_CATEGORY_SLOTS } from "../src/lib/reports/channels/social";
+import { socialFindings, type SocialNarrativeInput } from "../src/lib/reports/channels/social-narrative";
+import { kpiData, SOCIAL_KPIS, type SocialKpiSource } from "../src/lib/reports/kpi";
 
 // angka September 2026 (dashboard Social, Instagram)
 const sep: SocialNarrativeInput = {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { videoType, ytCategorySlots } from "../lib/reports/channels/youtube";
-import { youtubeFindings } from "../lib/reports/channels/youtube-narrative";
-import { isRecap, seriesFor, seriesProgress, YOUTUBE_SERIES } from "../lib/reports/youtube-series";
+import { videoType, ytCategorySlots } from "../src/lib/reports/channels/youtube";
+import { youtubeFindings } from "../src/lib/reports/channels/youtube-narrative";
+import { isRecap, seriesFor, seriesProgress, YOUTUBE_SERIES } from "../src/lib/reports/youtube-series";
 
 // publishing log Q3 2026 (judul disingkat): Juli 5 (2 recap), Agustus 2, September 4 (1 recap)
 const LOG = [

@@ -2,11 +2,11 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { parseFiles, type Dataset } from "../lib/parsers";
-import { commitDataset } from "../lib/import/commit";
-import { toMonth } from "../lib/parsers/values";
-import { DATASETS, QUOTA_DEFAULTS } from "../lib/sources";
-import { monthLabel } from "../lib/month";
+import { parseFiles, type Dataset } from "../src/lib/parsers";
+import { commitDataset } from "../src/lib/import/commit";
+import { toMonth } from "../src/lib/parsers/values";
+import { DATASETS, QUOTA_DEFAULTS } from "../src/lib/sources";
+import { monthLabel } from "../src/lib/month";
 
 const prisma = new PrismaClient();
 const root = process.argv[2] ?? "data-samples";

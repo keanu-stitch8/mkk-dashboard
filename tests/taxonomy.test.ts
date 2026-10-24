@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryLabel, isKnownCategory, newsFormat, platformLabels, socialFormatKey, socialFormatLabel, youtubeFormat } from "../lib/taxonomy";
+import { categoryLabel, isKnownCategory, newsFormat, platformLabels, socialFormatKey, socialFormatLabel, youtubeFormat } from "../src/lib/taxonomy";
 
 describe("kategori", () => {
   it("semua kategori News (Indonesia) di data → label EN taksonomi", () => {

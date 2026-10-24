@@ -1,10 +1,10 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { applyMonth, parseFiles, suggestedMonth } from "../lib/parsers";
-import { matchHeaderRow } from "../lib/parsers/headers";
-import { normalizePath, parseDate, parseDuration, parseNumber, parseRate } from "../lib/parsers/values";
-import type { Dataset, DatasetKey } from "../lib/parsers/types";
+import { applyMonth, parseFiles, suggestedMonth } from "../src/lib/parsers";
+import { matchHeaderRow } from "../src/lib/parsers/headers";
+import { normalizePath, parseDate, parseDuration, parseNumber, parseRate } from "../src/lib/parsers/values";
+import type { Dataset, DatasetKey } from "../src/lib/parsers/types";
 
 const SAMPLES = join(__dirname, "..", "data-samples");
 const file = (rel: string) => ({ name: rel, data: new Uint8Array(readFileSync(join(SAMPLES, rel))) });
@@ -289,7 +289,7 @@ describe("format sintetis (UI Indonesia / Google Sheets)", () => {
 
 describe("parseCount", () => {
   it("pemisah ribuan en & id pada kolom hitungan", async () => {
-    const { parseCount } = await import("../lib/parsers/values");
+    const { parseCount } = await import("../src/lib/parsers/values");
     expect(parseCount("1.000")).toBe(1000);
     expect(parseCount("12,345")).toBe(12345);
     expect(parseCount("1.234.567")).toBe(1234567);
@@ -385,7 +385,7 @@ describe("YouTube: laporan = video yang dipublish di bulan laporan", () => {
     const aug = applyMonth(ds, "2026-08");
     expect(aug.rows).toHaveLength(0);
     expect(aug.metrics).toHaveLength(0);
-    const { commitDataset } = await import("../lib/import/commit");
+    const { commitDataset } = await import("../src/lib/import/commit");
     // prisma tidak boleh tersentuh: objek kosong akan error jika dipakai
     const res = await commitDataset({} as never, ds, "2026-08");
     expect(res).toMatchObject({ skipped: true, rows: 0, replaced: false });
@@ -458,7 +458,7 @@ describe("social tracker (Task Progress)", () => {
   };
 
   it("snapshot akhir bulan: diserahkan tapi belum tayang per akhir bulan, berbasis tanggal", async () => {
-    const { readTrackerTab, socialReviewDataset } = await import("../lib/parsers/logs");
+    const { readTrackerTab, socialReviewDataset } = await import("../src/lib/parsers/logs");
     const tab = readTrackerTab(table)!;
     expect(tab.tabMonth).toBe("2026-09");
     const sep = socialReviewDataset(tab.rows, "2026-09", "x");
@@ -488,7 +488,7 @@ describe("YouTube Calendar Timeline", () => {
   };
 
   it("in review = Review/Approved di akhir bulan, diserahkan bulan itu; QC tidak dihitung", async () => {
-    const { readYtCalendarGantt, ytReviewDataset } = await import("../lib/parsers/youtube-calendar");
+    const { readYtCalendarGantt, ytReviewDataset } = await import("../src/lib/parsers/youtube-calendar");
     const videos = readYtCalendarGantt(gantt)!;
     expect(videos.map((v) => v.title)).toEqual(["A", "B", "C"]);
     expect(videos[0].timeline).toEqual([
@@ -503,7 +503,7 @@ describe("YouTube Calendar Timeline", () => {
   });
 
   it("tab Summary → log; judul YouTube didahulukan, tanggal = Publish Date (Planned jika belum tayang)", async () => {
-    const { readYtCalendarSummary, ytCalendarLogDataset } = await import("../lib/parsers/youtube-calendar");
+    const { readYtCalendarSummary, ytCalendarLogDataset } = await import("../src/lib/parsers/youtube-calendar");
     const rows = readYtCalendarSummary({
       file: "x.xlsx",
       sheet: "Summary",

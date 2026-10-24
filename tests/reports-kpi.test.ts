@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { kpiData, type KpiDef } from "../lib/reports/kpi";
+import { kpiData, type KpiDef } from "../src/lib/reports/kpi";
 
 type S = { views: number | null; er: number | null; pos: number | null; time: number | null };
 const defs: KpiDef<S>[] = [

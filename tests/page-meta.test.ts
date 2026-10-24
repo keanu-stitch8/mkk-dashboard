@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractOgImage } from "../lib/data/page-meta";
+import { extractOgImage } from "../src/lib/data/page-meta";
 
 describe("extractOgImage", () => {
   const base = "https://mainkekudus.com/news/x";

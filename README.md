@@ -139,7 +139,7 @@ Data yang ditarik per bulan: total active users & new users, sessions/engaged se
    - **Service account**: pemilik properti menambahkan email service account di Search Console → Settings → **Users and permissions → Add user** (Restricted).
 4. **Test koneksi** di kartu Search Console.
 
-Catatan: data Search Console terlambat ±2–3 hari. Sync bulan berjalan otomatis berhenti di 3 hari lalu (ada peringatan); sync ulang bulan sebelumnya setelah tanggal potong (tanggal 5) supaya datanya final. Query & halaman ditarik **top 1000** (urut klik, setara export XLSX Search Console; ubah `GSC_TOP_ROWS` di `lib/connectors/gsc/index.ts` jika perlu, maks. 25.000 per request). Total klik, impressions, CTR, dan posisi rata-rata diambil dari total resmi properti.
+Catatan: data Search Console terlambat ±2–3 hari. Sync bulan berjalan otomatis berhenti di 3 hari lalu (ada peringatan); sync ulang bulan sebelumnya setelah tanggal potong (tanggal 5) supaya datanya final. Query & halaman ditarik **top 1000** (urut klik, setara export XLSX Search Console; ubah `GSC_TOP_ROWS` di `src/lib/connectors/gsc/index.ts` jika perlu, maks. 25.000 per request). Total klik, impressions, CTR, dan posisi rata-rata diambil dari total resmi properti.
 
 ### 5. YouTube
 
@@ -160,7 +160,7 @@ Yang ditarik per bulan, sesuai definisi laporan YouTube (video yang dipublish di
 
 ### 6. Meta (Instagram & Facebook)
 
-Connector Meta memakai **Graph API `v26.0`** (konstanta `GRAPH_VERSION` di `lib/connectors/meta/graph.ts`) dengan **token system user**, jadi tidak perlu login ulang dan token tidak kedaluwarsa.
+Connector Meta memakai **Graph API `v26.0`** (konstanta `GRAPH_VERSION` di `src/lib/connectors/meta/graph.ts`) dengan **token system user**, jadi tidak perlu login ulang dan token tidak kedaluwarsa.
 
 1. **Buat app**: https://developers.facebook.com/apps → **Create app** → use case *Other* → tipe **Business** → pilih Business portfolio yang memiliki Page Main ke Kudus. App boleh tetap mode *Development* (hanya dipakai aset bisnis sendiri).
 2. **System user**: https://business.facebook.com/settings → **Users → System users → Add** → nama mis. `mkk-dashboard`, role **Admin** (atau Employee).
@@ -180,7 +180,7 @@ Connector Meta memakai **Graph API `v26.0`** (konstanta `GRAPH_VERSION` di `lib/
    ```
 7. **Test koneksi** di kartu Meta: menampilkan pemilik token, Page, akun IG (followers, jumlah post), sekaligus mencoba insight post terakhir dan mengecek izin yang kurang.
 
-Platform yang dihitung diatur di `ACTIVE_SOCIAL_PLATFORMS` (`lib/sources.ts`). Saat ini hanya `instagram` — post Facebook tidak ditarik dan tidak dihitung; tambahkan `"facebook"` untuk mengaktifkannya lagi.
+Platform yang dihitung diatur di `ACTIVE_SOCIAL_PLATFORMS` (`src/lib/sources.ts`). Saat ini hanya `instagram` — post Facebook tidak ditarik dan tidak dihitung; tambahkan `"facebook"` untuk mengaktifkannya lagi.
 
 **Definisi angka di halaman Social (Instagram via API)** — KPI & tren memakai *insight akun selama bulan itu*, bukan jumlah metrik lifetime per post:
 
@@ -199,7 +199,7 @@ Bulan lama hasil import CSV tetap memakai definisi lama (jumlah per post); MoM a
 - **Views bulan ini** = views s/d snapshot pertama setelah bulan selesai (`IgMediaSnapshot`, maks. 7 hari setelah tanggal 1). Snapshot diambil tiap sync Meta dan **sekali sehari** lewat cron (`SYNC_CRON=1`); snapshot pertama 19 Okt 2026, jadi kolom ini mulai ada untuk Oktober (setelah snapshot 1 Nov).
 - **Per jenis konten · selama bulan ini** (tabel `IgAccountByType`): insight akun dengan breakdown `media_product_type` — views & reach Reels / Carousel / Foto / Story selama bulan itu (termasuk post lama yang masih ditonton). Angka per periode, tidak berubah saat sync ulang.
 
-**Kunci bulan (Pengaturan → Connectors → Kunci bulan):** bulan terkunci tidak ditarik ulang oleh GA4, GSC, YouTube & Meta (Publishing Log tetap bisa di-sync), supaya angka laporan tidak berubah. **Tanggal potong (mulai Oktober 2026): tanggal 5 bulan berikutnya jam 07:00 WIB** (`CUTOFF_DAY` di `lib/month.ts`) — cron sync, mengunci bulan lalu, lalu membuat laporan. Metrik lifetime per post Instagram diambil dari snapshot tanggal 5 (`IgMediaSnapshot`) walau sync terlambat (server mati saat jadwal), supaya tiap bulan setara; snapshot tidak ada → angka saat sync + peringatan. Menarik ulang bulan terkunci: buka kunci di UI, atau `npm run sync -- --month=YYYY-MM --force`. Jul–Sep 2026 dikunci 19 Okt 2026.
+**Kunci bulan (Pengaturan → Connectors → Kunci bulan):** bulan terkunci tidak ditarik ulang oleh GA4, GSC, YouTube & Meta (Publishing Log tetap bisa di-sync), supaya angka laporan tidak berubah. **Tanggal potong (mulai Oktober 2026): tanggal 5 bulan berikutnya jam 07:00 WIB** (`CUTOFF_DAY` di `src/lib/month.ts`) — cron sync, mengunci bulan lalu, lalu membuat laporan. Metrik lifetime per post Instagram diambil dari snapshot tanggal 5 (`IgMediaSnapshot`) walau sync terlambat (server mati saat jadwal), supaya tiap bulan setara; snapshot tidak ada → angka saat sync + peringatan. Menarik ulang bulan terkunci: buka kunci di UI, atau `npm run sync -- --month=YYYY-MM --force`. Jul–Sep 2026 dikunci 19 Okt 2026.
 
 **Story Instagram (hanya info, bukan KPI):** API Meta hanya memberi Story yang masih aktif (≤24 jam), jadi Story disimpan ke tabel `IgStory` setiap sync Meta dan **tiap 6 jam** saat `SYNC_CRON=1` (server harus menyala — Story yang kedaluwarsa saat server mati tidak bisa diambil lagi). Untuk bulan lalu / celah, import CSV Story dari Business Suite (Insight → Konten → filter Story → Ekspor) lewat halaman Import; terdeteksi otomatis sebagai *Meta · Instagram Stories*, upsert per ID (aman diulang, tidak menimpa post IG). Jam export Meta = Pacific Time → export 1 hari lebih lebar agar Story tepi bulan (WIB) ikut. Widget "Cek Publishing Log vs Instagram" menampilkan Story di log vs Story yang tayang di IG; angka IG termasuk repost & tiap frame, jadi kuota/KPI Story tetap dari Publishing Log. File CSV Story Jul–Sep ada di `data-samples/2026-0X/IG Stories *.csv`.
 
@@ -362,45 +362,48 @@ Urutan file per bulan yang disarankan: GA4 (4 CSV) → GSC (XLSX) → YouTube (Z
 
 ## Rekomendasi
 
-Engine ada di [`lib/recommendations.ts`](lib/recommendations.ts). Setiap rule berisi `id`, `channel`, `mom` (butuh data bulan lalu?), dan fungsi `run` yang mengembalikan prioritas (tinggi/sedang/rendah), judul, dan teks Bahasa Indonesia berisi angkanya. Rule `mom: true` otomatis dilewati jika data bulan lalu belum ada.
+Engine ada di [`src/lib/recommendations.ts`](src/lib/recommendations.ts). Setiap rule berisi `id`, `channel`, `mom` (butuh data bulan lalu?), dan fungsi `run` yang mengembalikan prioritas (tinggi/sedang/rendah), judul, dan teks Bahasa Indonesia berisi angkanya. Rule `mom: true` otomatis dilewati jika data bulan lalu belum ada.
 
 Rule yang tersedia: impressions GSC naik tapi CTR turun · query posisi 4–10 · halaman CTR rendah · engagement rate website turun >10% · perubahan sesi signifikan · ketergantungan satu sumber traffic · kuota artikel < 90% · kategori dengan views per artikel tertinggi · artikel tidak cocok GA4 / 0 views · hari tanpa artikel · views per artikel turun · CTR thumbnail YouTube < 4% · retensi video rendah · kuota video · views YouTube turun · kuota IG Reels/Carousel < 90% · engagement rate sosmed turun >10% per platform · format dengan reach/post jauh lebih tinggi (mis. Reels vs Feeds) · kategori sosmed terbaik · hari publish kosong berturut-turut.
 
-Menambah rule: tambahkan objek baru ke array `RULES`. Data yang bisa dipakai ada di `ctx.cur` / `ctx.prev` (lihat tipe `MonthBundle` di `lib/data/summary.ts`).
+Menambah rule: tambahkan objek baru ke array `RULES`. Data yang bisa dipakai ada di `ctx.cur` / `ctx.prev` (lihat tipe `MonthBundle` di `src/lib/data/summary.ts`). Halaman satu channel memakai `channelRecommendations(channel, …)` dengan data channel itu saja — rule hanya boleh membaca channel-nya sendiri.
 
 ---
 
 ## Struktur kode
 
 ```
+docs/architecture/data-flow.md   kontrak alur data (wajib dibaca sebelum mengubah data flow) + audit migrasi
 prisma/schema.prisma        schema DB (portable SQLite ↔ PostgreSQL)
 prisma/seed.ts              import ./data-samples
-lib/parsers/                parser file → dataset
+src/app/(dashboard)/        route halaman (tipis: teruskan ?m= ke modul) · src/app/api/ API route
+src/modules/<domain>/<fitur>/   index → views → sections → queries → services → repositories (Prisma)
+                                + mappers/ lib/ types/ components/ (lihat docs/architecture/data-flow.md)
+src/modules/shared/         resolusi bulan, input manual, tipe kuota bersama
+src/lib/parsers/            parser file → dataset
   tabular.ts                baca CSV (blok + komentar #), XLSX, ZIP
   headers.ts                pencocokan header fleksibel + alias
   values.ts                 parse angka/persen/durasi/tanggal (en & id)
   ga4.ts gsc.ts youtube.ts meta.ts logs.ts
   index.ts                  deteksi otomatis, merge, filter bulan
-lib/import/commit.ts        simpan dataset (replace per bulan+sumber)
-lib/data/summary.ts         query & ringkasan per channel, tren, MoM
-lib/recommendations.ts      engine rekomendasi
-lib/connectors/             connector API (GA4, …) → Dataset yang sama dengan parser CSV
+src/lib/import/commit.ts    simpan dataset (replace per bulan+sumber)
+src/lib/data/summary.ts     ringkasan channel yang belum dimigrasi ke modules/, tren, MoM
+src/lib/recommendations.ts  engine rekomendasi
+src/lib/connectors/         connector API (GA4, …) → Dataset yang sama dengan parser CSV
   index.ts                  registry + sync (SyncLog)
   ga4/map.ts                mapping response runReport → dataset (dites dengan fixture JSON)
   gsc/ youtube/             connector Search Console & YouTube (index.ts = fetch API, map.ts = mapping murni)
   meta/                     Graph API: graph.ts (client, retry, paginasi), errors.ts, map.ts, index.ts
   sheets/                   Publishing Log dari Google Drive: map.ts (cocokkan nama file + bulan), index.ts (export XLSX → parser)
-lib/crypto.ts               enkripsi AES-256-GCM token OAuth
-scripts/sync.ts             npm run sync
-lib/sources.ts              katalog sumber, kuota default, field input manual
-app/                        halaman & API route
-components/ui/              komponen shadcn/ui (hasil `npx shadcn add …`, jangan diedit kecuali perlu)
-components/blocks.tsx       KPI card, delta MoM, tabel, empty state (di atas shadcn)
-components/charts.tsx       grafik tren & breakdown (shadcn Chart + Recharts)
-components/AppSidebar.tsx   navigasi (shadcn Sidebar)
-components/import/          form import, input manual, kuota
-tests/parsers.test.ts       tes parser
-tests/connectors.test.ts    tes connector (fixture JSON di tests/fixtures/, tanpa hit API)
+src/lib/crypto.ts           enkripsi AES-256-GCM token OAuth
+src/lib/sources.ts          katalog sumber, kuota default, field input manual
+scripts/sync.ts             npm run sync (tsx --conditions=react-server, karena service memakai server-only)
+src/components/ui/          komponen shadcn/ui (hasil `npx shadcn add …`, jangan diedit kecuali perlu)
+src/components/blocks.tsx   KPI card, delta MoM, tabel, empty state (di atas shadcn)
+src/components/charts.tsx   grafik tren & breakdown (shadcn Chart + Recharts)
+src/components/AppSidebar.tsx   navigasi (shadcn Sidebar)
+src/components/import/      form import, input manual, kuota
+tests/                      tes lama (parser, connector, laporan, team); tes baru di samping file: src/**/*.test.ts
 ```
 
 ---
