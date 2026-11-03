@@ -33,13 +33,25 @@ export interface ContributorItem extends ContributorTaskEntry {
   complete: boolean;
   /** sudah ada aset yang dilaporkan (Available / Not Available) */
   reported: boolean;
+  /** bahan carousel: foto landscape atau portrait tersedia */
+  carouselReady: boolean;
   /** bahan reel: video portrait tersedia */
   reelReady: boolean;
+  /** artikel sudah disubmit kontributor */
+  articleDone: boolean;
+  /** 1 konten = artikel + foto + video portrait */
+  content: boolean;
+  /** artikel dari rencana ini sudah punya turunan IG (hanya sambungan yang dihitung) */
+  igCarousel: boolean;
+  igReel: boolean;
   lastAsset: string | null;
   storyTitle: string | null;
   /** hari dari rencana liputan sampai aset terakhir masuk */
   assetLag: number | null;
 }
+
+/** Turunan IG per kode Story. */
+export type StoryIg = Map<string, { carousel: boolean; reel: boolean }>;
 
 export interface ContributorPerson {
   alias: string;

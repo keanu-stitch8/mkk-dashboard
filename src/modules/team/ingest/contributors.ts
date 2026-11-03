@@ -131,6 +131,8 @@ export function assetSummary(a: Record<AssetKey, AssetCell>) {
   return {
     complete,
     reported,
+    /** bahan carousel: foto landscape atau portrait tersedia */
+    carouselReady: photo,
     /** bahan reel: video portrait tersedia */
     reelReady: a.video.state === "available",
     lastAsset: dates.sort().at(-1) ?? null,

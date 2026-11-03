@@ -41,7 +41,7 @@ function Asset({ c, names }: { c: AssetCell; names: Record<string, string> }) {
 }
 
 export function ContributorsContent({ data, showParam }: { data: ContributorsPage; showParam: string | undefined }) {
-  const { month, months, items, people, nameOf, complete, reported, reel, lag } = data;
+  const { month, months, items, people, nameOf, target, content, articles, reported, carousel, reel, toIg, igCarousel, igReel } = data;
   const show: Filter = showParam && showParam in FILTERS ? (showParam as Filter) : "all";
   const rows = items.filter((i) => match(show, i));
 
@@ -63,15 +63,25 @@ export function ContributorsContent({ data, showParam }: { data: ContributorsPag
       ) : (
         <>
           <KpiGrid cols={4}>
-            <KpiCard label="Planned stories" value={String(items.length)} note={`${reported} with assets reported · ${items.filter((i) => i.storyCode).length} linked to a coverage guide`} />
             <KpiCard
-              label="Complete assets"
-              value={`${Math.round((complete / items.length) * 100)}%`}
-              note={`${complete} of ${items.length} stories`}
-              hint="Complete = a photo (landscape or portrait) + portrait video + interview video, all marked Available."
+              label="Content delivered"
+              value={`${content} / ${target}`}
+              note={`${Math.round((content / target) * 100)}% of the monthly target · ${items.length} stories planned`}
+              hint="1 content = article submitted + a photo (landscape or portrait) + portrait video, all from the same planned story."
             />
-            <KpiCard label="Reel-ready" value={String(reel)} note="Portrait video available" />
-            <KpiCard label="Planned → last asset" value={lag == null ? "—" : `${lag} day${lag === 1 ? "" : "s"}`} note="Median days until the last asset arrived" />
+            <KpiCard
+              label="Articles → IG"
+              value={String(toIg)}
+              note={`${igCarousel} carousel · ${igReel} reel · ${articles} articles submitted`}
+              hint="Planned stories whose published article already has an Instagram carousel or reel. Only sure links count (Story code, Task Progress, auto, or confirmed), same as Content Pipeline."
+            />
+            <KpiCard label="Carousel-ready" value={String(carousel)} note={`Photo available · ${reported} stories with assets reported`} hint="Landscape or portrait photo marked Available." />
+            <KpiCard
+              label="Reel-ready"
+              value={String(reel)}
+              note={`Portrait video available · ${items.filter((i) => i.reelReady && i.assets.interview.state === "available").length} with interview`}
+              hint="Portrait video marked Available."
+            />
           </KpiGrid>
 
           <Section

@@ -1,19 +1,30 @@
 import { ASSETS, assetSummary, type AssetCell, type AssetKey } from "@/modules/team/ingest/contributors";
 import { dayDiff, median } from "../../shared/lib/team-links";
-import type { ContributorPerson, ContributorsData, ContributorTaskEntry } from "../types/contributors";
+import type { ContributorPerson, ContributorsData, ContributorTaskEntry, StoryIg } from "../types/contributors";
 
 /** Kelengkapan aset liputan per rencana + rekap per kontributor (alias → nama dari tab Ref). */
-export function buildContributors(rows: ContributorTaskEntry[], names: { alias: string; name: string }[], stories: { code: string; title: string }[]): ContributorsData {
+export function buildContributors(
+  rows: ContributorTaskEntry[],
+  names: { alias: string; name: string }[],
+  stories: { code: string; title: string }[],
+  ig: StoryIg = new Map(),
+): ContributorsData {
   const nameOf = new Map(names.map((n) => [n.alias.toUpperCase(), n.name]));
   const storyTitle = new Map(stories.map((s) => [s.code, s.title]));
 
   const items = rows.map((r) => {
     const assets = Object.fromEntries(ASSETS.map((a) => [a.key, { state: r[a.key], by: r[`${a.key}By`], at: r[`${a.key}At`] }])) as Record<AssetKey, AssetCell>;
     const sum = assetSummary(assets);
+    const articleDone = r.status === "submitted" || !!r.articleAt;
+    const derivs = r.storyCode ? ig.get(r.storyCode) : undefined;
     return {
       ...r,
       assets,
       ...sum,
+      articleDone,
+      content: articleDone && sum.carouselReady && sum.reelReady,
+      igCarousel: !!derivs?.carousel,
+      igReel: !!derivs?.reel,
       storyTitle: r.storyCode ? (storyTitle.get(r.storyCode) ?? null) : null,
       assetLag: r.planned && sum.lastAsset ? dayDiff(r.planned, sum.lastAsset) : null,
     };

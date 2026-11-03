@@ -1,16 +1,24 @@
-import { median } from "../../shared/lib/team-links";
 import type { ContributorsData } from "../types/contributors";
 import type { ContributorsPage } from "../types/contributors-page";
 
+/** Kontributor lokal wajib mengirim 60 konten per bulan. */
+export const CONTENT_TARGET = 60;
+
 export function buildContributorsPage(month: string, months: string[], data: ContributorsData): ContributorsPage {
   const { items } = data;
+  const count = (f: (i: (typeof items)[number]) => boolean) => items.filter(f).length;
   return {
     month,
     months,
     ...data,
-    complete: items.filter((i) => i.complete).length,
-    reported: items.filter((i) => i.reported).length,
-    reel: items.filter((i) => i.reelReady).length,
-    lag: median(items.map((i) => i.assetLag).filter((x): x is number => x != null && x >= 0)),
+    target: CONTENT_TARGET,
+    content: count((i) => i.content),
+    articles: count((i) => i.articleDone),
+    reported: count((i) => i.reported),
+    carousel: count((i) => i.carouselReady),
+    reel: count((i) => i.reelReady),
+    toIg: count((i) => i.igCarousel || i.igReel),
+    igCarousel: count((i) => i.igCarousel),
+    igReel: count((i) => i.igReel),
   };
 }
