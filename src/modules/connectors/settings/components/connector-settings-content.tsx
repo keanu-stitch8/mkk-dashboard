@@ -124,7 +124,7 @@ export function ConnectorSettingsContent({ settings, connected, oauthError }: { 
 
       <Section
         title="Month locks"
-        subtitle="Locked months aren't re-synced by GA4, GSC, YouTube & Meta, so report numbers don't change (lifetime per-post metrics keep growing). Publishing Logs can still be synced. Cut-off: the cron job syncs and locks last month on the 5th (07:00 WIB); Instagram per-post metrics are taken as of the 5th even if the sync runs later."
+        subtitle="Locked months aren't re-synced by GA4, GSC, YouTube & Meta, so report numbers don't change (lifetime per-post metrics keep growing). Publishing Logs can still be synced. Cut-off: the cron job syncs and locks last month on the 4th (15:00 WIB); Instagram per-post metrics are taken as of the 4th even if the sync runs later."
       >
         <Table>
           <TableBody>

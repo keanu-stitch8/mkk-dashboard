@@ -36,8 +36,8 @@ describe("tz", () => {
     expect(monthRange("2026-10", now, PACIFIC).end).toBe("2026-10-19");
   });
 
-  it("cronSlot: tanggal potong 5 jam 07:00 WIB", () => {
-    expect(cronSlot(new Date("2026-10-20T13:00:00Z"))).toEqual({ slot: new Date("2026-10-05T00:00:00Z"), month: "2026-09" });
-    expect(cronSlot(new Date("2026-10-04T23:59:00Z")).month).toBe("2026-08");
+  it("cronSlot: tanggal potong 4 jam 15:00 WIB", () => {
+    expect(cronSlot(new Date("2026-10-20T13:00:00Z"))).toEqual({ slot: new Date("2026-10-04T08:00:00Z"), month: "2026-09" });
+    expect(cronSlot(new Date("2026-10-04T07:59:00Z")).month).toBe("2026-08");
   });
 });

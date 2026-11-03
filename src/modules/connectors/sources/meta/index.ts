@@ -263,7 +263,7 @@ async function fetchInstagram(tok: string, igUserId: string, month: string, w: R
 }
 
 /**
- * Sync setelah tanggal potong (tanggal 5 bulan berikutnya) memakai snapshot per post tanggal itu, supaya metrik
+ * Sync setelah tanggal potong (tanggal 4 bulan berikutnya) memakai snapshot per post tanggal itu, supaya metrik
  * lifetime tiap bulan setara walau sync terlambat (mis. server mati saat jadwal cron). Snapshot tidak ada → angka
  * hari ini + peringatan.
  */

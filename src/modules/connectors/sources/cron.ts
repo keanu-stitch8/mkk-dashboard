@@ -1,4 +1,4 @@
-// Sync otomatis saat server Next jalan (SYNC_CRON=1): bulan lalu, tiap tanggal potong (CUTOFF_DAY = 5) jam 07:00 WIB.
+// Sync otomatis saat server Next jalan (SYNC_CRON=1): bulan lalu, tiap tanggal potong (CUTOFF_DAY = 4) jam 15:00 WIB.
 // Tanpa dependensi: timer mengecek tiap 10 menit apakah slot terakhir sudah dijalankan (SyncLog trigger "cron").
 // Jika server mati saat jadwal, sync dikejar begitu server menyala lagi; tiap slot hanya dijalankan sekali.
 import { fmtDate } from "@/modules/shared/lib/format";
@@ -6,7 +6,7 @@ import { CUTOFF_DAY, cutoffDate, prevMonth } from "@/modules/shared/lib/month";
 import { WIB, dateIn, zonedInstant } from "@/modules/shared/lib/tz";
 
 const SYNC_DAY = CUTOFF_DAY;
-const SYNC_HOUR_WIB = 7;
+const SYNC_HOUR_WIB = 15;
 const CHECK_EVERY_MS = 10 * 60_000;
 
 /** Slot jadwal terakhir yang ≤ now, dan bulan yang di-sync di slot itu (bulan sebelum slot). */
@@ -101,5 +101,5 @@ export function startSyncCron() {
   // cek pertama setelah server siap
   setTimeout(() => void tick(), 30_000).unref();
   const { slot, month } = cronSlot();
-  console.log(`[sync-cron] active — runs on day ${SYNC_DAY} at 0${SYNC_HOUR_WIB}:00 WIB (last slot ${slot.toISOString()} → ${month}); daily IG post snapshot; IG Stories every 6 hours.`);
+  console.log(`[sync-cron] active — runs on day ${SYNC_DAY} at ${String(SYNC_HOUR_WIB).padStart(2, "0")}:00 WIB (last slot ${slot.toISOString()} → ${month}); daily IG post snapshot; IG Stories every 6 hours.`);
 }

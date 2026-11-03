@@ -546,21 +546,21 @@ describe("Meta connector: Graph API client & error", () => {
 });
 
 describe("Sync cron", () => {
-  it("slot terakhir tanggal potong 5 jam 07:00 WIB → sync bulan sebelumnya", async () => {
+  it("slot terakhir tanggal potong 4 jam 15:00 WIB → sync bulan sebelumnya", async () => {
     const { cronSlot } = await import("../src/modules/connectors/sources/cron");
     const at = (iso: string) => cronSlot(new Date(iso));
-    expect(at("2026-10-16T03:00:00Z")).toEqual({ slot: new Date("2026-10-05T00:00:00Z"), month: "2026-09" });
-    // 5 Okt 06:59 WIB → slot masih 5 Sep
-    expect(at("2026-10-04T23:59:00Z")).toEqual({ slot: new Date("2026-09-05T00:00:00Z"), month: "2026-08" });
-    expect(at("2026-10-05T00:00:00Z").month).toBe("2026-09");
-    // awal Januari → slot 5 Des, sync November
-    expect(at("2026-01-04T10:00:00Z")).toEqual({ slot: new Date("2025-12-05T00:00:00Z"), month: "2025-11" });
+    expect(at("2026-10-16T03:00:00Z")).toEqual({ slot: new Date("2026-10-04T08:00:00Z"), month: "2026-09" });
+    // 4 Okt 14:59 WIB → slot masih 4 Sep
+    expect(at("2026-10-04T07:59:00Z")).toEqual({ slot: new Date("2026-09-04T08:00:00Z"), month: "2026-08" });
+    expect(at("2026-10-04T08:00:00Z").month).toBe("2026-09");
+    // awal Januari → slot 4 Des, sync November
+    expect(at("2026-01-03T10:00:00Z")).toEqual({ slot: new Date("2025-12-04T08:00:00Z"), month: "2025-11" });
   });
 
-  it("tanggal potong bulan = tanggal 5 bulan berikutnya", async () => {
+  it("tanggal potong bulan = tanggal 4 bulan berikutnya", async () => {
     const { cutoffDate } = await import("../src/modules/shared/lib/month");
-    expect(cutoffDate("2026-10")).toBe("2026-11-05");
-    expect(cutoffDate("2026-12")).toBe("2027-01-05");
+    expect(cutoffDate("2026-10")).toBe("2026-11-04");
+    expect(cutoffDate("2026-12")).toBe("2027-01-04");
   });
 });
 

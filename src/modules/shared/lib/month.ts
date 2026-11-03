@@ -19,10 +19,10 @@ export function monthLabel(month: string, short = false): string {
 export const LAUNCH_MONTH = "2026-06";
 
 /**
- * Tanggal potong data bulanan (mulai Oktober 2026): tanggal 5 bulan berikutnya — cron sync + kunci + laporan, dan
+ * Tanggal potong data bulanan (mulai Oktober 2026): tanggal 4 bulan berikutnya — cron sync + kunci + laporan, dan
  * metrik lifetime per post IG diambil per tanggal ini walau sync terlambat (modules/connectors/sources/meta applyCutoffSnapshot).
  */
-export const CUTOFF_DAY = 5;
+export const CUTOFF_DAY = 4;
 export const cutoffDate = (month: string) => `${addMonths(month, 1)}-${String(CUTOFF_DAY).padStart(2, "0")}`;
 
 export function addMonths(month: string, delta: number): string {
