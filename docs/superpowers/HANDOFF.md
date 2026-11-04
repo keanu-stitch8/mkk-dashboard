@@ -1,4 +1,4 @@
-# Handoff — MKK Dashboard (per 2026-11-04: menu Contributor dirombak, belum di-commit; berikutnya Rencana B metrik IG + deck laporan 4 bulanan)
+# Handoff — MKK Dashboard (per 2026-11-04: menu Contributor dirombak & di-push `e63d68d`; berikutnya Rencana B metrik IG + deck laporan 4 bulanan)
 
 Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_modules/next/dist/docs/` sebelum menulis kode Next), **`docs/architecture/data-flow.md`** (kontrak alur data, wajib sebelum menyentuh kode data), `docs/team-data-flow.md`, dan memory (`contributor-pay-per-content`, `ig-api-metric-availability`, `mkk-connector-decisions`, `ambiguous-not-true`, `mkk-team-dashboard`, `all-data-via-api`, `plan-before-report-changes`).
 
@@ -6,15 +6,15 @@ Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_m
 
 | Bagian | Status |
 | --- | --- |
-| Semua commit s/d `0cf5d7e` (login Tahap 0, refactor data flow, tanggal potong tgl 4 15:00 WIB, kontributor KPI 60) | ✅ sudah di-push (`main` = `origin/main`) |
-| **Menu Contributor dirombak** (lihat bagian di bawah) — 13 file + 2 migrasi `20261104052521_contributor_extra_role`, `20261104055600_contributor_news_names` | ✅ diverifikasi (tsc, eslint, 202 tes, sync Drive data asli, halaman dicek) — **BELUM di-commit** |
+| Semua commit s/d `0cf5d7e` (login Tahap 0, refactor data flow, tanggal potong tgl 4 15:00 WIB, kontributor KPI 60) | ✅ di-push |
+| **Menu Contributor dirombak** (lihat bagian di bawah) — 2 migrasi `20261104052521_contributor_extra_role`, `20261104055600_contributor_news_names` | ✅ `e63d68d` di-push (tsc, eslint, 202 tes, sync Drive data asli, halaman dicek) |
 | Rencana B: metrik IG baru untuk laporan 4 bulanan | ⏳ disetujui arah, belum dikerjakan |
 | Deck laporan 4 bulanan ("tri semester") | ⏳ menunggu 4 keputusan pengguna |
 | Tahap 0 deploy ke server kantor + subdomain | ⏳ menunggu admin server |
 
 **Langkah berikutnya (chat baru mulai di sini):**
 
-1. Tanya pengguna: **commit** kerjaan Contributor? (Pengguna belum bilang "commit".) Usulan pesan: `Kontributor: kredit per konten ala Master Report, Extra Posts, footage YSR, rekap bulanan, Articles → Website dari News log`. Push hanya kalau diminta.
+1. (Selesai) Kerjaan Contributor sudah di-commit & di-push. Di server, jalankan `prisma migrate deploy` saat deploy.
 2. **Rencana B — connector Meta** (`src/modules/connectors/sources/meta/index.ts` + `map.ts`), semua gratis & token yang ada sudah cukup (dites 4 Nov):
    - Metrik akun per bulan (period=day, metric_type=total_value, dipotong ≤30 hari seperti `IG_ACCOUNT_ADDITIVE`): `profile_views` (= "Profile visits" di app), `website_clicks` (= "Bio link taps"; **bukan** `profile_links_taps` = tombol kontak, isinya 0), `likes`, `comments`, `shares`, `saves`, `reposts`. Simpan sebagai `Metric` key `ig_account_*`.
    - `views` & `reach` dengan `breakdown=follow_type` → porsi non-follower (reach unik: hanya 30 hari pertama, sama seperti `reach` sekarang). `total_interactions` + follow_type → error Meta, jangan dipakai.
@@ -27,7 +27,7 @@ Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_m
    - Catatan angka: net followers API 29 Sep–29 Okt = 525−32 = **+493**, app Insights +452 (beda definisi → catatan kaki). Angka per post terus naik (Entok 15.773 di draft → 19.054 per 4 Nov) → pakai snapshot tanggal potong.
 4. Sisa dari handoff lama yang masih berlaku: deploy server kantor (isi `DASHBOARD_PASSWORD`, `prisma migrate deploy`, reverse proxy teruskan `Host` + `X-Forwarded-Proto`); scorecard Jul–Sep masih live (unlock+lock setelah tim konfirmasi); link Gokil Restaurant di Calendar Timeline → `https://youtu.be/M3hjv1RNNLA`; sisa kecil di `docs/architecture/data-flow-audit.md`.
 
-## Menu Contributor (dirombak 4 Nov, belum di-commit)
+## Menu Contributor (dirombak 4 Nov, `e63d68d`)
 
 Pengguna: kontributor lokal **dibayar per konten**; 1 konten = 1 artikel berstatus Submitted (foto/portrait/video/wawancara boleh tidak lengkap). Target 60/bulan nyata — pengguna sedang menyiapkan tim kontributor ke-2. Aturan mengikuti tab **"Master Report"** di tracker (rumus tim):
 
