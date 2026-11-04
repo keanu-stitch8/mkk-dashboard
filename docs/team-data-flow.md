@@ -25,6 +25,12 @@ team/shared
 team/pipeline   services/derivatives-service.ts (briefs & IG derivatives per article — also used by Scorecard),
                 services/pipeline-service.ts, lib/pipeline.ts (stages, stuck days, repurpose lag)
 team/contributors  repositories + mapper (asset states) + lib/contributors.ts (per-item assets, per-person totals)
+                  Credit rules mirror the tracker's "Master Report" tab: 1 content = 1 Submitted article (incl. "<Month> Extra
+                  Posts" tabs, row id "<tab>#X<No>"), co-authors split equally, Ref Role "Footage"-only people excluded from
+                  the split and counted by footage (stories with ≥1 asset in their name). `syncContributors` compares with the
+                  Master Report and warns on differences. Articles → Website = News Content Logs (status publish) whose
+                  Reporter maps to an alias / Ref "News Name"; Ref "Active" = No hides people with no activity. IG numbers on
+                  the cards = Social report (Socmed log live + Task Progress in review). buildContributorRecap = all months.
 team/scorecard  lib/scorecard.ts (SCORE_DEFS, buildScores, onTarget, SCORECARD_FROM),
                 services/scorecard-service.ts (compute / snapshot / clear / history)
 team/recap      lib/recap.ts (yearly totals), services/recap-service.ts (trend, audience, scorecard per month)

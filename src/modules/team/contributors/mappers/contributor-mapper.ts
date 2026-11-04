@@ -28,4 +28,5 @@ export const toContributorTaskEntry = (r: ContributorTask): ContributorTaskEntry
   interviewBy: r.interviewBy,
   interviewAt: r.interviewAt,
   storyCode: r.storyCode,
+  extra: r.extra,
 });

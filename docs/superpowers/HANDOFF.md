@@ -1,32 +1,44 @@
-# Handoff — MKK Dashboard (per 2026-10-24: login Tahap 0 + refactor data flow selesai, 4 commit belum di-push)
+# Handoff — MKK Dashboard (per 2026-11-04: menu Contributor dirombak, belum di-commit; berikutnya Rencana B metrik IG + deck laporan 4 bulanan)
 
-Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_modules/next/dist/docs/` sebelum menulis kode Next), **`docs/architecture/data-flow.md`** (kontrak alur data, wajib sebelum menyentuh kode data), dan memory (`data-flow-refactor`, `ambiguous-not-true`, `mkk-team-dashboard`, `mkk-connector-decisions`, `all-data-via-api`).
+Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_modules/next/dist/docs/` sebelum menulis kode Next), **`docs/architecture/data-flow.md`** (kontrak alur data, wajib sebelum menyentuh kode data), `docs/team-data-flow.md`, dan memory (`contributor-pay-per-content`, `ig-api-metric-availability`, `mkk-connector-decisions`, `ambiguous-not-true`, `mkk-team-dashboard`, `all-data-via-api`, `plan-before-report-changes`).
 
 ## Status
 
 | Bagian | Status |
 | --- | --- |
-| Dependency (Next 16.4.2, React 19.3.1, googleapis 187 dipin, vitest 5, cn 0.5, @types/node 24, server-only 0.0.1) | ✅ |
-| Import History & Sync History per sesi + pagination | ✅ `7bf668e` |
-| Team Tahap 1–4: Stories, Briefs, Content Pipeline, Contributors, Team Scorecard, MKK 2026 in numbers | ✅ `d66ce38` `1bb3f28` `a593d67` (sudah di-push) |
-| Tahap 0 login: nama + satu password tim, `src/proxy.ts`, `decidedBy` di TeamMatch | ✅ `599b4f4` — **belum di-push** |
-| Refactor data flow ala srikandi: pindah ke `src/`, kontrak + audit, pilot YouTube | ✅ `089fc38` — **belum di-push** |
-| YouTube: video non-public tidak dihitung (re-upload) + placeholder thumbnail rusak | ✅ `2d9b120` — **belum di-push** |
-| Refactor data flow semua domain (Website, News, Social, Overview, Report, Team, Import, Connectors, Source Logs) | ✅ `36e16df` — **belum di-push** |
+| Semua commit s/d `0cf5d7e` (login Tahap 0, refactor data flow, tanggal potong tgl 4 15:00 WIB, kontributor KPI 60) | ✅ sudah di-push (`main` = `origin/main`) |
+| **Menu Contributor dirombak** (lihat bagian di bawah) — 13 file + 2 migrasi `20261104052521_contributor_extra_role`, `20261104055600_contributor_news_names` | ✅ diverifikasi (tsc, eslint, 202 tes, sync Drive data asli, halaman dicek) — **BELUM di-commit** |
+| Rencana B: metrik IG baru untuk laporan 4 bulanan | ⏳ disetujui arah, belum dikerjakan |
+| Deck laporan 4 bulanan ("tri semester") | ⏳ menunggu 4 keputusan pengguna |
 | Tahap 0 deploy ke server kantor + subdomain | ⏳ menunggu admin server |
-
-Rencana lengkap Team Dashboard: artifact claude.ai `PdQVdjZM2yew5krRf4Tvmn` (Tahap 0–4; tidak ada Tahap 5).
 
 **Langkah berikutnya (chat baru mulai di sini):**
 
-1. Pengguna wajib **restart `npm run dev`** kalau belum (folder pindah ke `src/`, proxy baru, kolom Prisma `decidedBy`). Dev server lama menjawab 404 untuk semua halaman — pengguna menyebutnya "api error".
-2. Tanya pengguna: **push** 4 commit (`main` ahead 4 dari `origin/main`)? Catatan: `36e16df` di-commit setelah pengguna bilang "lanjut semua aja", bukan "commit" — kalau pengguna keberatan, masih bisa diubah (`git reset --soft HEAD~1`).
-3. Minta pengguna cek tampilan beberapa halaman di browser (verifikasi refactor hanya lewat teks HTML, belum visual).
-4. Tim perlu mengganti link baris **"Gokil Restaurant Kudus"** (20 Okt) di *MKK Internal - Youtube Calendar Timeline* ke `https://youtu.be/M3hjv1RNNLA` (video lama `QFeE5-dl_YY` sudah private karena re-upload), lalu sync connector Sheets — supaya thumbnail Publishing Log muncul.
-5. Deploy server kantor (saat admin siap): isi `DASHBOARD_PASSWORD` di `.env` server (produksi tanpa password = dashboard tertutup total), `SESSION_SECRET` opsional (kosong = pakai `ENCRYPTION_KEY`). Reverse proxy wajib meneruskan `Host` dan `X-Forwarded-Proto`. Database SQLite (`prisma/dev.db`) → `prisma migrate deploy` di server. Script di server: `npm run sync` (sudah memakai `tsx --conditions=react-server`).
-6. Setelah tim mulai konfirmasi saran / mengisi kolom Story / tab kontributor Oktober: sync connector **Google Drive**.
-7. Scorecard Jul–Sep sengaja masih **live** (bulan dikunci 19 Okt, sebelum fitur ada). Setelah tim selesai konfirmasi, unlock + lock bulan itu untuk membekukan angkanya.
-8. Opsional, sisa kecil di `docs/architecture/data-flow-audit.md`: kuota di-query 4× per bundle, filter `?show=` Team di komponen, cast di `channelRecommendations`, tes lama di `tests/`.
+1. Tanya pengguna: **commit** kerjaan Contributor? (Pengguna belum bilang "commit".) Usulan pesan: `Kontributor: kredit per konten ala Master Report, Extra Posts, footage YSR, rekap bulanan, Articles → Website dari News log`. Push hanya kalau diminta.
+2. **Rencana B — connector Meta** (`src/modules/connectors/sources/meta/index.ts` + `map.ts`), semua gratis & token yang ada sudah cukup (dites 4 Nov):
+   - Metrik akun per bulan (period=day, metric_type=total_value, dipotong ≤30 hari seperti `IG_ACCOUNT_ADDITIVE`): `profile_views` (= "Profile visits" di app), `website_clicks` (= "Bio link taps"; **bukan** `profile_links_taps` = tombol kontak, isinya 0), `likes`, `comments`, `shares`, `saves`, `reposts`. Simpan sebagai `Metric` key `ig_account_*`.
+   - `views` & `reach` dengan `breakdown=follow_type` → porsi non-follower (reach unik: hanya 30 hari pertama, sama seperti `reach` sekarang). `total_interactions` + follow_type → error Meta, jangan dipakai.
+   - **Followers:** API hanya memberi `followers_count` "saat ini" (2.273 per 4 Nov) dan `follower_count` harian = follow BARU, 30 hari terakhir saja. Buat tabel snapshot followers tiap sync/cron. Riwayat Jun–Okt = hitung mundur dari follows−unfollows (net Jun–Okt 2.244, konsisten), tandai estimasi. `followersNow` sekarang **tidak tersimpan** sama sekali (hanya saat bulan berjalan `w.partial`).
+   - `IgMediaSnapshot` + `SocialPost`: tambah `follows`, `profileVisits` (`profile_visits`), `reposts`. Catatan: connector sengaja tidak meminta `follows` untuk Reels.
+   - Jul–Sep dikunci: backfill sekali jalan **hanya metrik akun baru** (nilai lama jangan disentuh). Metrik per post untuk bulan lama hanya bisa "as of hari ini" → tandai.
+   - Template laporan bulanan **jangan** diubah tanpa rencana baris (memory `plan-before-report-changes`).
+   - `.env` `META_IG_USER_ID` kosong; ID IG `17841425896162511` diambil dari Page (`instagram_business_account`).
+3. **Deck laporan 4 bulanan** (bahan: draft Content & Creative Manager, IG-only, Bahasa Indonesia, periode 15 Jun–29 Okt + Insights ±30 hari). Keputusan yang belum dijawab pengguna: (a) periode — usulan T1 = Jul–Okt; (b) cakupan IG saja atau semua channel; (c) bahasa — laporan klien selama ini EN + format angka ID; (d) format — usulan Google Slides dari template ber-token (Slides API gratis) vs sekali jadi di Canva. Struktur ±12 slide yang sudah diusulkan: cover · exec summary KPI · tren followers per bulan · views/reach + porsi non-follower · per format (`IgAccountByType`, angka pas) · output vs kuota + kategori · top 5 konten (snapshot tanggal potong) · studi kasus Warung Entok (pakai **follows per 1.000 views** ≈13,4 vs rata-rata akun ≈3,3, bukan "9,9% dari total followers") · funnel profil → link → sesi GA4 dari Instagram · evaluasi · rekomendasi + target 3.000 followers akhir Des · metodologi.
+   - Catatan angka: net followers API 29 Sep–29 Okt = 525−32 = **+493**, app Insights +452 (beda definisi → catatan kaki). Angka per post terus naik (Entok 15.773 di draft → 19.054 per 4 Nov) → pakai snapshot tanggal potong.
+4. Sisa dari handoff lama yang masih berlaku: deploy server kantor (isi `DASHBOARD_PASSWORD`, `prisma migrate deploy`, reverse proxy teruskan `Host` + `X-Forwarded-Proto`); scorecard Jul–Sep masih live (unlock+lock setelah tim konfirmasi); link Gokil Restaurant di Calendar Timeline → `https://youtu.be/M3hjv1RNNLA`; sisa kecil di `docs/architecture/data-flow-audit.md`.
+
+## Menu Contributor (dirombak 4 Nov, belum di-commit)
+
+Pengguna: kontributor lokal **dibayar per konten**; 1 konten = 1 artikel berstatus Submitted (foto/portrait/video/wawancara boleh tidak lengkap). Target 60/bulan nyata — pengguna sedang menyiapkan tim kontributor ke-2. Aturan mengikuti tab **"Master Report"** di tracker (rumus tim):
+
+- **Tab "<Bulan> Extra Posts"** ikut dihitung (`isExtraTab`; id baris `<tab>#X<No>`, kolom `ContributorTask.extra`). Salinan seperti "September (old)" tetap diabaikan.
+- **Kredit dibagi rata** antar penulis di Assignee Article (`articleCredit`, pemisah koma, "/", "&", "dan"); orang ber-Role "Footage" saja (tab Ref kolom C, sekarang YSR) tidak ikut dibagi dan dinilai dari **footage** = liputan yang minimal satu asetnya atas namanya (tanpa melihat status, sama seperti Master).
+- **Cek otomatis:** `syncContributors` membaca tab Master Report (`readMasterReport`) dan memberi warning di Sync History kalau beda (`compareMasterReport`). Per 4 Nov Jul–Nov **sama persis** (total 31/55/42/29/1; Agu OEB 23,5 · FZ 6 setelah pengguna membetulkan "YZ" → FZ).
+- **Tab Ref** (ditulis 4 Nov atas persetujuan pengguna): kolom F "News Name" (DN=Dani, HNR=Henri, ITN="Itun, Fatur", JMY=Jemmy, BRO=Abror, SBR=Subur), G "Active" (BRO & SBR = No), baris baru Subur (SBR, Role kosong). Kolom D–E = daftar dropdown status/aset, jangan disentuh. Tersimpan di `Contributor.role/newsNames/active`.
+- **Halaman** (`src/modules/team/contributors/`): kartu Content delivered (Submitted ÷ 60, info "N with complete assets", "N extra") · **Articles → Website** = berita status publish bulan itu di News Content Logs (sama dengan report News) yang kolom Reporter-nya cocok alias / News Name (`reporterAliases`, tanpa tebakan; Redaksi MKK, RND, DV = bukan kontributor) — Okt 30 dari 31 · Carousel-ready / Reel-ready + "IG this month" = angka report Social (live dari Socmed log, in review dari Task Progress; Okt 9+5 carousel, 9+3 reel) · widget per orang (konten pecahan / footage, "X on web", aset; orang tidak aktif hanya tampil kalau ada kiriman) · tabel **Monthly recap** semua bulan + Total (`buildContributorRecap`, cocok dengan Master: total 158, OEB 61, JMY 31,33, ITN 29,5, FZ 19, DN 9,83, HNR 7,33, footage YSR 70).
+- Sudah dihapus karena membingungkan pengguna: "Articles → IG" lewat rantai Story code (hanya 4 carousel) dan label "Web: needs confirmation" per baris (kolom Story di News log selalu kosong). Link "Live on web" per baris tetap (hanya sambungan pasti Content Pipeline).
+- Efek samping yang disengaja: aset baris Extra Posts ikut ke Recap & Scorecard.
+- Catatan pengguna: tanggal artikel jauh setelah aset itu wajar (kendala lapangan) — jangan ditandai; Assignee aset kosong (Okt #6, #13, #14) = kontributor malas mengisi, tidak memengaruhi bayaran.
 
 **Perlu disampaikan ke tim (jangan ubah sheet sendiri — file Drive pengguna read-only):**
 - Link Gokil Restaurant di Calendar Timeline (poin 4 di atas).
@@ -58,7 +70,7 @@ Rencana lengkap Team Dashboard: artifact claude.ai `PdQVdjZM2yew5krRf4Tvmn` (Tah
   - Story ← panduan liputan (kode `YYMMDD-N`, duplikat diberi akhiran `b`). 9 panduan Jul–Sep format lama dilewati (warning di Sync History).
   - Brief ← nama file + outline `.docx` (`parseBriefName` longgar: `BRIEF CAROUSEL- …`, `Brief Reel-…`, `CREATIVE BRIEF …`, tanpa topik).
   - `BriefTask` ← "MKK Kudus Social Media - Task Progress" (`1-p5K4AGNVjcGUy8sMrn1rTs6IMrwzH0lQVhQun4NOjw`), disambung lewat `briefKey(nama file)`.
-  - `ContributorTask` + `Contributor` ← "MKK Kudus Local Contributor - Task Progress" (`15LY6CsihTxJsHl7Zh2F1qUJ8bqY93TI2Wo8OOoYceOE`); 4 aset Available / Not Available / kosong, alias → nama dari tab Ref. Tab Okt–Des masih kosong.
+  - `ContributorTask` + `Contributor` ← "MKK Kudus Local Contributor - Task Progress" (`15LY6CsihTxJsHl7Zh2F1qUJ8bqY93TI2Wo8OOoYceOE`); 4 aset Available / Not Available / kosong; tab Ref = alias → nama, Role, News Name, Active; tab Master Report = pembanding (lihat bagian Menu Contributor). Jul–Nov terisi.
   - Kolom opsional "Story" di News & Socmed Logs → `NewsArticle.story` / `SocialLog.story` → status `coded` (sambungan pasti).
 - **Pencocokan** (`src/modules/team/ingest/match.ts`, `src/modules/team/ingest/store.ts` → `TeamMatch`; status mesin `GENERATED_MATCH_STATUSES` dihapus & dibuat ulang tiap rebuild, `confirmed`/`rejected` tidak pernah ditimpa):
   - Run: story→article, brief→social (+ `withTracker`), brief→article, brief→story, igstory→article (`multiTo`), coded story→article/social.
@@ -86,7 +98,9 @@ Angka terakhir (sync 23 Okt): 159 auto, 30 tracker, 329 saran. Oktober: 43 Story
 
 ## Fakta teknis yang sudah terbukti (jangan ditemukan ulang)
 
-- **Model/kolom Prisma baru atau folder dipindah** → dev server pengguna 500/404 sampai di-restart. Verifikasi sendiri pakai `npm run build && npx next start -p 3100`, lalu matikan.
+- **Model/kolom Prisma baru atau folder dipindah** → dev server pengguna error ("Unknown field …") sampai di-restart. Auto mode **menolak** `kill` proses dev pengguna, dan Next menolak dev server kedua di repo yang sama → minta pengguna restart. Verifikasi sendiri pakai `npm run build && npx next start -p 3100`, lalu matikan.
+- Cek cepat tanpa browser: `curl -s localhost:3000/team/contributors?m=2026-10`, buang tag, grep teks kartu; error server ada di `.next/dev/logs/next-development.log`.
+- Script cek data sekali pakai: taruh di folder sementara di dalam repo (mis. `.tmp-check/x.mts`, import relatif `../src/...`), jalankan `npx tsx`, lalu hapus foldernya — tsx dari scratchpad gagal me-resolve alias/ESM.
 - **Jangan hapus folder migrasi yang sudah diterapkan**: Prisma minta reset DB. **Jangan pernah reset.** Kalau terjadi: backup `dev.db`, drop tabel baru yang masih kosong + hapus barisnya di `_prisma_migrations`, lalu `migrate dev` lagi.
 - **Type route basi** (`.next/types` / `.next/dev/types` menunjuk path lama) → hapus keduanya lalu `npx next typegen`.
 - Next 16: `middleware` → `proxy.ts` (di `src/`); `PageProps<"/…">` / `RouteContext<"/api/…">` dari typegen; `params`/`searchParams` berupa Promise; `error.tsx` memakai `retry`.

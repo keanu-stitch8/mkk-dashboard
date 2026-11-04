@@ -8,7 +8,7 @@ import { readTrackerTab } from "@/modules/import/parsers/logs";
 import { pickTrackerFile } from "@/modules/connectors/sources/sheets/map";
 import { briefKey, docxParagraphs, panduanDate, parseBriefName, parseBriefOutline, parsePanduan, trackerLink } from "./parse";
 import { GENERATED_MATCH_STATUSES, matchItems, tokens, withTracker, type MatchItem, type TrackedResult, type TrackerHint } from "./match";
-import { readContributorNames, readContributorTab, rowGuideDate, uniqueRowIds, type ContributorRow } from "./contributors";
+import { compareMasterReport, isFootageOnly, monthCredit, readContributorRefs, readContributorTab, readMasterReport, rowGuideDate, uniqueRowIds, type ContributorRow } from "./contributors";
 
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -205,12 +205,14 @@ export async function syncContributors(drive: drive_v3.Drive): Promise<Contribut
   const res = await drive.files.export({ fileId: file.id, mimeType: XLSX }, { responseType: "arraybuffer" });
   const tables = readTables({ name: `${file.name}.xlsx`, data: new Uint8Array(res.data as ArrayBuffer) }).tables;
   const tabs = tables.flatMap((t) => readContributorTab(t) ?? []);
-  const names = tables.map(readContributorNames).find((x) => !!x) ?? new Map<string, string>();
+  const refs = tables.map(readContributorRefs).find((x) => !!x) ?? [];
+  const master = tables.map(readMasterReport).find((x) => !!x) ?? [];
   const stories = await prisma.story.findMany({ select: { code: true, date: true, title: true } });
 
-  const rows = tabs.flatMap(({ tab, rows }) =>
+  const rows = tabs.flatMap(({ tab, extra, rows }) =>
     rows.map((r) => ({
-      id: `${tab}#${r.no}`,
+      id: `${tab}#${extra ? "X" : ""}${r.no}`,
+      extra,
       tab,
       no: r.no,
       planned: r.planned,
@@ -230,17 +232,31 @@ export async function syncContributors(drive: drive_v3.Drive): Promise<Contribut
     prisma.contributorTask.deleteMany(),
     prisma.contributorTask.createMany({ data: unique }),
     prisma.contributor.deleteMany(),
-    prisma.contributor.createMany({ data: [...names].map(([alias, name]) => ({ alias, name })) }),
+    prisma.contributor.createMany({ data: refs }),
   ]);
-  const empty = tabs.filter((t) => !t.rows.length).map((t) => t.tab);
+  const filled = new Set(tabs.filter((t) => t.rows.length).map((t) => t.tab));
+  const empty = [...new Set(tabs.filter((t) => !t.extra && !filled.has(t.tab)).map((t) => t.tab))];
+
+  // cocokkan dengan rumus tim di tab Master Report (tahun diambil dari tab bulan yang ada)
+  const footageOnly = new Set(refs.filter((r) => isFootageOnly(r.role)).map((r) => r.alias));
+  const masterWarnings = [...filled].flatMap((tab) => {
+    const m = master.find((x) => x.month === Number(tab.slice(5, 7)));
+    if (!m) return [];
+    const mine = monthCredit(
+      tabs.filter((t) => t.tab === tab).flatMap((t) => t.rows),
+      footageOnly,
+    );
+    return compareMasterReport(tab, m, mine);
+  });
   return {
     file: file.name,
-    tabs: tabs.filter((t) => t.rows.length).map((t) => t.tab),
+    tabs: [...filled],
     rows: unique.length,
     linked: unique.filter((r) => r.storyCode).length,
     warnings: [
       ...(empty.length ? [`Local Contributor - Task Progress: no stories filled in yet for ${empty.join(", ")}.`] : []),
       ...duplicates.map((id) => `Local Contributor - Task Progress: No. ${id.split("#")[1]} is used more than once in ${id.split("#")[0]} — all rows kept; please renumber the sheet.`),
+      ...masterWarnings,
     ],
   };
 }

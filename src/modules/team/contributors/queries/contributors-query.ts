@@ -4,7 +4,7 @@ import { currentMonth } from "@/modules/shared/lib/month";
 import { pickTeamMonth } from "../../shared/lib/team-links";
 import { teamMonths } from "../../shared/services/team-month-service";
 import { buildContributorsPage } from "../lib/contributors-page";
-import { contributorMonths, getContributors } from "../services/contributor-service";
+import { contributorMonths, getContributorRecap, getContributors, getIgOutput } from "../services/contributor-service";
 import type { ContributorsPage } from "../types/contributors-page";
 
 /** Bulan default = tab kontributor terbaru yang sudah ada (bukan bulan Story/Brief terbaru). */
@@ -12,5 +12,6 @@ export const getContributorsPage = cache(async (monthParam: string | undefined):
   const [withData, team] = await Promise.all([contributorMonths(), teamMonths()]);
   const months = [...new Set([...withData, ...team])].sort().reverse();
   const month = pickTeamMonth(monthParam, [withData[0], months[0]], currentMonth());
-  return buildContributorsPage(month, months.length ? months : [month], await getContributors(month));
+  const [data, recap, ig] = await Promise.all([getContributors(month), getContributorRecap(), getIgOutput(month)]);
+  return buildContributorsPage(month, months.length ? months : [month], data, recap, ig);
 });

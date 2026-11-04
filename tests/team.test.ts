@@ -245,6 +245,129 @@ describe("Task Progress kontributor", () => {
   });
 });
 
+describe("Kredit konten kontributor (dibayar per konten, sama dengan Master Report)", () => {
+  const cell = (by: string | null = null) => ({ by });
+  const assets = (by: Partial<Record<"landscape" | "portrait" | "video" | "interview", string>>) => ({
+    landscape: cell(by.landscape),
+    portrait: cell(by.portrait),
+    video: cell(by.video),
+    interview: cell(by.interview),
+  });
+  it("tab Extra Posts dibaca, salinan kerja tetap diabaikan", async () => {
+    const { isExtraTab, isMonthTab } = await import("../src/modules/team/ingest/contributors");
+    expect(["August Extra Posts", "September Extra Posts", "Okt extra post"].every(isExtraTab)).toBe(true);
+    expect(["September (old)", "September (cek Drive)", "Master Report"].some((t) => isExtraTab(t) || isMonthTab(t))).toBe(false);
+  });
+  it("penulis bersama dibagi rata, Footage-only tidak ikut dibagi", async () => {
+    const { articleCredit, splitAliases, isFootageOnly } = await import("../src/modules/team/ingest/contributors");
+    expect(splitAliases("JMY, DN, HNR")).toEqual(["JMY", "DN", "HNR"]);
+    expect(splitAliases("OEB/YSR")).toEqual(["OEB", "YSR"]);
+    expect(isFootageOnly("Footage")).toBe(true);
+    expect(isFootageOnly("Journalist, Footage")).toBe(false);
+    expect(isFootageOnly(null)).toBe(false);
+    const ysr = new Set(["YSR"]);
+    expect(articleCredit("JMY, ITN", ysr)).toEqual([["JMY", 0.5], ["ITN", 0.5]]);
+    expect(articleCredit("OEB, YSR", ysr)).toEqual([["OEB", 1]]);
+    expect(articleCredit("YSR", ysr)).toEqual([["YSR", 1]]);
+  });
+  it("rekap bulan: hanya Submitted dihitung konten; footage = liputan dengan aset atas namanya", async () => {
+    const { monthCredit } = await import("../src/modules/team/ingest/contributors");
+    const r = monthCredit(
+      [
+        { status: "submitted", articleBy: "JMY, DN, HNR", assets: assets({}) },
+        { status: "submitted", articleBy: "OEB", assets: assets({ portrait: "YSR", video: "YSR", interview: "YSR" }) },
+        { status: null, articleBy: null, assets: assets({ portrait: "ITN, YSR" }) },
+        { status: "draft", articleBy: "FZ", assets: assets({}) },
+      ],
+      new Set(["YSR"]),
+    );
+    expect(r.delivered).toBe(2);
+    expect(r.content.OEB).toBe(1);
+    expect(r.content.JMY).toBeCloseTo(1 / 3);
+    expect(r.content.FZ).toBeUndefined();
+    expect(r.footage.YSR).toBe(2);
+  });
+  it("tab Master Report dibaca & dibandingkan", async () => {
+    const { readMasterReport, compareMasterReport } = await import("../src/modules/team/ingest/contributors");
+    const rows = readMasterReport({
+      file: "c",
+      sheet: "Master Report",
+      blockCount: 1,
+      comments: [],
+      rows: [
+        ["Bulan", "Total Artikel", "Jumlah Artikel", "", "", "Jumlah Footage"],
+        ["", "", "FZ", "OEB", "JMY", "YSR"],
+        ["October", 29, 3, 14, 6, 25],
+        ["November", 1, 0, 1, 0, 1],
+      ],
+    })!;
+    expect(rows[0]).toEqual({ month: 10, total: 29, content: { FZ: 3, OEB: 14, JMY: 6 }, footage: { YSR: 25 } });
+    expect(compareMasterReport("2026-10", rows[0], { delivered: 29, content: { FZ: 3, OEB: 14, JMY: 6 }, footage: { YSR: 25 } })).toEqual([]);
+    expect(compareMasterReport("2026-10", rows[0], { delivered: 28, content: { FZ: 3, OEB: 13, JMY: 6 }, footage: { YSR: 25 } })[0]).toMatch(/total 29 vs 28, OEB 14 vs 13/);
+  });
+  it("halaman: kredit per orang, YSR dinilai dari footage", async () => {
+    const { buildContributors, buildContributorRecap } = await import("../src/modules/team/contributors/lib/contributors");
+    const base = { tab: "2026-10", planned: "2026-10-01", guideFile: null, n: 1, articleAt: "2026-10-02", storyCode: null, extra: false };
+    const none = { landscape: null, landscapeBy: null, landscapeAt: null, portrait: null, portraitBy: null, portraitAt: null, video: null, videoBy: null, videoAt: null, interview: null, interviewBy: null, interviewAt: null };
+    const rows = [
+      { ...base, ...none, id: "a", no: 1, title: "A", status: "submitted", articleBy: "OEB", portrait: "available" as const, portraitBy: "ITN, YSR", portraitAt: "2026-10-03" },
+      { ...base, ...none, id: "b", no: 2, title: "B", status: "submitted", articleBy: "JMY, ITN", extra: true },
+      { ...base, ...none, id: "c", no: 3, title: "C", status: null, articleBy: null, video: "available" as const, videoBy: "YSR", videoAt: "2026-10-04" },
+    ];
+    const refs = [
+      { alias: "YSR", name: "Yasril", role: "Footage" },
+      { alias: "OEB", name: "Loeby", role: "Journalist" },
+    ];
+    const d = buildContributors(rows, [...refs, { alias: "BRO", name: "Abror", role: null, active: false }], [], new Map(), [{ reporter: "OEB, YSR" }, { reporter: "RND, DV" }, { reporter: "Redaksi MKK, OEB" }]);
+    expect(d.news).toEqual({ published: 3, byContributors: 2, others: { RND: 1, DV: 1, "Redaksi MKK": 1 } });
+    expect(d.people.some((p) => p.alias === "BRO")).toBe(false);
+    const by = Object.fromEntries(d.people.map((p) => [p.alias, p]));
+    expect(by.OEB).toMatchObject({ content: 1, web: 2 });
+    expect(by.YSR.web).toBe(1);
+    expect(by.ITN).toMatchObject({ content: 0.5, assets: 1, footage: 1 });
+    expect(by.YSR).toMatchObject({ footageOnly: true, content: 0, footage: 2, assets: 2 });
+    expect(d.items.filter((i) => i.content)).toHaveLength(2);
+    const r = buildContributorRecap(rows, refs);
+    expect(r.months[0]).toMatchObject({ delivered: 2, footage: { YSR: 2 } });
+    expect(r.footage).toEqual(["YSR"]);
+  });
+  it("Ref: peran dibaca", async () => {
+    const { readContributorRefs } = await import("../src/modules/team/ingest/contributors");
+    const refs = readContributorRefs({ file: "c", sheet: "Ref", blockCount: 1, comments: [], rows: [["Journalist", "Journalist Alias", "Role", "Status"], ["Yasril Faza Aftoni", "YSR", "Footage", "In Progress"], ["Jamaah", "jmy", "Journalist, Footage"]] });
+    expect(refs).toEqual([
+      { alias: "YSR", name: "Yasril Faza Aftoni", role: "Footage", newsNames: null, active: true },
+      { alias: "JMY", name: "Jamaah", role: "Journalist, Footage", newsNames: null, active: true },
+    ]);
+    // kolom News Name & Active (di kanan daftar status/aset)
+    const withNews = readContributorRefs({
+      file: "c",
+      sheet: "Ref",
+      blockCount: 1,
+      comments: [],
+      rows: [
+        ["Journalist", "Journalist Alias", "Role", "Status", null, "News Name", "Active"],
+        ["Mohammad Fahtur Rohman", "ITN", "Journalist, Footage", "Draft", "-", "Itun, Fatur", "Yes"],
+        ["Abror", "BRO", "Journalist, Footage", null, null, "Abror", "No"],
+      ],
+    });
+    expect(withNews).toEqual([
+      { alias: "ITN", name: "Mohammad Fahtur Rohman", role: "Journalist, Footage", newsNames: "Itun, Fatur", active: true },
+      { alias: "BRO", name: "Abror", role: "Journalist, Footage", newsNames: "Abror", active: false },
+    ]);
+  });
+  it("Reporter News log → alias lewat alias / News Name saja (tanpa tebakan)", async () => {
+    const { reporterAliases } = await import("../src/modules/team/ingest/contributors");
+    const refs = [
+      { alias: "ITN", newsNames: "Itun, Fatur" },
+      { alias: "JMY", newsNames: "Jemmy" },
+      { alias: "OEB", newsNames: null },
+    ];
+    expect(reporterAliases("Jemmy, Fatur, Itun, Dani", refs)).toEqual({ aliases: ["JMY", "ITN"], others: ["Dani"] });
+    expect(reporterAliases("oeb, RND, DV", refs)).toEqual({ aliases: ["OEB"], others: ["RND", "DV"] });
+    expect(reporterAliases("Redaksi MKK", refs)).toEqual({ aliases: [], others: ["Redaksi MKK"] });
+  });
+});
+
 describe("Team Scorecard", () => {
   it("target naik / turun", async () => {
     const { onTarget, SCORE_DEFS } = await import("../src/modules/team/scorecard/lib/scorecard");
