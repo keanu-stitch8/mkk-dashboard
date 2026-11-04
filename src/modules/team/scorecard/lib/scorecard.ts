@@ -45,6 +45,20 @@ export interface ScorecardInput {
 }
 
 /** Keenam ukuran dari data yang sudah dimuat. */
+/**
+ * Kelompok aset wajib (foto, video portrait, wawancara) yang kosong di SEMUA cerita bulan itu = belum dicatat tim
+ * (mis. Juli 2026: hanya kolom Portrait Photo yang diisi). Aset lengkap bulan itu "not tracked", bukan 0%.
+ */
+export function untrackedAssets(assetStates: Record<AssetKey, AssetState>[]): string[] {
+  if (!assetStates.length) return [];
+  const groups: [string, AssetKey[]][] = [
+    ["photo", ["landscape", "portrait"]],
+    ["portrait video", ["video"]],
+    ["interview video", ["interview"]],
+  ];
+  return groups.filter(([, keys]) => assetStates.every((t) => keys.every((k) => t[k] == null))).map(([label]) => label);
+}
+
 export function buildScores({ month, end, articleCount, articleDates, derivs, briefs, assetStates, quotas }: ScorecardInput): Score[] {
   const repurposed = [...derivs].filter(([, d]) => d.derivs.length);
   const lags = repurposed.flatMap(([k, d]) => {
@@ -58,6 +72,7 @@ export function buildScores({ month, end, articleCount, articleDates, derivs, br
   // Published di Task Progress tanpa tanggal: sudah tayang, kapan tidak diketahui → tidak dihitung backlog
   const backlog = briefs.filter((b) => b.task?.stage !== "stopped" && !(b.state === "posted" && !b.postedOn) && (!b.postedOn || b.postedOn > end));
 
+  const untracked = untrackedAssets(assetStates);
   const complete = assetStates.filter((t) => assetSummary(Object.fromEntries(ASSETS.map((a) => [a.key, { state: t[a.key], by: null, at: null }])) as Record<AssetKey, AssetCell>).complete).length;
 
   const rated = quotas.filter((q) => q.available && q.rate != null);
@@ -71,7 +86,9 @@ export function buildScores({ month, end, articleCount, articleDates, derivs, br
     { key: "articleToIg", value: repurposeLag, detail: lags.length ? `median of ${lags.length} articles` : "no repurposed article yet" },
     { key: "briefToPost", value: briefLag, detail: `${briefLags.length} of ${ofMonth.length} briefs posted` },
     { key: "backlog", value: backlog.length, detail: backlog.length ? backlog.slice(0, 3).map((b) => b.topic || b.task?.article || b.fileName).join(", ") + (backlog.length > 3 ? ", …" : "") : "none" },
-    { key: "assets", value: assetStates.length ? pct(complete, assetStates.length) : null, n: complete, base: assetStates.length, detail: assetStates.length ? `${complete} of ${assetStates.length} stories` : "contributor tab not filled in yet" },
+    untracked.length
+      ? { key: "assets", value: null, n: null, base: assetStates.length, detail: `not tracked — ${untracked.join(" & ")} not recorded in the contributor sheet this month` }
+      : { key: "assets", value: assetStates.length ? pct(complete, assetStates.length) : null, n: complete, base: assetStates.length, detail: assetStates.length ? `${complete} of ${assetStates.length} stories` : "contributor tab not filled in yet" },
     { key: "quota", value: quotaAvg, detail: rated.map((q) => `${q.label} ${Math.round(q.rate! * 100)}%`).join(" · ") || "no quota data" },
   ];
 }

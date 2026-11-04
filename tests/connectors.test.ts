@@ -349,12 +349,37 @@ describe("Meta connector: mapping Graph API → dataset", () => {
     expect(followBreakdown({ data: [{ name: "follows_and_unfollows", period: "day", total_value: {} }] })).toBeNull();
   });
 
+  it("followTypeBreakdown: views & reach akun per follow_type (+ total)", async () => {
+    const { followTypeBreakdown } = await import("../src/modules/connectors/sources/meta/map");
+    // bentuk respons asli Graph API v26.0 (main_ke_kudus, 1–31 Okt 2026, potongan 30 hari pertama)
+    const views = {
+      data: [
+        {
+          name: "views",
+          period: "day",
+          total_value: {
+            value: 144233,
+            breakdowns: [{ dimension_keys: ["follow_type"], results: [{ dimension_values: ["UNKNOWN"], value: 218 }, { dimension_values: ["FOLLOWER"], value: 34426 }, { dimension_values: ["NON_FOLLOWER"], value: 109589 }] }],
+          },
+        },
+      ],
+    };
+    expect(followTypeBreakdown(views)).toEqual([
+      { metric: "views", segment: "all", value: 144233 },
+      { metric: "views", segment: "unknown", value: 218 },
+      { metric: "views", segment: "follower", value: 34426 },
+      { metric: "views", segment: "non_follower", value: 109589 },
+    ]);
+    expect(followTypeBreakdown({ data: [] })).toEqual([]);
+    expect(followTypeBreakdown(undefined)).toEqual([]);
+  });
+
   it("metrik insight IG per jenis media: REELS tanpa follows, tanpa metrik deprecated", async () => {
     const { igMetricsFor, igPostType } = await import("../src/modules/connectors/sources/meta/map");
     const reel = { id: "1", timestamp: "", media_type: "VIDEO", media_product_type: "REELS" };
     const carousel = { id: "2", timestamp: "", media_type: "CAROUSEL_ALBUM", media_product_type: "FEED" };
-    expect(igMetricsFor(reel)).toEqual(["reach", "views", "likes", "comments", "shares", "saved", "total_interactions"]);
-    expect(igMetricsFor(carousel)).toContain("follows");
+    expect(igMetricsFor(reel)).toEqual(["reach", "views", "likes", "comments", "shares", "saved", "reposts", "total_interactions"]);
+    expect(igMetricsFor(carousel)).toEqual(expect.arrayContaining(["follows", "profile_visits", "reposts"]));
     for (const m of [...igMetricsFor(reel), ...igMetricsFor(carousel)]) expect(["impressions", "plays", "video_views"]).not.toContain(m);
     expect([igPostType(reel), igPostType(carousel), igPostType({ id: "3", timestamp: "", media_type: "IMAGE", media_product_type: "FEED" })]).toEqual(["IG reel", "IG carousel", "IG image"]);
   });
@@ -367,7 +392,7 @@ describe("Meta connector: mapping Graph API → dataset", () => {
     expect(ds.key).toBe("meta_instagram");
     expect(DATASETS[ds.key].group).toBe("meta");
     expect(ds.rowDated).toBe(true);
-    for (const r of ds.rows) expect(Object.keys(r).sort()).toEqual([...SOCIAL_POST_FIELDS].sort());
+    for (const r of ds.rows) expect(Object.keys(r).sort()).toEqual([...SOCIAL_POST_FIELDS, "profileVisits", "reposts"].sort());
 
     const sep = applyMonth(ds, "2026-09").rows;
     // 30 Sep 20:00 UTC = 1 Okt WIB (dibuang); 31 Agu 18:30 UTC = 1 Sep WIB (masuk)
@@ -402,6 +427,9 @@ describe("Meta connector: mapping Graph API → dataset", () => {
       comments: 12,
       shares: 30,
       saves: 95,
+      follows: 6,
+      profileVisits: null,
+      reposts: null,
       interactions: 347,
     });
     // tanggal publish WIB (30 Sep 20:00 UTC = 1 Okt WIB)

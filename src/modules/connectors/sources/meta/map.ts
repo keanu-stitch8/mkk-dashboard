@@ -36,6 +36,20 @@ export function followBreakdown(res: InsightsResponse | undefined): { follows: n
   const of = (type: string) => num(results.find((r) => r.dimension_values?.[0] === type)?.value);
   return { follows: of("FOLLOWER"), unfollows: of("NON_FOLLOWER") };
 }
+/**
+ * Insight akun dengan breakdown follow_type → [{ metric, segment, value }]: segment "all" (total) + follower /
+ * non_follower / unknown. Untuk views & reach (total_interactions + follow_type ditolak Meta).
+ */
+export function followTypeBreakdown(res: InsightsResponse | undefined): { metric: string; segment: string; value: number }[] {
+  return (res?.data ?? []).flatMap((m) => {
+    if (!m.name) return [];
+    const parts = (m.total_value?.breakdowns?.find((b) => b.dimension_keys?.includes("follow_type"))?.results ?? [])
+      .filter((r) => r.dimension_values?.[0])
+      .map((r) => ({ metric: m.name!, segment: r.dimension_values![0].toLowerCase(), value: num(r.value) }));
+    return m.total_value?.value != null ? [{ metric: m.name, segment: "all", value: num(m.total_value.value) }, ...parts] : parts;
+  });
+}
+
 /** Insight akun dengan breakdown media_product_type → [{ metric, type, value }] (REEL, CAROUSEL_CONTAINER, POST, STORY, …). */
 export function typeBreakdown(res: InsightsResponse | undefined): { metric: string; type: string; value: number }[] {
   return (res?.data ?? []).flatMap((m) =>
@@ -84,8 +98,9 @@ export function igPostType(m: IgMedia): string {
 
 /** Metrik insight yang valid per jenis media (meminta metrik yang tidak didukung membuat request error). */
 export function igMetricsFor(m: IgMedia): string[] {
-  const base = ["reach", "views", "likes", "comments", "shares", "saved", "total_interactions"];
-  return m.media_product_type === "REELS" ? base : [...base, "follows"];
+  const base = ["reach", "views", "likes", "comments", "shares", "saved", "reposts", "total_interactions"];
+  // Reels: follows & profile_visits ditolak Meta (dites 4 Nov 2026)
+  return m.media_product_type === "REELS" ? base : [...base, "follows", "profile_visits"];
 }
 
 export function mapInstagram(media: IgMedia[], insights: Map<string, Record<string, number>>, month: string, source: string, accountMetrics: Record<string, number> = {}): Dataset {
@@ -116,6 +131,8 @@ export function mapInstagram(media: IgMedia[], insights: Map<string, Record<stri
         shares,
         saves,
         follows: ins.follows ?? null,
+        profileVisits: ins.profile_visits ?? null,
+        reposts: ins.reposts ?? null,
         // sama dengan import CSV: likes + comments + shares + saves
         interactions: likes + comments + num(shares) + num(saves),
         durationSec: null,
@@ -195,6 +212,9 @@ export function snapshotRows(media: IgMedia[], insights: Map<string, Record<stri
     comments: r.comments as number | null,
     shares: r.shares as number | null,
     saves: r.saves as number | null,
+    follows: r.follows as number | null,
+    profileVisits: r.profileVisits as number | null,
+    reposts: r.reposts as number | null,
     interactions: r.interactions as number | null,
   }));
 }

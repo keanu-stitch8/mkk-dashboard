@@ -9,6 +9,7 @@ import { monthLabel, prevMonth } from "@/modules/shared/lib/month";
 import { FORMAT_LABEL, PLATFORM_LABEL } from "@/modules/shared/lib/sources";
 import { WIB, dateIn } from "@/modules/shared/lib/tz";
 import type { SocialOverview } from "../types/social-overview";
+import { SocialAudienceSection } from "./social-audience";
 
 const fmtLabel = (platform: string, format: string) => `${PLATFORM_LABEL[platform] ?? platform} · ${FORMAT_LABEL[format] ?? format}`;
 const perPost = (v: number | null | undefined, n: number | null | undefined) => (v == null || !n ? null : v / n);
@@ -23,7 +24,7 @@ const FOLLOWS_HINT: Record<"manual" | "account" | "posts", string> = {
 };
 
 export function SocialOverviewContent({ overview }: { overview: SocialOverview }) {
-  const { month, summary: s, prevSummary: prevSocial, kpi, quota, prevQuota, trend: labels, recommendations: recs, mixedPlatforms } = overview;
+  const { month, summary: s, prevSummary: prevSocial, kpi, quota, prevQuota, trend: labels, recommendations: recs, mixedPlatforms, audience } = overview;
   const cmp = kpi.cmp;
   const c = cmp?.cur;
   const p = cmp?.prev;
@@ -144,6 +145,8 @@ export function SocialOverviewContent({ overview }: { overview: SocialOverview }
         </Section>
       )}
 
+      {audience && s.platforms.includes("instagram") && <SocialAudienceSection month={month} audience={audience} />}
+
       {/* 3. Performa & aktivitas */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ChartCard title="Views" description={mixedPlatforms ? "Per platform" : undefined} data={labels} series={viewSeries} />
@@ -190,6 +193,12 @@ export function SocialOverviewContent({ overview }: { overview: SocialOverview }
               { header: s.monthViewsAsOf ? "Views lifetime" : "Views", align: "right", cell: (r) => fmtNum(r.views) },
               { header: "Reach", align: "right", cell: (r) => fmtNum(r.reach) },
               { header: "Interaksi", align: "right", cell: (r) => fmtNum(r.interactions) },
+              ...(s.posts.some((p) => p.follows != null || p.profileVisits != null)
+                ? [
+                    { header: "Follows", align: "right" as const, cell: (r: (typeof s.posts)[number]) => fmtNum(r.follows) },
+                    { header: "Profile visits", align: "right" as const, cell: (r: (typeof s.posts)[number]) => fmtNum(r.profileVisits) },
+                  ]
+                : []),
               { header: "ER", align: "right", cell: (r) => fmtPct(r.er, 2) },
             ]}
           />

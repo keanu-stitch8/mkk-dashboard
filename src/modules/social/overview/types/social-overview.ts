@@ -3,6 +3,7 @@ import type { Recommendation } from "@/modules/recommendations/lib/recommendatio
 import type { QuotaSummary } from "@/modules/shared/types/quota-summary";
 import type { SocialComparable } from "../lib/social-compare";
 import type { SocialTrendFields } from "../lib/social-trend";
+import type { SocialAudience } from "./social-audience";
 import type { SocialSummary } from "./social-summary";
 
 export type SocialTrendPoint = { month: string; label: string } & SocialTrendFields;
@@ -19,5 +20,7 @@ export interface SocialOverview {
   trend: SocialTrendPoint[];
   /** rentang tren berisi bulan Instagram dan bulan Facebook → grafik views per platform */
   mixedPlatforms: boolean;
+  /** followers per akhir bulan + insight akun tambahan IG (null = Instagram tidak aktif) */
+  audience: SocialAudience | null;
   recommendations: Recommendation[];
 }

@@ -2,13 +2,14 @@ import { prevMonth } from "@/modules/shared/lib/month";
 import { channelRecommendations } from "@/modules/recommendations/lib/recommendations";
 import { atMonth, trendPoints } from "@/modules/shared/lib/by-month";
 import { trendMonths } from "@/modules/shared/lib/trend-months";
+import type { SocialAudience } from "../types/social-audience";
 import type { SocialOverview } from "../types/social-overview";
 import type { SocialSummary } from "../types/social-summary";
 import { socialKpiSources } from "./social-compare";
 import { socialQuota } from "./social-quota";
 import { socialTrendFields } from "./social-trend";
 
-export function buildSocialOverview(month: string, byMonth: Map<string, SocialSummary>): SocialOverview {
+export function buildSocialOverview(month: string, byMonth: Map<string, SocialSummary>, audience: SocialAudience | null = null): SocialOverview {
   const summary = atMonth(byMonth, month);
   const prevSummary = atMonth(byMonth, prevMonth(month));
   const trend = trendPoints(trendMonths(month), byMonth, socialTrendFields);
@@ -21,6 +22,7 @@ export function buildSocialOverview(month: string, byMonth: Map<string, SocialSu
     prevQuota: prevSummary.hasData ? socialQuota(prevSummary) : null,
     trend,
     mixedPlatforms: trend.some((t) => t.viewsFacebook != null) && trend.some((t) => t.viewsInstagram != null),
+    audience,
     recommendations: channelRecommendations("social", { cur: { month, social: summary }, prev: { month: prevMonth(month), social: prevSummary } }),
   };
 }

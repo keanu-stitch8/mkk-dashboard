@@ -1,31 +1,57 @@
-# Handoff — MKK Dashboard (per 2026-11-04: menu Contributor dirombak & di-push `e63d68d`; berikutnya Rencana B metrik IG + deck laporan 4 bulanan)
+# Handoff — MKK Dashboard (per 2026-11-04 malam: metrik IG baru dan acuan laporan period selesai)
 
-Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_modules/next/dist/docs/` sebelum menulis kode Next), **`docs/architecture/data-flow.md`** (kontrak alur data, wajib sebelum menyentuh kode data), `docs/team-data-flow.md`, dan memory (`contributor-pay-per-content`, `ig-api-metric-availability`, `mkk-connector-decisions`, `ambiguous-not-true`, `mkk-team-dashboard`, `all-data-via-api`, `plan-before-report-changes`).
+Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_modules/next/dist/docs/` sebelum menulis kode Next), **`docs/architecture/data-flow.md`** (kontrak alur data), `docs/channels-data-flow.md` (baris Social = alur IG audience baru), `docs/team-data-flow.md`, dan memory (`report-deck-style`, `contributor-pay-per-content`, `ig-api-metric-availability`, `mkk-connector-decisions`, `ambiguous-not-true`, `plan-before-report-changes`).
 
 ## Status
 
 | Bagian | Status |
 | --- | --- |
-| Semua commit s/d `0cf5d7e` (login Tahap 0, refactor data flow, tanggal potong tgl 4 15:00 WIB, kontributor KPI 60) | ✅ di-push |
-| **Menu Contributor dirombak** (lihat bagian di bawah) — 2 migrasi `20261104052521_contributor_extra_role`, `20261104055600_contributor_news_names` | ✅ `e63d68d` di-push (tsc, eslint, 202 tes, sync Drive data asli, halaman dicek) |
-| Rencana B: metrik IG baru untuk laporan 4 bulanan | ⏳ disetujui arah, belum dikerjakan |
-| Deck laporan 4 bulanan ("tri semester") | ⏳ menunggu 4 keputusan pengguna |
-| Tahap 0 deploy ke server kantor + subdomain | ⏳ menunggu admin server |
+| Semua commit s/d `e63d68d` (Contributor dirombak) | ✅ di-push |
+| **Rencana B — metrik IG baru** (lihat bawah) + 2 migrasi `20261104071718_ig_audience_metrics`, `20261104071912_ig_follower_snapshot_flows` | ✅ selesai & dicek (tsc, eslint, 211 tes, build, halaman); tercakup dalam commit yang memuat handoff ini |
+| Cron 4 Nov 15:07: Okt di-sync + **Oktober dikunci** + scorecard Okt di-snapshot | ✅ |
+| Scorecard Jul–Sep: Sheets+Drive di-sync ulang (perbaikan tracker pengguna masuk), `snapshotScorecard` Jul–Okt | ✅ (DB saja) |
+| Deck laporan 4 bulanan **Period 1 (Jul–Oct 2026)** | ✅ jadi; Step 02 diputuskan "Maintain editorial diversity" dan sudah diterapkan (sesi lanjutan) |
+| Deploy server kantor | ⏳ "nanti saja" kata pengguna (`prisma migrate deploy` sekarang 4 migrasi baru) |
+
+**Perubahan kode dalam commit ini (semua sudah diverifikasi):**
+- Connector Meta (`src/modules/connectors/sources/meta/{index,map}.ts`): `IgAccountMonth` (profile_views, website_clicks, likes, comments, shares, saves, reposts; views/reach per `follow_type`; bulan terkunci diisi sekali, tak ditimpa), `IgFollowerSnapshot` (followers + follows/unfollows sejak tgl 1, **sekali per hari — snapshot pertama tidak ditimpa**), per post `profileVisits`/`reposts` (Meta menolak `follows` & `profile_visits` untuk **Reels**).
+- Halaman Social: section "Audience & discovery" (`social/overview/{lib,services,types}/social-audience*`, `components/social-audience.tsx`) + kolom Follows/Profile visits di Top posts.
+- Overview: kartu "Instagram followers" memakai seri followers yang sama (`getIgFollowers`), fallback `ig_account_followersNow`.
+- Scorecard: aset "not tracked" bila satu kelompok aset wajib kosong di semua cerita sebulan (`untrackedAssets`, Juli 2026) — tidak lagi 0%.
+- Dokumen: `docs/channels-data-flow.md` (baris Social).
+- Backfill Jun–Nov sudah dijalankan (DB). Angka: followers 4 Nov **2.274** (terkunci); akhir bulan estimasi Jun 97 · Jul 455 · Agu 1.114 · Sep 1.666 · Okt 2.254.
 
 **Langkah berikutnya (chat baru mulai di sini):**
+1. Pengguna sudah menginstruksikan **commit dan push** langsung ke `main` pada akhir sesi ini. Jangan bertanya ulang soal perubahan ini; cek `git status` dan `git log` untuk keadaan terbaru.
+2. **Step 02 sudah diputuskan dan diterapkan:** judul "Maintain editorial diversity", deskripsi "Keep sport central, with food, tourism & human interest." (diringkas agar muat di kartu; thumbnail final sudah diperiksa, teks terbaca utuh) Mengikuti maksud draft asli Mba Indah: olahraga sebagai identitas utama, tema lain memperluas pengalaman sports tourism. Keseimbangan tema belum diukur. Usulan Claude lama "Back to July's 45/month" gugur (45 = 21 feed + 19 Reels + 5 video Juli, bukan target client). **Klarifikasi terakhir pengguna mengoreksi pembacaan KPI sebelumnya:** asal KPI 30 Reels + 30 Carousel/bulan dan 60 News/bulan, tetapi Stories JUGA termasuk dalam penghitungan kuota, mengikuti dashboard. Jangan mengubah penghitungan/output-vs-quota menjadi hanya Reels + Carousel. Perubahan isi pada sesi lanjutan: dua kotak teks Step 02; angka dan narasi Output vs Quota dipertahankan. Readback membuktikan 13 slide dan urutannya tetap. Setelah itu pengguna meminta perbaikan layout slide 6 (Output vs Quota): kotak caption diperlebar dan ditinggikan, kalimat October dipisah ke baris kedua, line spacing caption + tiga kartu menjadi 90% (sebelumnya 100%); ukuran font tetap. Preview diperiksa.
+3. Opsional: samakan template oranye (warna kartu muda→tua, kotak rounded) supaya Period 2 langsung rapi; hapus deck v1 (warm_orange) ke Trash bila pengguna setuju; tambah kolom **tema** di Socmed log bila tim mau mengukur keseimbangan tema.
+4. Sisa lama: deploy server kantor; sisa kecil `docs/architecture/data-flow-audit.md`.
+5. Permintaan baru pengguna setelah commit/push diminta: generator laporan empat bulanan perlu ada di submenu **Report / PDF → Period Reports**. Saat ini belum diimplementasikan; deck masih dibuat melalui Composio. Rencana awal memakai template deck yang sudah disetujui, pilihan Period N, hasil Google Slides/PDF, dan aturan batas periode pada `MKK-PERIOD-REPORT-GUIDE.md`. Selesaikan sebagai pekerjaan lanjutan setelah commit ini.
 
-1. (Selesai) Kerjaan Contributor sudah di-commit & di-push. Di server, jalankan `prisma migrate deploy` saat deploy.
-2. **Rencana B — connector Meta** (`src/modules/connectors/sources/meta/index.ts` + `map.ts`), semua gratis & token yang ada sudah cukup (dites 4 Nov):
-   - Metrik akun per bulan (period=day, metric_type=total_value, dipotong ≤30 hari seperti `IG_ACCOUNT_ADDITIVE`): `profile_views` (= "Profile visits" di app), `website_clicks` (= "Bio link taps"; **bukan** `profile_links_taps` = tombol kontak, isinya 0), `likes`, `comments`, `shares`, `saves`, `reposts`. Simpan sebagai `Metric` key `ig_account_*`.
-   - `views` & `reach` dengan `breakdown=follow_type` → porsi non-follower (reach unik: hanya 30 hari pertama, sama seperti `reach` sekarang). `total_interactions` + follow_type → error Meta, jangan dipakai.
-   - **Followers:** API hanya memberi `followers_count` "saat ini" (2.273 per 4 Nov) dan `follower_count` harian = follow BARU, 30 hari terakhir saja. Buat tabel snapshot followers tiap sync/cron. Riwayat Jun–Okt = hitung mundur dari follows−unfollows (net Jun–Okt 2.244, konsisten), tandai estimasi. `followersNow` sekarang **tidak tersimpan** sama sekali (hanya saat bulan berjalan `w.partial`).
-   - `IgMediaSnapshot` + `SocialPost`: tambah `follows`, `profileVisits` (`profile_visits`), `reposts`. Catatan: connector sengaja tidak meminta `follows` untuk Reels.
-   - Jul–Sep dikunci: backfill sekali jalan **hanya metrik akun baru** (nilai lama jangan disentuh). Metrik per post untuk bulan lama hanya bisa "as of hari ini" → tandai.
-   - Template laporan bulanan **jangan** diubah tanpa rencana baris (memory `plan-before-report-changes`).
-   - `.env` `META_IG_USER_ID` kosong; ID IG `17841425896162511` diambil dari Page (`instagram_business_account`).
-3. **Deck laporan 4 bulanan** (bahan: draft Content & Creative Manager, IG-only, Bahasa Indonesia, periode 15 Jun–29 Okt + Insights ±30 hari). Keputusan yang belum dijawab pengguna: (a) periode — usulan T1 = Jul–Okt; (b) cakupan IG saja atau semua channel; (c) bahasa — laporan klien selama ini EN + format angka ID; (d) format — usulan Google Slides dari template ber-token (Slides API gratis) vs sekali jadi di Canva. Struktur ±12 slide yang sudah diusulkan: cover · exec summary KPI · tren followers per bulan · views/reach + porsi non-follower · per format (`IgAccountByType`, angka pas) · output vs kuota + kategori · top 5 konten (snapshot tanggal potong) · studi kasus Warung Entok (pakai **follows per 1.000 views** ≈13,4 vs rata-rata akun ≈3,3, bukan "9,9% dari total followers") · funnel profil → link → sesi GA4 dari Instagram · evaluasi · rekomendasi + target 3.000 followers akhir Des · metodologi.
-   - Catatan angka: net followers API 29 Sep–29 Okt = 525−32 = **+493**, app Insights +452 (beda definisi → catatan kaki). Angka per post terus naik (Entok 15.773 di draft → 19.054 per 4 Nov) → pakai snapshot tanggal potong.
-4. Sisa dari handoff lama yang masih berlaku: deploy server kantor (isi `DASHBOARD_PASSWORD`, `prisma migrate deploy`, reverse proxy teruskan `Host` + `X-Forwarded-Proto`); scorecard Jul–Sep masih live (unlock+lock setelah tim konfirmasi); link Gokil Restaurant di Calendar Timeline → `https://youtu.be/M3hjv1RNNLA`; sisa kecil di `docs/architecture/data-flow-audit.md`.
+## Deck laporan 4 bulanan (Period 1, Jul–Oct 2026)
+
+- Keputusan pengguna: **"Period N"** (bukan T1/tri semester; Period 2 = Nov 2026–Feb 2027), IG saja, teks EN + format angka ID, lewat **Composio** untuk hemat token. Sesi awal memakai Composio MCP (`pool`); sesi lanjutan memasang **Composio CLI v0.6.0** (`~/.local/bin/composio`), sudah login, toolkit `googleslides` terhubung. Pakai CLI yang sudah terpasang, simpan respons besar ke file dan tampilkan ringkasannya saja. Semua angka **dari data olahan dashboard** (dump via service `getSocialSummary`/`getSocialAudience`, bukan Insights app). Draft asli lengkap Mba Indah ditempel pengguna dalam sesi lanjutan; narasinya menjadi acuan, angka Insights ±30 hari tidak dicampur sebagai angka Jul–Okt.
+- **Tujuan narasi (klarifikasi pengguna 4 Nov, sesi lanjutan):** rayakan pencapaian Jul–Okt sambil jujur mengenai tren realisasi produksi. KPI asal client 30 Reels + 30 Carousel dan 60 News setiap bulan; pengguna menegaskan Stories juga termasuk penghitungan kuota, **sesuai dashboard**. Scope deck tetap Instagram. Step 02 membahas keragaman editorial, bukan target volume baru.
+- Folder Drive laporan bulanan: `1fpXnn7AFzH0hRWoIBtUeQ-EdDsxOOdgW`.
+  - **Deck final:** "MKK Instagram Performance Report – Period 1 (Jul–Oct 2026)" `1unxVW_vYhscmcZJ-52f2r7CRVHThbTqbcGV92Ym-iM8` (13 slide: cover, exec summary 4 kartu, audience growth/views by type/output vs quota (kotak + grafik tertaut), tabel discoverability/kategori/top 5/profile→website, case study Entok, evaluation 6 poin, recommendations Step 01–05, methodology).
+  - **Template bersih:** "MKK Report Template – Orange" `1d8gR6ZeIynCbR5LmmEcQY77li8JIqkXqJcjZoOGGhIw` (salinan template Slidesgo milik pengguna `1AmwkGDy…`, diwarnai ulang).
+  - **Sheet grafik:** "MKK Instagram Period 1 (Jul–Oct 2026) – Chart Data" `1CfOyCYaP_dwGtQ0qtBeCBq_mo69K-2zvvAgI06BMLwI` (chartId 1106613600 followers, 1699083086 views per tipe, 1818551027 output vs kuota; rasio 960×260; locale `in_ID`).
+  - Deck v1 lama (tema warm_orange, `1-XfWti4…`) masih ada — belum dihapus.
+- Gaya yang diminta pengguna (lihat memory `report-deck-style`): palet putih/hitam/oranye; urutan **muda → tua** (`#FB923C #F97316 #EA580C #C2410C #9A3412`, 6 tingkat + `#7C2D12`); teks putih tidak boleh di atas krem; kotak **rounded dengan radius sama** di semua slide; tabel lebar sama & di tengah; subjudul cover 1 baris tanpa menabrak gambar; hindari elemen dekoratif yang terbaca sebagai data (pie Entok sudah dihapus); deskripsi harus eksplisit & berbasis data, bukan tafsiran.
+- Fakta teknis Slides API (jangan ditemukan ulang): tidak bisa mengubah `shapeType` → rounded dibuat dari grup 2 persegi + 4 lingkaran (radius 110.000 EMU), kotak ber-teks dibuat transparan di atas grup; radius `ROUND_RECTANGLE` ikut ukuran shape (tidak konsisten); template Slidesgo menyimpan ikon/elemen tersembunyi di bawah kotak → hapus elemen di lapisan bawah saat kotak diganti; ikon putih memakai warna tema (bukan RGB); transform anak grup relatif terhadap grup; object ID ≥5 karakter; `updatePageElementsZOrder` per slide; gradasi tidak bisa diedit (ganti solid); grafik Sheets tertaut ikut rasio chart di Sheet; field mask `updateEmbeddedObjectPosition` = `anchorCell,widthPixels,heightPixels`; ganti teks dengan menyisipkan teks baru di awal tiap segmen lalu hapus sisa → gaya per baris tetap. Kerja massal lewat `COMPOSIO_REMOTE_WORKBENCH` (`proxy_execute` ke Slides API) + lembar kontak thumbnail untuk QA.
+
+## Koreksi deck dan acuan master, sesi lanjutan 4 November malam
+
+- Baca **`docs/superpowers/MKK-PERIOD-REPORT-GUIDE.md`** sebelum membuat laporan period berikutnya. Deck Period 1 menjadi acuan yang sudah disetujui; file Template Orange lama belum diperbarui dalam sesi ini.
+- Period selalu empat bulan penuh dan penomoran berlanjut. Period 1 Juli–Oktober 2026, Period 2 November 2026–Februari 2027, Period 3 Maret–Juni 2027. **Data November tidak boleh masuk sebagai capaian Period 1.**
+- Seluruh copy deck diperiksa dengan skill antislop copywriting. Teks Inggris sederhana, tanpa titik koma, titik dua, em/en dash, dan double hyphen. Nama bulan pada halaman terakhir lengkap. Baris kredit Slidesgo dihapus atas permintaan pengguna.
+- Caption slide 3 disamakan dengan slide 6, dan slide 5 juga memakai kotak caption lebar. Jarak antarbaris 90%, tanpa mengecilkan huruf. Teks dicek lewat render dan thumbnail native.
+- Grafik followers kini hanya Juli–Oktober. Ringkasan dan evaluasi memakai followers akhir Oktober **2.254 (estimasi)**, bukan 2.274 pada 4 November. Saldo pembuka Juli sekitar 97; net follows +2.157. Sisa target 3.000 menjadi 746, sekitar 12/hari sampai 31 Desember.
+- Metrik posting Oktober sebelumnya lifetime sampai 4 November. Untuk deck ini diganti ke snapshot **30 Oktober**, snapshot terakhir yang tersedia di dalam period (31 Oktober tidak ada). Entok menjadi 16.446 views, reach 11.059, shares 284, saves 276, likes + comments 267. Follows belum tersedia pada snapshot tersebut, jadi kartu memakai Reach dan tabel Top 5 menulis n/a. Jangan mengembalikan 277 follows atau 19.127 views dari snapshot November ke laporan ini.
+- Agregat kategori dan evaluasi ikut dihitung ulang. Featured News 260.614 views / 4.738 per post, Teaser 38.386 / 3.839, Featured Video 132.732 / 2.885. Insight akun kalender Juli–Oktober tetap 729.954 views, 11.166 profile visits, 231 link taps.
+- Sheet grafik adalah file mandiri khusus laporan Period 1, bukan tracker atau DB dashboard. Peninjauan otomatis awalnya menolak pengosongan dua sel November, lalu mengizinkan setelah konteks file mandiri dan klarifikasi pengguna dibuktikan. `Sheet1!A7:B7` sudah dikosongkan dan diverifikasi; tidak ada blocker tersisa. Grafik followers memakai baris indeks 2 sampai 6 (eksklusif), yaitu Juli–Oktober.
+- Untuk laporan berikutnya salin **deck dan Sheet grafik**, lalu sambungkan grafik ke Sheet baru. Jangan memperbarui Sheet Period 1 untuk period berikutnya karena dapat mengubah grafik laporan lama.
+- Verifikasi akhir sesi ini selesai. Readback memastikan perubahan teks sesuai rencana, angka akun direkonsiliasi, grafik followers hanya empat bulan, sel November kosong. Seluruh 13 slide dirender, lalu slide 3, Entok, Recommendations, dan halaman terakhir juga diperiksa lewat thumbnail native Google Slides. Pengerjaan deck tidak mengubah kode/dashboard atau database. Perubahan kode Rencana B yang sudah ada beserta dokumen sesi ini tercakup dalam commit yang memuat handoff ini.
 
 ## Menu Contributor (dirombak 4 Nov, `e63d68d`)
 
@@ -125,3 +151,9 @@ Angka terakhir (sync 23 Okt): 159 auto, 30 tracker, 329 saran. Oktober: 43 Story
 - Bahasa Indonesia santai di chat; teks UI dashboard bahasa Inggris dengan format angka Indonesia.
 - Semua data lewat API, tanpa biaya. shadcn: jangan edit `src/components/ui/*`, tambah lewat `npx shadcn add` + wrapper.
 - Jangan tampilkan token/kredensial; jangan masukkan data pembayaran kontributor ke halaman yang dipublikasikan.
+
+## Verifikasi ulang sebelum commit, 4 November malam
+
+- `npx tsc --noEmit`, `npm run lint`, dan 211 tes di 25 file lulus.
+- Build produksi lulus dengan `SYNC_CRON=0 npm run build -- --webpack`. Turbopack terhalang izin membuka port worker CSS pada lingkungan agen, termasuk saat eskalasi; skrip build project tidak diubah.
+- Server produksi sementara port 3100 berhasil merender Social Oktober (Audience & discovery, followers 2.254), Overview Oktober (followers yang sama), dan Scorecard Juli (aset not tracked). Server uji sudah dihentikan; dev server pengguna port 3000 tidak disentuh.

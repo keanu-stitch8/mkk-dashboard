@@ -20,6 +20,9 @@ export interface SocialPostEntry {
   shares: number | null;
   saves: number | null;
   follows: number | null;
+  /** IG carousel/foto saja — Meta tidak memberikannya untuk Reels */
+  profileVisits: number | null;
+  reposts: number | null;
   interactions: number | null;
   durationSec: number | null;
 }

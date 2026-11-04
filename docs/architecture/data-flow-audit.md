@@ -1,6 +1,7 @@
 # Data-flow audit
 
-Compliance with the [global data flow](./data-flow.md). Last review: 2026-10-24.
+Compliance with the [global data flow](./data-flow.md). Architecture review: 2026-10-24;
+Instagram audience and asset-score additions reviewed: 2026-11-04.
 
 ## Done
 
@@ -21,6 +22,10 @@ Compliance with the [global data flow](./data-flow.md). Last review: 2026-10-24.
       `shared/` still imports no feature module. Verified: 25 rendered pages identical to the previous build.
 - [x] Verified against the pre-refactor commit: service output (all channels, bundle, trend, audience, Team),
       monthly report data (byte-identical), 78 rendered pages, and the non-mutating API responses.
+- [x] Instagram audience and discovery (2026-11-04): connector-owned account metrics and daily follower
+      snapshots flow through the Social repository, canonical types, service and pure derivation. Overview
+      reuses the same follower series. Missing monthly asset groups produce an untracked score rather
+      than zero. Focused tests live next to the pure functions; domain behavior is documented.
 
 ## Open (small, deliberate)
 

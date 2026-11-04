@@ -53,6 +53,11 @@ Contributors defaults to the latest contributor tab (not the latest Story/Brief 
 `modules/connectors/sources/lock.ts` (ingest) calls `snapshotScorecard` when a month is locked and `clearScorecard` when it is
 unlocked. Months before `SCORECARD_FROM` (July 2026) show a notice; before the refactor they returned HTTP 500.
 
+Asset completion is untracked (`value: null`) if an entire required asset group is blank across every
+contributor story that month. The groups are photo (landscape or portrait), portrait video, and interview
+video. An explicit missing/unavailable state counts as recorded. This prevents an unrecorded group
+from becoming a misleading 0% completion score, as in July 2026.
+
 ## Verification
 
 Old vs new service output (stories, briefs, pipeline, contributors, scorecard live + snapshot + history, recap)

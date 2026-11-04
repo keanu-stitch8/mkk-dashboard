@@ -12,7 +12,7 @@ import { monthRange } from "../common";
 import { upsertIgStories } from "@/modules/import/ingest/stories";
 import { GraphError, META_PERMISSIONS, metaErrorMessage } from "./errors";
 import { GRAPH_VERSION, graphGet, graphInsights, graphPaginate, mapLimit, type Paged } from "./graph";
-import { followBreakdown, typeBreakdown, graphTime, igMetricsFor, mapFacebook, mapInstagram, snapshotRows, wibDateTime, type FbPost, type IgMedia, type InsightsResponse } from "./map";
+import { followBreakdown, followTypeBreakdown, typeBreakdown, graphTime, igMetricsFor, mapFacebook, mapInstagram, snapshotRows, wibDateTime, type FbPost, type IgMedia, type InsightsResponse } from "./map";
 import { WIB, addDays, dateIn, zonedInstant } from "@/modules/shared/lib/tz";
 import { cutoffDate } from "@/modules/shared/lib/month";
 
@@ -27,6 +27,8 @@ const FB_POST_METRICS = ["post_media_view", "post_total_media_view_unique"];
  */
 const IG_ACCOUNT_ADDITIVE = ["views", "total_interactions"];
 const IG_ACCOUNT_UNIQUE = ["reach", "accounts_engaged"];
+/** Insight akun tambahan (tabel IgAccountMonth, segment "all") — semuanya bisa dijumlah per potongan ≤30 hari. */
+const IG_ACCOUNT_EXTRA = ["profile_views", "website_clicks", "likes", "comments", "shares", "saves", "reposts"];
 /** Izin minimum per platform; sisanya di META_PERMISSIONS direkomendasikan. */
 const REQUIRED_PERMS = {
   facebook: ["pages_show_list", "pages_read_engagement", "read_insights"],
@@ -157,18 +159,92 @@ async function saveIgTypes(tok: string, igUserId: string, month: string): Promis
 }
 
 /**
+ * Total followers "saat ini" → IgFollowerSnapshot hari ini (WIB; hanya snapshot pertama hari itu yang disimpan).
+ * Gagal tidak menggagalkan sync — hanya peringatan.
+ */
+async function snapshotFollowers(tok: string, igUserId: string, warnings: string[]): Promise<number | null> {
+  try {
+    // sekali per hari (snapshot pertama = paling dekat pergantian bulan): followers akhir bulan lalu yang dihitung
+    // dari snapshot ini tidak bergeser lagi oleh sync berikutnya di hari yang sama
+    const date = dateIn(Date.now(), WIB);
+    const existing = await prisma.igFollowerSnapshot.findUnique({ where: { date }, select: { followers: true } });
+    if (existing) return existing.followers;
+    const ig = await graphGet<{ followers_count?: number }>(`/${igUserId}`, tok, { fields: "followers_count" });
+    if (ig.followers_count == null) return null;
+    // follow/unfollow sejak tanggal 1 diambil bersamaan → followers akhir bulan lalu bisa dihitung dari snapshot ini saja
+    const flows = await igFollows(tok, igUserId, monthWindow(date.slice(0, 7))).catch((e) => {
+      if (e instanceof GraphError && e.code === 190) throw e;
+      return null;
+    });
+    const data = { followers: ig.followers_count, monthFollows: flows?.follows ?? null, monthUnfollows: flows?.unfollows ?? null };
+    await prisma.igFollowerSnapshot.upsert({ where: { date }, create: { date, ...data }, update: data });
+    return ig.followers_count;
+  } catch (e) {
+    if (e instanceof GraphError && e.code === 190) throw e;
+    warnings.push(`Instagram: couldn't save today's follower count (${e instanceof GraphError ? metaErrorMessage(e) : (e as Error).message}).`);
+    return null;
+  }
+}
+
+/**
+ * Insight akun tambahan selama bulan itu → IgAccountMonth: profile visits, link bio, interaksi per jenis (dijumlah per
+ * potongan ≤30 hari), views per follow_type (dijumlah), reach per follow_type (unik → 30 hari pertama saja, sama dengan
+ * KPI reach). Bulan terkunci hanya diisi jika belum ada datanya (backfill sekali; nilai lama tidak ditimpa).
+ */
+async function saveIgAccountMonth(tok: string, igUserId: string, month: string): Promise<number> {
+  const { isMonthLocked } = await import("../lock");
+  if ((await isMonthLocked(month)) && (await prisma.igAccountMonth.count({ where: { month } }))) return 0;
+  const w = monthWindow(month);
+  const params = { period: "day", metric_type: "total_value" };
+  const acc = new Map<string, { metric: string; segment: string; value: number }>();
+  const add = (rows: { metric: string; segment: string; value: number }[]) => {
+    for (const r of rows) {
+      const k = `${r.metric}|${r.segment}`;
+      acc.set(k, { ...r, value: (acc.get(k)?.value ?? 0) + r.value });
+    }
+  };
+  for (const [since, until] of rangeChunks(w)) {
+    const extra = await graphInsights(igUserId, tok, IG_ACCOUNT_EXTRA, { ...params, since, until });
+    add(Object.entries(extra.values).map(([metric, value]) => ({ metric, segment: "all", value })));
+    add(followTypeBreakdown(await graphGet<InsightsResponse>(`/${igUserId}/insights`, tok, { ...params, metric: "views", breakdown: "follow_type", since, until })));
+  }
+  add(followTypeBreakdown(await graphGet<InsightsResponse>(`/${igUserId}/insights`, tok, { ...params, metric: "reach", breakdown: "follow_type", since: w.since, until: Math.min(w.until, w.since + MAX_RANGE_SEC) })));
+  const rows = [...acc.values()];
+  await prisma.$transaction(rows.map((r) => prisma.igAccountMonth.upsert({ where: { month_metric_segment: { month, metric: r.metric, segment: r.segment } }, create: { month, ...r }, update: { value: r.value } })));
+  return rows.length;
+}
+
+/** Untuk backfill: isi insight akun tambahan satu bulan (tanpa menyentuh data lain). Null jika Meta belum dikonfigurasi. */
+export async function syncIgAccountMonth(month: string): Promise<number | null> {
+  const tok = token();
+  if (!tok) return null;
+  try {
+    const ids = await resolveIds(tok);
+    return ids.igUserId ? await saveIgAccountMonth(tok, ids.igUserId, month) : null;
+  } catch (e) {
+    throw translate(e);
+  }
+}
+
+/**
  * Untuk cron: snapshot harian metrik lifetime post IG (maks. 1x per hari WIB). Snapshot pertama setelah
  * tanggal 1 menjadi batas "views bulan ini" per post. Null jika sudah ada snapshot hari ini / Meta belum siap.
  */
 export async function snapshotIgDaily(): Promise<string[] | null> {
   const tok = token();
   const today = dateIn(Date.now(), WIB);
-  if (!tok || (await prisma.igMediaSnapshot.findFirst({ where: { date: today }, select: { id: true } }))) return null;
+  if (!tok) return null;
+  const [media, followers] = await Promise.all([
+    prisma.igMediaSnapshot.findFirst({ where: { date: today }, select: { id: true } }),
+    prisma.igFollowerSnapshot.findUnique({ where: { date: today }, select: { date: true } }),
+  ]);
+  if (media && followers) return null;
   try {
     const ids = await resolveIds(tok);
     if (!ids.igUserId) return null;
     const warnings: string[] = [];
-    await snapshotRecentMedia(tok, ids.igUserId, new Map(), warnings);
+    if (!followers) await snapshotFollowers(tok, ids.igUserId, warnings);
+    if (!media) await snapshotRecentMedia(tok, ids.igUserId, new Map(), warnings);
     return warnings;
   } catch (e) {
     throw translate(e);
@@ -257,6 +333,12 @@ async function fetchInstagram(tok: string, igUserId: string, month: string, w: R
     if (e instanceof GraphError && e.code === 190) throw e;
     warnings.push(`Instagram: couldn't fetch insights by content type (${metaErrorMessage(e)}). Other data was still saved.`);
   }
+  try {
+    await saveIgAccountMonth(tok, igUserId, month);
+  } catch (e) {
+    if (e instanceof GraphError && e.code === 190) throw e;
+    warnings.push(`Instagram: couldn't fetch profile visits / link taps / follower split (${metaErrorMessage(e)}). Other data was still saved.`);
+  }
   const ds = mapInstagram(media, insights, month, source, account);
   await applyCutoffSnapshot(ds, month, warnings);
   return ds;
@@ -274,7 +356,12 @@ async function applyCutoffSnapshot(ds: Dataset, month: string, warnings: string[
   const byId = new Map(snaps.map((s) => [s.mediaId, s]));
   for (const r of ds.rows) {
     const s = byId.get(String(r.postId));
-    if (s) Object.assign(r, { views: s.views, reach: s.reach, likes: s.likes, comments: s.comments, shares: s.shares, saves: s.saves, interactions: s.interactions });
+    if (!s) continue;
+    Object.assign(r, { views: s.views, reach: s.reach, likes: s.likes, comments: s.comments, shares: s.shares, saves: s.saves, interactions: s.interactions });
+    // kolom yang baru ada sejak 4 Nov 2026: snapshot lama kosong → nilai hari ini tetap dipakai
+    if (s.follows != null) r.follows = s.follows;
+    if (s.profileVisits != null) r.profileVisits = s.profileVisits;
+    if (s.reposts != null) r.reposts = s.reposts;
   }
   const missing = ds.rows.length - snaps.length;
   warnings.push(
@@ -311,10 +398,9 @@ async function igAccountInsights(tok: string, igUserId: string, w: ReturnType<ty
     }
     if (rejected.size) warnings.push(`Instagram: Meta rejected account metrics ${[...rejected].join(", ")} — skipped.`);
     // total followers hanya tersedia "saat ini" → disimpan saat sync bulan berjalan; bulan lalu dihitung mundur
-    if (w.partial) {
-      const ig = await graphGet<{ followers_count?: number }>(`/${igUserId}`, tok, { fields: "followers_count" });
-      if (ig.followers_count != null) out.followersNow = ig.followers_count;
-    }
+    // + IgFollowerSnapshot hari ini (riwayat followers untuk semua bulan)
+    const followersNow = await snapshotFollowers(tok, igUserId, warnings);
+    if (w.partial && followersNow != null) out.followersNow = followersNow;
     const follows = await igFollows(tok, igUserId, w);
     if (follows) return { ...out, follows: follows.follows, unfollows: follows.unfollows };
     warnings.push("Instagram: Meta doesn't provide account follows (follows_and_unfollows is only available for accounts with ≥ 100 followers).");

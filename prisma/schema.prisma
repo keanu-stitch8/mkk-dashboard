@@ -261,6 +261,9 @@ model SocialPost {
   shares       Float?
   saves        Float?
   follows      Float?
+  /// kunjungan profil dari post ini (IG; Meta tidak memberikannya untuk Reels)
+  profileVisits Float?
+  reposts      Float?
   interactions Float?
   durationSec  Float?
   import       Import @relation(fields: [importId], references: [id], onDelete: Cascade)
@@ -392,6 +395,9 @@ model IgMediaSnapshot {
   comments      Float?
   shares        Float?
   saves         Float?
+  follows       Float?
+  profileVisits Float?
+  reposts       Float?
   interactions  Float?
   createdAt     DateTime @default(now())
 
@@ -435,6 +441,31 @@ model IgAccountByType {
   updatedAt DateTime @updatedAt
 
   @@id([month, metric, type])
+}
+
+/// Insight akun IG per bulan (per periode, connector Meta) di luar KPI lama: kunjungan profil, tap link bio,
+/// interaksi per jenis, dan views/reach per follow_type. Tabel sendiri (bukan Metric) supaya bisa di-backfill ke
+/// bulan terkunci tanpa menyentuh import lama. Bulan terkunci yang sudah terisi tidak ditimpa.
+model IgAccountMonth {
+  month     String
+  metric    String // profile_views | website_clicks | likes | comments | shares | saves | reposts | views | reach
+  segment   String // all | follower | non_follower | unknown (breakdown follow_type)
+  value     Float
+  updatedAt DateTime @updatedAt
+
+  @@id([month, metric, segment])
+}
+
+/// Total followers IG "saat ini" — API tidak memberi riwayat, jadi disimpan tiap hari (cron) & tiap sync Meta.
+/// monthFollows/monthUnfollows = follow & unfollow sejak tanggal 1 bulan itu s/d saat snapshot (diambil bersamaan),
+/// jadi followers akhir bulan lalu ≈ followers − (monthFollows − monthUnfollows).
+model IgFollowerSnapshot {
+  date           String   @id // YYYY-MM-DD (WIB)
+  followers      Float
+  monthFollows   Float?
+  monthUnfollows Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
 }
 
 /// Laporan bulanan yang dibuat dashboard (file Google Sheets baru dari master template).

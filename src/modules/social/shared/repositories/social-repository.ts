@@ -35,3 +35,18 @@ export const findIgStoryDates = (month: string) => prisma.igStory.findMany({ whe
 
 /** Story pertama yang tercatat dari API (sebelum tanggal ini API belum mengumpulkan Story) */
 export const findFirstApiStory = () => prisma.igStory.findFirst({ where: { source: "api" }, orderBy: { date: "asc" }, select: { date: true } });
+
+/** insight akun IG tambahan (profile visits, link bio, follow_type) beberapa bulan sekaligus */
+export const findIgAccountMonths = (months: string[]) =>
+  prisma.igAccountMonth.findMany({ where: { month: { in: months } }, select: { month: true, metric: true, segment: true, value: true } });
+
+/** semua snapshot total followers IG (satu baris per hari) */
+export const findIgFollowerSnapshots = () =>
+  prisma.igFollowerSnapshot.findMany({ orderBy: { date: "asc" }, select: { date: true, followers: true, monthFollows: true, monthUnfollows: true } });
+
+/** follow & unfollow akun IG per bulan (insight akun connector Meta, semua bulan) */
+export const findIgFollowFlows = () =>
+  prisma.metric.findMany({
+    where: { channel: "social", key: { in: ["ig_account_follows", "ig_account_unfollows"] }, import: { source: "meta_instagram" } },
+    select: { month: true, key: true, value: true },
+  });

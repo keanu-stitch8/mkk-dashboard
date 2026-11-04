@@ -19,6 +19,8 @@ export const toSocialPostEntry = (p: SocialPost): SocialPostEntry => ({
   shares: p.shares,
   saves: p.saves,
   follows: p.follows,
+  profileVisits: p.profileVisits,
+  reposts: p.reposts,
   interactions: p.interactions,
   durationSec: p.durationSec,
 });
