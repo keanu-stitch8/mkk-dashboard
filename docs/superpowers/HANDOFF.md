@@ -1,6 +1,128 @@
-# Handoff — MKK Dashboard (per 2026-11-04 malam: metrik IG baru dan acuan laporan period selesai)
+# Handoff — MKK Dashboard (per 2026-11-05: generator Period Reports terverifikasi)
 
 Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_modules/next/dist/docs/` sebelum menulis kode Next), **`docs/architecture/data-flow.md`** (kontrak alur data), `docs/channels-data-flow.md` (baris Social = alur IG audience baru), `docs/team-data-flow.md`, dan memory (`report-deck-style`, `contributor-pay-per-content`, `ig-api-metric-availability`, `mkk-connector-decisions`, `ambiguous-not-true`, `plan-before-report-changes`).
+
+## Titik lanjut terbaru — akhir sesi 5 November
+
+- **Commit/push sesi 5 November:** pengguna sudah meminta "commit dan push" setelah menerima
+  laporan YouTube Oktober yang diperbarui. Generator Period Reports, pelengkap follows CSV,
+  penyelarasan snapshot cutoff, tes dan dokumen sesi ini disertakan dalam commit ke `main`.
+  TypeScript, lint, **246 tes / 31 file**, serta build produksi webpack lulus pada pemeriksaan sebelum
+  commit. Dua skrip sementara `.tmp-check` dipindahkan ke `/private/tmp/mkk-dashboard-20261105-precommit-checks/`.
+  QA produksi: Monthly Reports, Period 1/2, Social Oktober dan YouTube Oktober HTTP 200. Semua tautan
+  laporan bulanan cocok dengan riwayat terbaru DB; YouTube 3/4, Period 1 ready dengan cutoff 4 November,
+  Period 2 masih diblokir. Server QA memakai port kosong dan sudah dihentikan; proses lain tidak disentuh.
+  Riwayat DB sudah memiliki hasil generate bulanan lebih baru pada 17.25–17.30 WIB; tautan YouTube
+  terbaru saat pemeriksaan ialah `13X0XI0MgF02zFN5vmpVv0oHRCzsouFPGlVFY9dh1Vew` (17.25 WIB).
+  Catatan belum di-commit pada bagian riwayat di bawah menggambarkan status sebelum permintaan ini.
+- **YouTube Monthly Report Oktober dibuat ulang setelah koreksi AND1:** hasil baru
+  [Google Sheets](https://docs.google.com/spreadsheets/d/1VfDhtJgCq5HM8ZNuE7sypIDobliZkSd71S_gxeUYK5o/edit),
+  [PDF](https://drive.google.com/file/d/13Jo41zzASF2DD9zdPafs1wB-Tg1nea1o/view).
+  Generator memakai data dashboard: **3 / 4 delivered, 75%, sisa 1**, views **474**. Daftar Oktober
+  hanya Soto Bu Djatmi, @Hom Hotel, dan Gokil Restaurant; AND1 masuk November. Readback Google Sheets
+  memverifikasi KPI, perbandingan -25% dengan September, narasi 3 dari 4, dan tiga baris Publishing Log.
+  File lama yang dibuka pengguna (`1jUplXYsoosmhbe-SP9am4SMfPEHp3VJCrFMmNaM6kgw`) adalah snapshot
+  4 November sebelum koreksi; generator memberi nama berakhiran lama. Riwayat baru sukses tanpa warning.
+  PDF hasil ekspor awal memecah tabel kategori menjadi halaman tambahan. PDF pada ID yang sama
+  diekspor ulang dengan pemisah sebelum Production Series (baris 29) dan fit-to-page untuk kedua
+  bagian Executive Summary, menjadi **5 halaman**. Isi sheet tetap hasil generator; tidak ada perubahan
+  kode generator. Seluruh halaman awal dan kedua halaman ringkasan hasil perbaikan diperiksa visual.
+- **YouTube AND1, koreksi pengguna:** Planned Date 16 Oktober, Publish Date **2 November**. API YouTube
+  mengonfirmasi `ND8911R7Xvw` public, published `2026-11-02T12:10:31Z`; sheet Summary saat diperiksa
+  juga sudah benar. Dashboard memakai salinan `yt_log` lama bertanggal 16 Oktober. Parser memang sudah
+  memprioritaskan Publish Date. Hanya `yt_log` Oktober dan November ditarik ulang lewat parser/commit
+  yang sama dengan connector; tidak mengubah sheet sumber. Kini Oktober **3 published**, November
+  **1 published** (AND1), in review keduanya 0. Kuota tetap **4** sebagai target default, bukan jumlah
+  video tayang. YtVideo, Metric YouTube, MonthLock dan Quota dibanding sebelum/sesudah dan identik.
+- **KEPUTUSAN FINAL TERBARU:** pengguna meminta semua acuan posting mengikuti **tanggal penguncian**,
+  yaitu tanggal **4 bulan berikutnya pukul 15.00 WIB**. Bukan tanggal 5, bukan akhir bulan, bukan 2 Nov.
+  `social/shared/lib/post-snapshot-date.ts` kini mengembalikan `cutoffDate(month)` dari sumber `CUTOFF_DAY`.
+  Period wrapper memakai helper yang sama untuk bulan penutup. Social dan Period mengutamakan record
+  sync tersimpan pada tanggal cutoff, lalu snapshot harian tepat tanggal itu. Ini mencegah snapshot
+  harian lebih awal pada hari yang sama mengganti hasil sync cutoff. Tanggal lain tidak menjadi fallback.
+  Data akun tetap kalender bulan/period, dan follows CSV tetap punya provenance tanggal tersendiri.
+- Hasil terakhir pengguna yang diperbarui langsung: deck `1MNKNMKACMCiirGnTDxLYxMSvB8R1I4z5yw_CXkAujFo`,
+  PDF `1bPbsTRro9hIdSNtAH80sVrDBH2aYzWIG`. Tabel kategori, Top posts, studi kasus, evaluasi follows dan
+  metodologi diselaraskan ke cutoff 4 Nov tanpa mengubah pilihan organic/target pengguna atau tautan chart.
+  Readback memverifikasi 59 bagian teks yang diubah, PDF tetap 13 halaman, preview native slide 7 dan 9
+  diperiksa dan terbaca utuh. Catatan riwayat `GeneratedReport` juga diselaraskan. TypeScript, lint,
+  246 tes, build produksi dan QA HTTP Social/Period lulus. Server uji 3100 sudah dihentikan, skrip edit
+  sementara sesi ini dihapus. Perubahan kode disertakan dalam commit sesi ini.
+- Entok berdasarkan record cutoff **4 Nov**: **19.127 views, reach 12.707, likes 282, comments 22, shares
+  324, saves 316, Profile visits 285, follows tercatat 277**. Social boleh menampilkan follows CSV 278
+  dengan tanda/provenance; period mempertahankan follows 277 yang tersedia pada record cutoff.
+- **Slide 7:** kategori sekarang menghitung hanya posting dengan views tersedia. Kolom Posts berisi
+  terukur/total (News 32/55, Video 28/46, Teaser 6/10); views dan rata-rata memakai posting terukur saja,
+  bukan menganggap yang hilang nol. Pada cutoff 4 Nov: News 204.313 / avg 6.385, Video 108.467 / avg 3.874,
+  Teaser 19.471 / avg 3.245. Ada catatan cakupan dan tanggal. Top posts Social Oktober juga sudah tampil.
+- Seluruh catatan 2 November / akhir bulan / blokir karena tidak ada post views di bawah adalah riwayat
+  keputusan sebelumnya. Pengguna terakhir menegaskan konsistensi dengan jadwal cutoff yang sudah ada.
+- **Keputusan terakhir menjelang pengiriman jam 16:** pengguna secara eksplisit memilih **snapshot
+  posting 2 November 2026 untuk Period 1**, bukan 31 Oktober. Sudah diterapkan di `periodPostSnapshotDate`
+  dan dipakai bersama oleh preview/generator. `postSnapshotDate` menjadi field kanonik untuk catatan
+  dashboard, judul tabel Top posts, studi kasus dan metodologi. Angka akun/followers tetap Jul–Okt.
+  Posting di luar Jul–Okt tidak ikut. Tidak mengambil snapshot 30 Oktober, 3/4/5 November sebagai
+  pengganti. Sebanyak 66 dari 111 posting memiliki views pada 2 November; lainnya tetap `n/a`, sehingga
+  agregat kategori yang tidak lengkap juga `n/a`. Top 5 memakai posting yang snapshot-nya tersedia.
+- Entok snapshot 2 November: **18.432 views**, reach **12.266**, likes 269, comments 20, shares 313,
+  saves 309; follows **278** dari CSV upload 5 November (export date unknown), Profile visits `n/a`.
+  Total akun tetap **729.954 views**, followers akhir Oktober **2.254**, published **351**.
+- Verifikasi terbaru: TypeScript, lint, **245 tes / 31 file**, build produksi lulus. Template Google
+  dan Sheet sumber berhasil dibaca; rencana pengisian 13 slide / 135 bagian teks dengan data DB asli
+  menampilkan tanggal 2 November dan Entok 18.432. QA HTTP produksi membuktikan catatan "2 November
+  2026 snapshot, not 31 October 2026", metrik kasus yang sesuai dan tombol generate aktif; Period 2
+  tetap diblokir karena belum selesai. Tidak menjalankan generate baru, pengguna ingin menekan tombol
+  sendiri. File Google lama tidak diubah. Server uji 3100 dihentikan; dev 3000 tetap milik pengguna.
+- Catatan keputusan `n/a`/31 Oktober di bawah adalah riwayat sebelum pengguna menyetujui 2 November.
+- **Keputusan paling baru pengguna:** tetap tampilkan dan izinkan generate laporan Juli–Oktober dengan
+  data akun yang tersedia. Kekosongan snapshot 31 Oktober sekarang hanya warning. Top posts dan studi
+  kasus ditulis `n/a`, termasuk empat kartu metrik, dengan tanggal snapshot yang hilang dijelaskan.
+  Jangan mengambil snapshot 30 Oktober atau November sebagai pengganti. Period belum selesai dan
+  data akun empat bulan yang belum lengkap tetap diblokir. Ini menggantikan keputusan blokir di bawah.
+- Verifikasi keputusan terbaru: TypeScript, lint, **242 tes / 31 file**, build produksi dan QA HTTP
+  lulus. Period 1 menampilkan 729.954 views akun, 2.254 followers, 351 published, tombol generate aktif
+  dan empat metrik studi kasus `n/a`; Period 2 tombolnya nonaktif dan API tetap HTTP 400. Rencana
+  pengisian template dengan data DB asli berhasil untuk 13 slide, 115 bagian teks, Top Content dan
+  Case study `n/a`. Tes kontrak memverifikasi nilai contoh pada tabel/kartu diganti. Tidak menjalankan
+  generate Google pada pemeriksaan ini; deck/PDF lama dan baris riwayat tetap utuh. Browser otomatis
+  tidak tersedia, jadi UI diperiksa lewat render HTML produksi. Server sementara 3100 sudah dihentikan.
+- **Composio Instagram** kini ACTIVE untuk `@main_ke_kudus`, nama Mainkekudus.com, akun Creator,
+  Instagram user ID `17841425896162511`. Akun koneksi `ca_X1a1XUIrXpst`. Email login tidak dikembalikan
+  API, jadi `mainkekudus@gmail.com` belum bisa diverifikasi dari respons. Uji langsung membuktikan
+  views/reach dapat dibaca, tetapi follows Reel ditolak untuk jenis media tersebut. Tool media insights
+  hanya menerima period lifetime tanpa tanggal historis. Dashboard tetap memakai koneksi Meta langsung.
+- **Koreksi berikutnya, 5 November:** pengguna meminta views memakai tanggal akhir bulan. Top posts bulan
+  selesai kini diurutkan dari snapshot tepat pada hari terakhir bulan; Period Reports memakai hari terakhir
+  period untuk semua metrik posting, tanpa fallback 30 Oktober/2 November. Tidak ada snapshot 31 Oktober
+  di DB; ranking akhir Oktober kosong. Pada tahap ini generator Period 1 sempat diblokir; keputusan
+  terbaru di atas sudah menggantikan blokir tersebut.
+  Deck/PDF yang sudah dibuat belum diubah. `SYNC_CRON=1`, tetapi cron adalah timer dalam proses Next.js;
+  snapshot harian hanya log console, sehingga sebab pasti celah 31 Oktober–1 November tidak tercatat di
+  `SyncLog`. Jangan menganggap data 30 Oktober sebagai hasil akhir Oktober. Tanggal posting lengkap juga
+  sudah ditambahkan pada pilihan case study, detail dashboard, dan rencana Slides/PDF baru.
+- Validasi lanjutan koreksi akhir bulan: TypeScript, lint, **240 tes / 31 file**, build produksi
+  `SYNC_CRON=0 npm run build -- --webpack`, render HTTP Period 1/2 dan Social Oktober lulus. Endpoint
+  menghasilkan HTTP 400 untuk Period 1 (snapshot 31 Oktober tidak tersedia) dan Period 2 (belum selesai),
+  tanpa membuat baris `GeneratedReport`. Social November menampilkan empty state karena belum ada data.
+  Tidak ada perubahan deck, PDF, data sumber, atau kunci bulan pada pemeriksaan ini.
+- Pekerjaan generator, revisi judul, pelengkap follows CSV, slide 8 dan studi kasus sudah selesai serta
+  diverifikasi. **Disertakan dalam commit sesi ini** atas permintaan pengguna. Deploy kantor
+  tetap ditunda. Tidak ada migrasi DB baru untuk generator atau CSV follows.
+- Judul **Instagram Four-Month Performance Report**, tetap **13 slide**. Hasil terbaru adalah
+  [deck hasil generator](https://docs.google.com/presentation/d/1DjrqSrgICzgolOW_CtpoxeldvLmh68Wo3dLKoTD9PVk/edit)
+  dan [PDF yang sudah diselaraskan](https://drive.google.com/file/d/1Y4S9Ozypna0Oj21Eq5rbQH7w8PVCsnWV/view).
+  [Sheet grafik salinan](https://docs.google.com/spreadsheets/d/1gA0YFSfX1kvHTi_bnhL4jMr-acQtfDvDBGhqD8eJ1C4/edit)
+  tetap terpisah dari sumber master. ID deck lama di bagian historis adalah sumber, bukan hasil revisi terbaru.
+- Pilihan final pengguna **opsi 2**: snapshot metrik utama tetap di dalam period; hanya follows kosong
+  dilengkapi CSV dengan sumber/tanggal terpisah. Slide 8 sudah lengkap, termasuk Lim You **23** dan Entok
+  **278**. Entok tetap **16.446 views** dari **30 Oktober**, dan Profile visits tetap `n/a` karena tidak
+  tercatat pada snapshot itu. CSV sudah diimpor secara terpisah; data API dan kunci bulan tidak berubah.
+- Pilihan studi kasus **maksimal 10**, diurutkan berdasarkan views dari posting **dalam period terpilih**,
+  divalidasi di UI dan server. Period 2 tidak mengambil sampel Period 1. Studi kasus memakai empat metrik
+  utama Views, Reach, Profile visits, Follows serta rincian likes/comments/shares/saves.
+- Verifikasi akhir: TypeScript, lint, **234 tes / 30 file**, build produksi, QA HTTP dan pratinjau seluruh
+  13 slide lulus. Server uji 3100 sudah dihentikan; tidak perlu mengulang pekerjaan yang sudah selesai.
+  Rincian implementasi/provenance ada pada bagian revisi follows di bawah.
 
 ## Status
 
@@ -11,6 +133,7 @@ Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_m
 | Cron 4 Nov 15:07: Okt di-sync + **Oktober dikunci** + scorecard Okt di-snapshot | ✅ |
 | Scorecard Jul–Sep: Sheets+Drive di-sync ulang (perbaikan tracker pengguna masuk), `snapshotScorecard` Jul–Okt | ✅ (DB saja) |
 | Deck laporan 4 bulanan **Period 1 (Jul–Oct 2026)** | ✅ jadi; Step 02 diputuskan "Maintain editorial diversity" dan sudah diterapkan (sesi lanjutan) |
+| **Report / PDF → Period Reports** (`/report/periods`) | ✅ implementasi dan live generate Slides + PDF terverifikasi 5 Nov; disertakan dalam commit sesi ini |
 | Deploy server kantor | ⏳ "nanti saja" kata pengguna (`prisma migrate deploy` sekarang 4 migrasi baru) |
 
 **Perubahan kode dalam commit ini (semua sudah diverifikasi):**
@@ -22,11 +145,62 @@ Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_m
 - Backfill Jun–Nov sudah dijalankan (DB). Angka: followers 4 Nov **2.274** (terkunci); akhir bulan estimasi Jun 97 · Jul 455 · Agu 1.114 · Sep 1.666 · Okt 2.254.
 
 **Langkah berikutnya (chat baru mulai di sini):**
-1. Pengguna sudah menginstruksikan **commit dan push** langsung ke `main` pada akhir sesi ini. Jangan bertanya ulang soal perubahan ini; cek `git status` dan `git log` untuk keadaan terbaru.
+1. Perubahan 4 November sudah tercakup dalam commit `8b97e74`. Generator Period Reports dan pembaruan dokumen 5 November disertakan dalam commit sesi ini atas permintaan eksplisit pengguna untuk commit dan push. Perubahan berikutnya tetap menunggu instruksi commit baru.
 2. **Step 02 sudah diputuskan dan diterapkan:** judul "Maintain editorial diversity", deskripsi "Keep sport central, with food, tourism & human interest." (diringkas agar muat di kartu; thumbnail final sudah diperiksa, teks terbaca utuh) Mengikuti maksud draft asli Mba Indah: olahraga sebagai identitas utama, tema lain memperluas pengalaman sports tourism. Keseimbangan tema belum diukur. Usulan Claude lama "Back to July's 45/month" gugur (45 = 21 feed + 19 Reels + 5 video Juli, bukan target client). **Klarifikasi terakhir pengguna mengoreksi pembacaan KPI sebelumnya:** asal KPI 30 Reels + 30 Carousel/bulan dan 60 News/bulan, tetapi Stories JUGA termasuk dalam penghitungan kuota, mengikuti dashboard. Jangan mengubah penghitungan/output-vs-quota menjadi hanya Reels + Carousel. Perubahan isi pada sesi lanjutan: dua kotak teks Step 02; angka dan narasi Output vs Quota dipertahankan. Readback membuktikan 13 slide dan urutannya tetap. Setelah itu pengguna meminta perbaikan layout slide 6 (Output vs Quota): kotak caption diperlebar dan ditinggikan, kalimat October dipisah ke baris kedua, line spacing caption + tiga kartu menjadi 90% (sebelumnya 100%); ukuran font tetap. Preview diperiksa.
 3. Opsional: samakan template oranye (warna kartu muda→tua, kotak rounded) supaya Period 2 langsung rapi; hapus deck v1 (warm_orange) ke Trash bila pengguna setuju; tambah kolom **tema** di Socmed log bila tim mau mengukur keseimbangan tema.
 4. Sisa lama: deploy server kantor; sisa kecil `docs/architecture/data-flow-audit.md`.
-5. Permintaan baru pengguna setelah commit/push diminta: generator laporan empat bulanan perlu ada di submenu **Report / PDF → Period Reports**. Saat ini belum diimplementasikan; deck masih dibuat melalui Composio. Rencana awal memakai template deck yang sudah disetujui, pilihan Period N, hasil Google Slides/PDF, dan aturan batas periode pada `MKK-PERIOD-REPORT-GUIDE.md`. Selesaikan sebagai pekerjaan lanjutan setelah commit ini.
+5. Generator **Report / PDF → Period Reports** sudah diimplementasikan dan diuji langsung 5 November. Detail ada pada bagian berikut dan `docs/superpowers/plans/2026-11-05-period-report-generator.md`.
+
+## Generator Period Reports, 5 November
+
+- Menu Monthly Reports → `/report`, Period Reports → `/report/periods`. Preview empat bulan, pilihan studi kasus, target followers/tanggal opsional, konfirmasi organic, generate Slides + PDF, dan riwayat hasil.
+- Modul `src/modules/report/periods/` mengikuti alur route/view/section/query/service/repository + pure lib. POST `/api/reports/periods/generate` menjalankan outbound pipeline. Insight akun dan kuota memakai service dashboard; Stories termasuk; snapshot posting harus di dalam period; kategori, Top 5 dan studi kasus memakai dataset yang sama.
+- Tidak ada perubahan struktur DB/migrasi baru. `GeneratedReport` dipakai dengan channel `social_period`, month = bulan penutup; diff schema hanya komentar. Generator memakai OAuth dashboard (Google Sheets + `drive.file`), bukan Composio atau LLM.
+- Pengguna sudah mengaktifkan Google Slides API pada project dashboard. Preflight Drive/Slides sekarang berhasil. Default sumber adalah deck/Sheet Period 1 yang disetujui; override `REPORT_TEMPLATE_PERIOD_SLIDES`, `REPORT_TEMPLATE_PERIOD_CHARTS`, dan folder `REPORT_FOLDER_ID`.
+- Live POST Period 1 menghasilkan HTTP 200 dan `GeneratedReport` sukses pada 5 Nov 12:39 WIB. **Hasil uji baru** (master asli tidak ditimpa): deck `1DjrqSrgICzgolOW_CtpoxeldvLmh68Wo3dLKoTD9PVk`, Sheet grafik `1gA0YFSfX1kvHTi_bnhL4jMr-acQtfDvDBGhqD8eJ1C4`, PDF `1Y4S9Ozypna0Oj21Eq5rbQH7w8PVCsnWV`.
+- Readback memverifikasi 13 slide, 131 bagian teks dan ketiga chart terhubung ke Sheet baru. PDF diekspor dengan 13 halaman. Seluruh 13 pratinjau native diperiksa, termasuk slide 6; angka 2.254 followers, 729.954 views, 351 published/232 Stories/119 feed+Reels+video, kuota 240, Entok snapshot 30 Oktober tetap sesuai acuan. Warning tersisa hanya follows per posting tidak selalu tersedia.
+- TypeScript, lint, 225 tes di 28 file, dan build `SYNC_CRON=0 npm run build -- --webpack` lulus. Browser otomatis tidak tersedia; UI diverifikasi melalui render HTML, deck melalui pratinjau native Google Slides.
+- Halaman produksi diuji di port 3100 dengan password sementara pada env proses: Period 1 menampilkan deck/PDF dan riwayat sukses, Period 2 (November 2026–Februari 2027) terblokir karena belum selesai. Server uji sudah dihentikan. Tidak ada konfirmasi pasangan data tim yang diklik.
+- Revisi judul atas permintaan pengguna: **Instagram Four-Month Performance Report**, untuk membedakannya
+  dari laporan social media bulanan. Generator mengisi cover empat baris dengan font template tetap dan
+  memakai judul ini untuk nama deck/Sheet/PDF. Hasil uji pada ID yang sama diperbarui, termasuk PDF.
+  Sumber deck Period 1 yang disetujui tidak diubah.
+
+## Revisi follows CSV dan studi kasus, 5 November siang
+
+- Pengguna memilih **opsi kedua**: metrik utama tetap snapshot di dalam period, hanya follows yang kosong
+  dilengkapi dari CSV lifetime dengan tanggal/sumber terpisah. Jangan mengubah views menjadi angka November.
+- Upload CSV Instagram kini otomatis menjadi `meta_ig_follows` jika bulan sudah memiliki API Meta atau
+  dikunci. Preview menjelaskan pelengkap follows; full replace ditolak pada bulan Instagram yang dikunci.
+  Kolom tanggal export opsional. Jika tidak diketahui, tampilkan tanggal upload dan `export date unknown`,
+  jangan memakai rentang publish pada nama file sebagai tanggal pengukuran.
+- Storage tanpa migrasi: Breakdown social, dimension `instagram_post`, label = Post ID, metric = follows,
+  milik Import source `meta_ig_follows`. Import.note mencatat tanggal export; Import.createdAt adalah upload.
+  Sync API tidak menghapus sumber ini. Social overlay exact-ID membawa `followsRecorded` dan `followsCsv`;
+  tanggal `postsAsOf` tetap dari import API. Laporan period mempertahankan follows in-period yang tersedia,
+  lalu mengisi yang null dari CSV, ditandai `*` pada tabel dan dijelaskan pada metodologi.
+- File pengguna `/Users/riski/Downloads/Oct-01-2026_Oct-31-2026_1058840090544555.csv` sudah dibaca dan diimpor
+  sebagai **18 follows-only rows**. Arsip Agustus/September di data-samples melengkapi 24/31 baris. Tanggal
+  export belum diketahui, jadi provenance = upload 5 November. Pengguna tidak perlu mengimpor ulang file
+  tersebut untuk mendapatkan follows di laporan ini.
+- Perbandingan dengan backup SQLite sebelum import membuktikan **89 Import non-pelengkap, 203 SocialPost,
+  121 Metric, 1.123 IgMediaSnapshot, dan empat MonthLock identik**. Akun/per-post API tidak ditimpa.
+- Slide 8 kini follows lengkap **235, 212, 23*, 278*, 1**. Lim You memakai CSV 23; Entok CSV 278. Views
+  Entok tetap 16.446, reach 11.059, likes 248, comments 19, shares 284, saves 276, snapshot 30 Oktober.
+- **Studi kasus maksimal 10 posting tertinggi berdasarkan views dari period yang dipilih.** UI dan server
+  memakai daftar kanonik sama; ID di luar top 10 ditolak. Period 2 hanya November 2026–Februari 2027 dan
+  saat ini tidak punya kandidat, tanpa fallback ke Period 1.
+- Tetap 13 slide. Empat metrik studi kasus menjadi Views, Reach, Profile visits, Follows; likes/comments
+  dan shares/saves menjadi rincian. Profile visits Entok tidak tercatat pada snapshot period, sehingga
+  tetap n/a sesuai pilihan kedua. Deck/PDF hasil generator diperbarui pada ID yang sama (lihat bagian atas),
+  sumber master tetap tidak diubah. Readback memverifikasi 135 bagian teks dan tiga chart tetap utuh.
+- Rencana rinci: `docs/superpowers/plans/2026-11-05-instagram-csv-follows.md`. TypeScript, lint, 234 tes
+  di 30 file, dan build produksi diverifikasi untuk revisi ini. Perubahan masih uncommitted.
+- QA HTTP produksi port 3100 lulus: Period 1 menampilkan sumber CSV dan riwayat, Period 2 tidak membawa
+  Entok, Social menandai pelengkap CSV. Preview file Oktober menghasilkan 18 baris follows-only dan
+  penolakan full replace bulan terkunci; endpoint laporan menolak studi kasus dari period lain. Server uji
+  sudah dihentikan, skrip pemeriksaan sesi ini dihapus. Seluruh 13 pratinjau native diperiksa; catatan sumber
+  slide 8 berada di bawah tabel dan subjudul cover satu baris. Browser otomatis tetap tidak tersedia.
 
 ## Deck laporan 4 bulanan (Period 1, Jul–Oct 2026)
 

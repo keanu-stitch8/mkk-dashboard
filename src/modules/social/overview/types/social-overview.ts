@@ -10,6 +10,7 @@ export type SocialTrendPoint = { month: string; label: string } & SocialTrendFie
 
 export interface SocialOverview {
   month: string;
+  monthClosed: boolean;
   summary: SocialSummary;
   /** bulan lalu apa adanya (bisa tanpa data) — dipakai untuk catatan beda platform / beda sumber */
   prevSummary: SocialSummary;

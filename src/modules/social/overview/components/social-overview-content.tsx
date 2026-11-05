@@ -5,11 +5,12 @@ import { Recommendations } from "@/components/Recommendations";
 import { SocialRecon } from "@/components/SocialRecon";
 import { SOCIAL_KPIS } from "@/modules/report/pipeline/kpi";
 import { fmtDate, fmtNum, fmtPct, truncate } from "@/modules/shared/lib/format";
-import { monthLabel, prevMonth } from "@/modules/shared/lib/month";
+import { daysInMonth, monthLabel, prevMonth } from "@/modules/shared/lib/month";
 import { FORMAT_LABEL, PLATFORM_LABEL } from "@/modules/shared/lib/sources";
 import { WIB, dateIn } from "@/modules/shared/lib/tz";
 import type { SocialOverview } from "../types/social-overview";
 import { SocialAudienceSection } from "./social-audience";
+import { socialPostSnapshotDate } from "../../shared/lib/post-snapshot-date";
 
 const fmtLabel = (platform: string, format: string) => `${PLATFORM_LABEL[platform] ?? platform} · ${FORMAT_LABEL[format] ?? format}`;
 const perPost = (v: number | null | undefined, n: number | null | undefined) => (v == null || !n ? null : v / n);
@@ -29,6 +30,9 @@ export function SocialOverviewContent({ overview }: { overview: SocialOverview }
   const c = cmp?.cur;
   const p = cmp?.prev;
   const asOf = s.postsAsOf ? ` as of ${fmtDate(wibDate(s.postsAsOf))}` : "";
+  const monthEnd = daysInMonth(month).at(-1)!;
+  const snapshotDate = socialPostSnapshotDate(month);
+  const monthEndViews = overview.monthClosed && s.platforms.includes("instagram");
   const prevType = (type: string) => prevSocial.byType?.rows.find((r) => r.type === type)?.views ?? null;
   // Satu garis "Views" jika hanya satu platform di rentang tren; per platform jika campur (supaya bulan IG vs FB tidak terbaca naik/turun)
   const viewSeries: SeriesDef[] = mixedPlatforms
@@ -169,11 +173,17 @@ export function SocialOverviewContent({ overview }: { overview: SocialOverview }
         </Section>
         <Section
           title="Top posts"
-          subtitle={`By lifetime views (since publishing${asOf})${s.monthViewsAsOf ? ` · "Views this month" = up to the ${fmtDate(s.monthViewsAsOf)} snapshot` : " · this month's views are available after next month's opening snapshot"}`}
+          subtitle={monthEndViews
+            ? `By views at ${fmtDate(snapshotDate)}${s.monthViewsAsOf ? "" : " · Snapshot unavailable"} · Lifetime views${asOf} shown separately; other metrics use the lifetime record`
+            : `By lifetime views (since publishing${asOf})`}
           className="lg:col-span-2"
         >
+          {monthEndViews && snapshotDate !== monthEnd && <Notice>Post views use the lock cut-off dated {fmtDate(snapshotDate)}, not {fmtDate(monthEnd)}. They may include views after the month ended. Account totals still cover {monthLabel(month)}. Reach, interactions and other metrics retain their separately dated lifetime record.</Notice>}
           <DataTable
-            rows={[...s.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)}
+            empty={monthEndViews ? `No post views captured on ${fmtDate(snapshotDate)}. Snapshot ranking is unavailable.` : "No data."}
+            rows={s.posts.filter((post) => !monthEndViews || post.monthViews != null).sort((a, b) => monthEndViews
+              ? (b.monthViews ?? -1) - (a.monthViews ?? -1) || a.postId.localeCompare(b.postId)
+              : (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)}
             columns={[
               { header: "#", cell: (_, i) => i + 1, className: "text-muted-foreground" },
               {
@@ -189,19 +199,20 @@ export function SocialOverviewContent({ overview }: { overview: SocialOverview }
               },
               { header: "Date", cell: (r) => <span className="whitespace-nowrap">{fmtDate(r.date)}</span> },
               { header: "Format", cell: (r) => <span className="whitespace-nowrap">{fmtLabel(r.platform, r.format)}</span> },
-              ...(s.monthViewsAsOf ? [{ header: "Views this month", align: "right" as const, cell: (r: (typeof s.posts)[number]) => fmtNum(r.monthViews) }] : []),
-              { header: s.monthViewsAsOf ? "Views lifetime" : "Views", align: "right", cell: (r) => fmtNum(r.views) },
+              ...(monthEndViews ? [{ header: snapshotDate === monthEnd ? "Views at month end" : "Views at snapshot", align: "right" as const, cell: (r: (typeof s.posts)[number]) => fmtNum(r.monthViews) }] : []),
+              { header: monthEndViews ? "Views lifetime" : "Views", align: "right", cell: (r) => fmtNum(r.views) },
               { header: "Reach", align: "right", cell: (r) => fmtNum(r.reach) },
               { header: "Interaksi", align: "right", cell: (r) => fmtNum(r.interactions) },
               ...(s.posts.some((p) => p.follows != null || p.profileVisits != null)
                 ? [
-                    { header: "Follows", align: "right" as const, cell: (r: (typeof s.posts)[number]) => fmtNum(r.follows) },
+                    { header: "Follows", align: "right" as const, cell: (r: (typeof s.posts)[number]) => <span title={r.followsCsv ? `CSV ${r.followsCsv.observedOn ? `exported ${fmtDate(r.followsCsv.observedOn)}` : `uploaded ${fmtDate(r.followsCsv.importedOn)}, export date unknown`}` : undefined}>{fmtNum(r.follows)}{r.followsCsv ? "*" : ""}</span> },
                     { header: "Profile visits", align: "right" as const, cell: (r: (typeof s.posts)[number]) => fmtNum(r.profileVisits) },
                   ]
                 : []),
               { header: "ER", align: "right", cell: (r) => fmtPct(r.er, 2) },
             ]}
           />
+          {s.posts.some((post) => post.followsCsv) && <p className="mt-3 text-xs text-muted-foreground">* Follows supplemented from CSV. Hover over a count for its source date. Views and other metrics retain their own snapshot dates.</p>}
         </Section>
       </div>
 

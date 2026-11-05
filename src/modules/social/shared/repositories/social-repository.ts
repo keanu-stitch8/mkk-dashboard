@@ -1,15 +1,21 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { ACTIVE_SOCIAL_PLATFORMS } from "@/modules/shared/lib/sources";
+import { CSV_FOLLOWS_DIMENSION, CSV_FOLLOWS_METRIC, CSV_FOLLOWS_SOURCE } from "../lib/csv-follows";
 
 /** hanya platform aktif (modules/shared/lib/sources.ts) yang dihitung ke performa */
 export const findActiveSocialPosts = (month: string) =>
   prisma.socialPost.findMany({ where: { month, platform: { in: ACTIVE_SOCIAL_PLATFORMS } }, orderBy: { publishedAt: "asc" } });
 
+export const findCsvPostFollows = (months: string[]) => prisma.breakdown.findMany({
+  where: { month: { in: months }, channel: "social", dimension: CSV_FOLLOWS_DIMENSION, metric: CSV_FOLLOWS_METRIC, import: { source: CSV_FOLLOWS_SOURCE } },
+  select: { label: true, value: true, import: { select: { note: true, createdAt: true } } },
+});
+
 export const findSocialLogs = (month: string) => prisma.socialLog.findMany({ where: { month }, orderBy: { date: "asc" } });
 
 export const findSocialImports = (month: string) =>
-  prisma.import.findMany({ where: { month, OR: [{ source: { startsWith: "meta" } }, { source: "social_log" }] }, select: { source: true, createdAt: true } });
+  prisma.import.findMany({ where: { month, OR: [{ source: { in: ["meta_instagram", "meta_facebook", "meta_ig_stories"] } }, { source: "social_log" }] }, select: { source: true, createdAt: true } });
 
 /** insight akun IG selama bulan itu (connector Meta); kosong untuk bulan hasil import CSV */
 export const findIgAccountMetrics = (month: string) =>
@@ -22,10 +28,6 @@ export const findSocialReviewImport = (month: string) => prisma.import.findUniqu
 /** konten "Reviewing" dari tracker Task Progress (connector Sheets); kosong = tracker belum di-sync bulan ini */
 export const findSocialReviewItems = (month: string) =>
   prisma.breakdown.findMany({ where: { month, channel: "social", dimension: "social_in_review", import: { source: "social_review" } }, select: { label: true } });
-
-/** tanggal snapshot IG pertama dalam rentang [from, to] */
-export const findFirstIgSnapshotDate = (from: string, to: string) =>
-  prisma.igMediaSnapshot.findFirst({ where: { date: { gte: from, lte: to } }, orderBy: { date: "asc" }, select: { date: true } });
 
 export const findIgSnapshotViews = (date: string) => prisma.igMediaSnapshot.findMany({ where: { date }, select: { mediaId: true, views: true } });
 

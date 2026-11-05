@@ -9,12 +9,13 @@ import { socialKpiSources } from "./social-compare";
 import { socialQuota } from "./social-quota";
 import { socialTrendFields } from "./social-trend";
 
-export function buildSocialOverview(month: string, byMonth: Map<string, SocialSummary>, audience: SocialAudience | null = null): SocialOverview {
+export function buildSocialOverview(month: string, byMonth: Map<string, SocialSummary>, audience: SocialAudience | null = null, today = ""): SocialOverview {
   const summary = atMonth(byMonth, month);
   const prevSummary = atMonth(byMonth, prevMonth(month));
   const trend = trendPoints(trendMonths(month), byMonth, socialTrendFields);
   return {
     month,
+    monthClosed: month < today.slice(0, 7),
     summary,
     prevSummary,
     kpi: socialKpiSources(summary, prevSummary.hasData ? prevSummary : null),

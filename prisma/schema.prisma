@@ -471,11 +471,11 @@ model IgFollowerSnapshot {
 /// Laporan bulanan yang dibuat dashboard (file Google Sheets baru dari master template).
 model GeneratedReport {
   id        String   @id @default(cuid())
-  channel   String // website | news | youtube | social
-  month     String // YYYY-MM
+  channel   String // website | news | youtube | social | social_period
+  month     String // YYYY-MM; closing month for four-month period reports
   fileId    String?
   url       String?
-  /// PDF seluruh workbook (A4 landscape) di folder Drive yang sama
+  /// PDF workbook bulanan atau deck period di folder Drive yang sama
   pdfFileId String?
   pdfUrl    String?
   status    String // success | error

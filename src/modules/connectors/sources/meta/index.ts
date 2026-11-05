@@ -227,8 +227,8 @@ export async function syncIgAccountMonth(month: string): Promise<number | null> 
 }
 
 /**
- * Untuk cron: snapshot harian metrik lifetime post IG (maks. 1x per hari WIB). Snapshot pertama setelah
- * tanggal 1 menjadi batas "views bulan ini" per post. Null jika sudah ada snapshot hari ini / Meta belum siap.
+ * Untuk cron: snapshot harian metrik lifetime post IG (maks. 1x per hari WIB). Snapshot pada tanggal terakhir
+ * bulan menjadi acuan views akhir bulan. Null jika sudah ada snapshot hari ini / Meta belum siap.
  */
 export async function snapshotIgDaily(): Promise<string[] | null> {
   const tok = token();

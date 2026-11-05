@@ -12,6 +12,8 @@ export async function POST(req: Request) {
   const groupRaw = String(form.get("group") ?? "auto") as SourceGroup;
   const group = GROUPS.includes(groupRaw) ? groupRaw : "auto";
   const monthRaw = String(form.get("month") ?? "");
+  const instagramMode = String(form.get("instagramMode") ?? "auto");
+  const csvObservedOn = String(form.get("csvObservedOn") ?? "");
 
   const files: InputFile[] = [];
   for (const entry of form.getAll("files")) {
@@ -24,8 +26,8 @@ export async function POST(req: Request) {
     const keys = String(form.get("keys") ?? "")
       .split(",")
       .filter(Boolean);
-    const res = await commitUpload(files, group, monthRaw, keys);
+    const res = await commitUpload(files, group, monthRaw, keys, instagramMode, csvObservedOn);
     return "error" in res ? Response.json({ error: res.error }, { status: 400 }) : Response.json(res);
   }
-  return Response.json(await previewUpload(files, group, monthRaw));
+  return Response.json(await previewUpload(files, group, monthRaw, instagramMode, csvObservedOn));
 }

@@ -18,6 +18,7 @@ export type DatasetKey =
   | "meta_instagram"
   | "meta_facebook"
   | "meta_ig_stories"
+  | "meta_ig_follows"
   | "news_log"
   | "news_views"
   | "social_log"

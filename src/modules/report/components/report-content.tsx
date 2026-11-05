@@ -75,6 +75,7 @@ export function ReportContent({ report }: { report: ReportPage }) {
           </Link>
         </Button>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild><Link href="/report/periods">Period Reports</Link></Button>
           <MonthSelect month={month} months={months} />
           <PrintButton />
         </div>

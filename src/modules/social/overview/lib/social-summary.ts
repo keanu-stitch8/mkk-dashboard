@@ -4,6 +4,7 @@ import { socialFormatKey } from "@/modules/shared/lib/taxonomy";
 import { longestEmptyStreak } from "@/modules/shared/lib/empty-streak";
 import { safeDiv, sum } from "@/modules/shared/lib/math";
 import { matchLogsToPosts, NOT_IN_LOG_LABEL, reconcileSocial } from "../../shared/lib/social-match";
+import { socialPostSnapshotDate } from "../../shared/lib/post-snapshot-date";
 import type { SocialByType, SocialStoriesInfo, SocialSummary, SocialSummaryInput } from "../types/social-summary";
 
 /** Urutan & label jenis konten dari breakdown media_product_type insight akun IG. */
@@ -88,11 +89,11 @@ export function buildSocialSummary({
     const post = posts.find((p) => p.id === id);
     return post ? [[l.id, post] as const] : [];
   }));
-  const monthSnap = monthSnapshot;
+  const monthSnap = monthSnapshot?.date === socialPostSnapshotDate(month) ? monthSnapshot : null;
   const enriched = posts.map((p) => {
     const log = matched.get(p.id);
-    // views s/d akhir bulan (snapshot pertama setelah bulan selesai; post dipublish bulan ini → mulai dari 0)
-    const monthViews = monthSnap ? (monthSnap.views.get(p.postId) ?? null) : null;
+    // Reporting views require the exact selected snapshot, without an arbitrary-date fallback.
+    const monthViews = p.platform === "instagram" && monthSnap ? (monthSnap.views.get(p.postId) ?? null) : null;
     // Format bisnis dari publishing log (Reels berbayar ≠ Video upload, walau di IG sama-sama "reels");
     // post yang tidak di log: istilah Meta, carousel/foto disamakan dengan "feeds" milik log.
     const format = log?.format ?? (logs.length && ["carousel", "photo"].includes(p.format) ? "feeds" : p.format);
@@ -200,7 +201,7 @@ export function buildSocialSummary({
     stories: storiesInfo(month, storyRows, firstApiStoryDate, publishedLogs.filter((l) => l.format === "story").length),
     /** tanggal acuan metrik lifetime per post (waktu sync/import post IG bulan itu) */
     postsAsOf: imports.find((i) => i.source === "meta_instagram")?.createdAt ?? null,
-    /** tanggal snapshot yang dipakai untuk "views bulan ini" per post (null = belum ada snapshot setelah bulan selesai) */
+    /** Exact reporting snapshot date, or null when unavailable. */
     monthViewsAsOf: monthSnap?.date ?? null,
     /** insight akun selama bulan itu per jenis konten (per periode, stabil saat sync ulang) */
     byType: igByType(igTypeRows),

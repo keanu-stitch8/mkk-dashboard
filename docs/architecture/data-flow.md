@@ -107,6 +107,7 @@ Modules (one folder per domain, one sub-folder per page; `shared/` inside a doma
 | `social/{overview,logs}` | `/social`, `/social/logs` | [Channels](../channels-data-flow.md) |
 | `youtube/{overview,logs}` | `/youtube`, `/youtube/logs` | [YouTube](../youtube-data-flow.md) |
 | `overview`, `report`, `channels` | `/`, `/report` | [Channels](../channels-data-flow.md) |
+| `report/periods` | `/report/periods` | [Channels](../channels-data-flow.md) |
 | `team/{stories,briefs,pipeline,contributors,scorecard,recap}` | `/team/*` | [Team](../team-data-flow.md) |
 | `import/{data,history}`, `connectors/{settings,history}`, `source-logs` | `/import*`, `/settings/connectors*`, `/logs` | [Operations](../operations-data-flow.md) |
 

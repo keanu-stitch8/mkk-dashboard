@@ -51,7 +51,10 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         icon: Upload,
         items: [{ title: "Import History", url: "/import/history" }],
       },
-      { title: "Report / PDF", url: "/report", icon: FileText },
+      {
+        title: "Report / PDF", url: "/report", icon: FileText,
+        items: [{ title: "Monthly Reports", url: "/report" }, { title: "Period Reports", url: "/report/periods" }],
+      },
       {
         title: "Connectors API",
         url: "/settings/connectors",

@@ -53,6 +53,8 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
   const [month, setMonth] = useState(defaultMonth);
   const [monthTouched, setMonthTouched] = useState(false);
   const [group, setGroup] = useState("auto");
+  const [instagramMode, setInstagramMode] = useState("auto");
+  const [csvObservedOn, setCsvObservedOn] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -63,17 +65,19 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const requestId = useRef(0);
 
-  const buildForm = (fs: File[], g: string, action: string, m: string | null) => {
+  const buildForm = (fs: File[], g: string, action: string, m: string | null, igMode = instagramMode, observedOn = csvObservedOn) => {
     const fd = new FormData();
     fs.forEach((f) => fd.append("files", f, f.name));
     fd.set("group", g);
     fd.set("action", action);
+    fd.set("instagramMode", igMode);
+    fd.set("csvObservedOn", observedOn);
     if (m) fd.set("month", m);
     return fd;
   };
 
   // Preview dijalankan setiap file / sumber / bulan berubah; respons lama diabaikan.
-  const runPreview = (fs: File[], g: string, m: string, touched: boolean) => {
+  const runPreview = (fs: File[], g: string, m: string, touched: boolean, igMode = instagramMode, observedOn = csvObservedOn) => {
     const id = ++requestId.current;
     setDone(null);
     setError(null);
@@ -83,7 +87,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
       return;
     }
     setLoading(true);
-    fetch("/api/import", { method: "POST", body: buildForm(fs, g, "preview", touched ? m : null) })
+    fetch("/api/import", { method: "POST", body: buildForm(fs, g, "preview", touched ? m : null, igMode, observedOn) })
       .then((r) => r.json() as Promise<PreviewResponse>)
       .then((res) => {
         if (id !== requestId.current) return;
@@ -173,6 +177,25 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
         </div>
       </div>
       {groupHint && <p className="text-xs text-muted-foreground">{groupHint}</p>}
+      {(group === "auto" || group === "meta") && <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-1.5">
+          <Label htmlFor="instagram-csv-mode">Instagram CSV handling</Label>
+          <Select value={instagramMode} onValueChange={(value) => { setInstagramMode(value); runPreview(files, group, month, monthTouched, value); }}>
+            <SelectTrigger id="instagram-csv-mode" className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">Keep API data and add CSV follows</SelectItem>
+              <SelectItem value="follows">Follows only</SelectItem>
+              <SelectItem value="replace">Replace all post metrics (unlocked months)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">With API data or a locked month, the default saves follows separately. Other months use a full import.</p>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="instagram-csv-date">CSV export date (optional)</Label>
+          <Input id="instagram-csv-date" type="date" value={csvObservedOn} onChange={(event) => { const value = event.target.value; setCsvObservedOn(value); runPreview(files, group, month, monthTouched, instagramMode, value); }} />
+          <p className="text-xs text-muted-foreground">The date the counts were exported, not the publish-date range in the file name. Leave blank if unknown.</p>
+        </div>
+      </div>}
 
       {loading && (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -245,7 +268,7 @@ export function ImportForm({ defaultMonth }: { defaultMonth: string }) {
                   </div>
                   {d.replaces && (
                     <div className="mt-1 text-xs text-warning">
-                      Will replace the previous import ({d.replaces.fileName}, {new Date(d.replaces.createdAt).toLocaleDateString("en-ID")}).
+                      {d.key === "meta_ig_follows" ? "Will replace the previous follows supplement" : "Will replace the previous import"} ({d.replaces.fileName}, {new Date(d.replaces.createdAt).toLocaleDateString("en-ID")}).{d.key === "meta_ig_follows" ? " API data stays unchanged." : ""}
                     </div>
                   )}
                 </div>

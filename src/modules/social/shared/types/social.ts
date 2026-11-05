@@ -1,3 +1,5 @@
+import type { CsvPostFollows } from "./csv-follows";
+
 /** Post Meta (Instagram/Facebook) dari connector / export. `id` = identitas baris (pencocokan ke log). */
 export interface SocialPostEntry {
   id: string;
@@ -20,6 +22,9 @@ export interface SocialPostEntry {
   shares: number | null;
   saves: number | null;
   follows: number | null;
+  followsCsv?: CsvPostFollows | null;
+  /** Count on the original API/CSV post row, before the optional follows supplement. */
+  followsRecorded?: number | null;
   /** IG carousel/foto saja — Meta tidak memberikannya untuk Reels */
   profileVisits: number | null;
   reposts: number | null;

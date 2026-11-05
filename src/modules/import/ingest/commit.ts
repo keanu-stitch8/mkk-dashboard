@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { Dataset, DatasetKey } from "@/modules/import/parsers/types";
 import { applyMonth, rowCount } from "@/modules/import/parsers";
 import { upsertIgStories, type IgStoryRow } from "./stories";
+import { CSV_FOLLOWS_DIMENSION, CSV_FOLLOWS_METRIC, CSV_FOLLOWS_SOURCE } from "@/modules/social/shared/lib/csv-follows";
 
 type Tx = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">;
 
@@ -71,6 +72,12 @@ export async function commitDataset(prisma: PrismaClient, raw: Dataset, month: s
       for (let i = 0; i < rows.length; i += 200) {
         await delegate.createMany({ data: rows.slice(i, i + 200).map((r) => ({ ...r, importId: imp.id })) });
       }
+    }
+    if (ds.key === CSV_FOLLOWS_SOURCE && rows.length) {
+      await tx.breakdown.createMany({ data: ds.rows.map((row) => {
+        if (typeof row.postId !== "string" || typeof row.follows !== "number" || !Number.isFinite(row.follows) || row.follows < 0) throw new Error("Invalid CSV follows row.");
+        return { importId: imp.id, month, channel: "social", dimension: CSV_FOLLOWS_DIMENSION, label: row.postId, metric: CSV_FOLLOWS_METRIC, value: row.follows };
+      }) });
     }
     if (ds.metrics.length) {
       await tx.metric.createMany({ data: ds.metrics.map((m) => ({ ...m, month, importId: imp.id })) });

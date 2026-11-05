@@ -19,6 +19,7 @@ export const DATASETS: Record<DatasetKey, { label: string; group: Exclude<Source
   meta_instagram: { label: "Meta · Instagram (per post)", group: "meta", channel: "social" },
   meta_facebook: { label: "Meta · Facebook (per post)", group: "meta", channel: "social" },
   meta_ig_stories: { label: "Meta · Instagram Stories (info, not a KPI)", group: "meta", channel: "social" },
+  meta_ig_follows: { label: "Meta · Instagram follows (CSV supplement)", group: "meta", channel: "social" },
   news_log: { label: "News · Content log (articles)", group: "news", channel: "news" },
   news_views: { label: "News · Views per article (from the report)", group: "news", channel: "news" },
   social_log: { label: "Sosmed · Publishing log", group: "social_log", channel: "social" },

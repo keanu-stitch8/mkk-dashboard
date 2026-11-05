@@ -2,9 +2,14 @@
 
 Compliance with the [global data flow](./data-flow.md). Architecture review: 2026-10-24;
 Instagram audience and asset-score additions reviewed: 2026-11-04.
+Period report generator verified: 2026-11-05.
 
 ## Done
 
+- [x] Final lock-cut-off alignment (2026-11-05): Social Top posts and period reports share
+      `socialPostSnapshotDate` → `cutoffDate`, prefer the stored cut-off sync, and display the actual date.
+      Category slides disclose measured/total coverage and average only measured posts. Source data,
+      runtime equality, 246 tests, production build and HTTP rendering verified. Latest deck/PDF aligned.
 - [x] Application code under `src/`; `server-only` on every query, service and repository; Vitest and tsx
       (`--conditions=react-server`) set up for it.
 - [x] Every page route is a thin entry (8–10 lines) that forwards normalized params to a module.
@@ -26,6 +31,24 @@ Instagram audience and asset-score additions reviewed: 2026-11-04.
       snapshots flow through the Social repository, canonical types, service and pure derivation. Overview
       reuses the same follower series. Missing monthly asset groups produce an untracked score rather
       than zero. Focused tests live next to the pure functions; domain behavior is documented.
+
+- [x] Four-month Instagram reports (`report/periods`): canonical period types, shared channel services,
+      repository-owned snapshot/history reads, pure period/template/chart plans, thin route and POST endpoint.
+      Outbound Google writes operate on new deck/workbook copies and use the existing report repository.
+      Live generation verified 13 slides/PDF pages, 131 text slots and three independent chart bindings;
+      native previews checked. The full suite passes 225 tests.
+- [x] Instagram CSV follows (2026-11-05): preview/commit share safe mode selection, a separate import owns
+      per-media long-format rows and provenance, Social uses an exact-ID overlay, period reports only fill
+      missing follows after historical snapshot selection. Case studies are validated against the period's
+      top ten. Live import verified API imports, SocialPost rows, account metrics, snapshots and locks unchanged.
+- [x] Missing period-end post snapshots (2026-11-05): period aggregation warns instead of blocking a
+      completed report with all account months. UI and template plans render unavailable Top posts and
+      case-study metrics as `n/a`, without inventing candidates or substituting adjacent dates. Verified
+      by contract tests, real-data template planning and production HTTP; incomplete periods still block.
+- [x] Explicit Period 1 snapshot exception: the user's selected 2 November date is centralized in
+      `periodPostSnapshotDate`, read by the data service and carried through canonical `postSnapshotDate`.
+      Dashboard and slide notes distinguish it from the July–October account window. Exact-date selection,
+      unchanged account totals, template dates and production rendering verified; 245 tests pass.
 
 ## Open (small, deliberate)
 

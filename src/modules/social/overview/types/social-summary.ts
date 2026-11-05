@@ -17,7 +17,7 @@ export interface SocialSummaryInput {
   /** tracker Task Progress sudah di-sync untuk bulan ini */
   hasReviewImport: boolean;
   reviewItems: string[];
-  /** snapshot IG pertama setelah bulan selesai: views per media s/d akhir bulan */
+  /** Exact reporting cut-off date, shared with the monthly lock schedule. */
   monthSnapshot: { date: string; views: Map<string, number | null> } | null;
   igTypeRows: { metric: string; type: string; value: number }[];
   storyRows: { date: string; source: string }[];
@@ -29,7 +29,7 @@ export interface SocialSummaryInput {
 export interface SocialPost extends SocialPostEntry {
   /** format dari log (Reels berbayar ≠ Video upload); tanpa log: istilah Meta, carousel/foto = "feeds" */
   metaFormat: string;
-  /** views s/d akhir bulan dari snapshot (null = belum ada snapshot) */
+  /** Views at the selected reporting snapshot (null = unavailable). */
   monthViews: number | null;
   category: string | null;
   title: string | null;

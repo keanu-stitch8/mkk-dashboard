@@ -32,3 +32,22 @@ Client widgets live with their module: `import/data/components/{import-form,manu
 
 Routes only parse and validate HTTP input. `shared/lib/overrides.ts` decides which submitted keys are saved or
 cleared (unknown keys ignored; empty / invalid = clear; quotas also reject negatives and never clear "default").
+
+## Instagram CSV follows supplement
+
+Preview and commit share `import/data/lib/instagram-upload.ts`: an Instagram CSV uploaded to an API-backed
+or locked month defaults to `meta_ig_follows`. The explicit full-replacement mode is rejected for locked
+Instagram months. Other unlocked CSV-only months retain the legacy full-import behavior. The preview warns
+only about replacing a previous **supplement**, never the API dataset. Null follows are excluded, zero is
+retained, rows are filtered by publish month and conflicting duplicate IDs fail before any write.
+
+`commitDataset` writes the supplement as long-format `Breakdown` rows (`channel=social`,
+`dimension=instagram_post`, `label=Post ID`, `metric=follows`) under its own `Import` source. No SocialPost,
+account metric, month lock or historical snapshot is changed. API syncs write `meta_instagram` and therefore
+cannot remove the separate supplement. The import owns the rows, so deleting it also removes the overlay.
+
+Optional export dates are validated and recorded in the readable Import.note line
+`Instagram follows CSV export date: YYYY-MM-DD.`. Unknown dates are stored as `unknown`, separately from
+Import.createdAt. The Social mapper returns canonical `{postId,follows,observedOn,importedOn}` values.
+Reports show the actual export date when supplied, otherwise the upload date with an explicit unknown-export
+note. The publish-date range in a file name never becomes the measurement date.

@@ -63,6 +63,44 @@ dibuatnya sendiri (scope `drive.file`). Satu-satunya pengecualian: kolom Artikel
 3. Halaman **Report** → "Buat laporan Google Sheets". Cron membuat laporan otomatis tgl 3 setelah bulan dikunci.
    Laporan lama bulan yang sama diberi akhiran "(lama …)", salinan yang gagal diisi diberi "(GAGAL …)".
 
+## Laporan Instagram empat bulanan
+
+Menu **Report / PDF → Period Reports** (`/report/periods`) membuat Google Slides, Sheet data grafik,
+dan PDF baru untuk empat bulan kalender penuh. Period 1 = Juli–Oktober 2026, Period 2 = November
+2026–Februari 2027, lalu berlanjut. Period yang belum selesai atau kehilangan data akun belum bisa dibuat.
+
+- Aktifkan **Google Slides API**, Google Sheets API, dan Google Drive API pada project Google Cloud OAuth
+  dashboard. Gunakan koneksi Google Sheets yang sudah memiliki izin `drive.file`.
+- Pilih period, periksa preview, pilih posting studi kasus, lalu klik **Generate Google Slides + PDF**.
+  Target followers/tanggal bersifat opsional. Label organic hanya ditambahkan setelah dikonfirmasi pengguna.
+- Default sumber adalah deck dan Sheet Period 1 yang disetujui. Override opsional melalui
+  `REPORT_TEMPLATE_PERIOD_SLIDES` dan `REPORT_TEMPLATE_PERIOD_CHARTS`; folder tujuan mengikuti
+  `REPORT_FOLDER_ID` atau folder sumber. Template pengganti harus mempertahankan struktur objek dan
+  judul grafik yang digunakan generator.
+- Angka mengikuti service dashboard, termasuk Stories dalam kuota. Metrik posting memakai cutoff
+  penguncian bulan penutup (tanggal 4 bulan berikutnya), tanpa pengganti tanggal sebelum/sesudahnya. Laporan
+  tetap dapat dibuat tanpa views akhir period, dengan Top posts dan studi kasus ditulis `n/a` serta
+  penjelasan tanggal snapshot yang tidak tersedia. Follows yang kosong dapat dilengkapi CSV
+  dengan catatan tanggal sumber terpisah. Pilihan studi kasus dibatasi ke 10 posting dengan views
+  tertinggi dalam period yang dipilih, tanpa fallback period lain.
+  Data lain yang tidak tersedia tetap `n/a`. Setiap generate membuat salinan deck dan Sheet sendiri
+  dan menyambungkan grafik ke Sheet baru. Riwayat tersimpan di dashboard tanpa migrasi baru.
+- **Acuan yang disepakati:** Social Oktober dan Period 1 memakai **cutoff 4 November 2026**, sesuai
+  jadwal penguncian tanggal 4 pukul 15.00 WIB. Data akun dan saldo followers tetap Juli–Oktober.
+  Record hasil sync pada tanggal cutoff diprioritaskan di atas snapshot harian yang lebih awal pada
+  hari yang sama. Jika tidak ada record tersebut, gunakan snapshot tepat pada tanggal cutoff; tanpa
+  keduanya tetap `n/a`. Top posts Social, Period Reports dan catatan deck/PDF memakai helper tanggal yang sama.
+  Slide kategori menjumlah views posting yang tersedia, menampilkan jumlah terukur/total, dan membagi
+  rata-rata hanya dengan jumlah posting terukur. Tanggal 2 November sebelumnya sudah digantikan aturan ini.
+
+Acuan data dan gaya ada di [panduan period](docs/superpowers/MKK-PERIOD-REPORT-GUIDE.md).
+
+**Melengkapi follows Reels/Carousel dari CSV Meta:** upload file di Import Data. Untuk bulan yang sudah
+memiliki API Meta atau dikunci, pilihan default menyimpan kolom Follows secara terpisah dan mempertahankan
+insight akun, views, metrik lain serta snapshot. CSV export date bersifat opsional; isi tanggal saat angka
+diekspor, bukan rentang tanggal publish di nama file. Jika tidak diketahui, laporan mencantumkan tanggal
+upload dan menyatakan tanggal export tidak diketahui. Impor API berikutnya tidak menghapus pelengkap ini.
+
 ## Halaman
 
 | Halaman | Isi |
@@ -74,6 +112,7 @@ dibuatnya sendiri (scope `drive.file`). Satu-satunya pengecualian: kolom Artikel
 | **Social Media** | Posts vs kuota (IG Reels & Carousel), hari aktif publish, reach/views/interaksi, engagement rate, performa per format/kategori/platform, top post. |
 | **Import Data** | Upload + preview, input manual, pengaturan kuota, riwayat import (hapus). |
 | **Report** (`/report`) | Ringkasan bulan siap cetak → tombol **Cetak / Simpan PDF** (print stylesheet). |
+| **Period Reports** (`/report/periods`) | Preview Instagram empat bulanan, generator Google Slides + PDF, dan riwayat laporan. |
 
 Bulan dipilih lewat selector di kanan atas (disimpan di URL `?m=YYYY-MM`). Dark mode lewat ikon matahari/bulan di kanan atas (Terang / Gelap / Sistem). Sidebar bisa diciutkan (ikon panel di kiri atas atau `Ctrl/⌘ + B`).
 
@@ -197,7 +236,7 @@ Bulan lama hasil import CSV tetap memakai definisi lama (jumlah per post); MoM a
 
 **Views per post: bulan ini vs lifetime.** API Instagram hanya memberi metrik lifetime per post, jadi angka per post terus bertambah setiap sync. Dashboard menampilkan:
 - **Views lifetime** dengan tanggal acuannya ("per 19 Okt 2026" = waktu sync post IG bulan itu).
-- **Views bulan ini** = views s/d snapshot pertama setelah bulan selesai (`IgMediaSnapshot`, maks. 7 hari setelah tanggal 1). Snapshot diambil tiap sync Meta dan **sekali sehari** lewat cron (`SYNC_CRON=1`); snapshot pertama 19 Okt 2026, jadi kolom ini mulai ada untuk Oktober (setelah snapshot 1 Nov).
+- **Views at month end** = views dari snapshot tepat pada tanggal terakhir bulan (`IgMediaSnapshot`, WIB). Peringkat Top posts untuk bulan selesai memakai angka ini; lifetime tetap ditampilkan terpisah. Snapshot tanggal sebelumnya atau awal bulan berikutnya tidak dipakai sebagai pengganti. Tanpa snapshot akhir bulan, nilai ditampilkan kosong. Snapshot diambil tiap sync Meta dan **sekali sehari** lewat timer cron (`SYNC_CRON=1`) selama proses Next.js berjalan; timer tidak berjalan saat server/laptop mati. Snapshot harian tidak masuk `SyncLog`, sehingga riwayat sync bulanan tidak membuktikan keberhasilan snapshot harian.
 - **Per jenis konten · selama bulan ini** (tabel `IgAccountByType`): insight akun dengan breakdown `media_product_type` — views & reach Reels / Carousel / Foto / Story selama bulan itu (termasuk post lama yang masih ditonton). Angka per periode, tidak berubah saat sync ulang.
 
 **Kunci bulan (Pengaturan → Connectors → Kunci bulan):** bulan terkunci tidak ditarik ulang oleh GA4, GSC, YouTube & Meta (Publishing Log tetap bisa di-sync), supaya angka laporan tidak berubah. **Tanggal potong (mulai Oktober 2026): tanggal 4 bulan berikutnya jam 15:00 WIB** (`CUTOFF_DAY` di `src/modules/shared/lib/month.ts`) — cron sync, mengunci bulan lalu, lalu membuat laporan. Metrik lifetime per post Instagram diambil dari snapshot tanggal 4 (`IgMediaSnapshot`) walau sync terlambat (server mati saat jadwal), supaya tiap bulan setara; snapshot tidak ada → angka saat sync + peringatan. Menarik ulang bulan terkunci: buka kunci di UI, atau `npm run sync -- --month=YYYY-MM --force`. Jul–Sep 2026 dikunci 19 Okt 2026.
@@ -444,7 +483,7 @@ Schema sengaja hanya memakai tipe portable (String/Int/Float/DateTime, tanpa enu
 - Untuk bulan tanpa Publishing Log, News tampil kosong dan kuota sosmed dihitung dari post Meta (tanpa Stories). Sejak connector Google Sheets, log Juli–September tersedia.
 - Facebook sengaja tidak dihitung (`ACTIVE_SOCIAL_PLATFORMS = ["instagram"]`); data FB lama di database diabaikan.
 - Impressions & CTR YouTube sebelum ±16 Sep 2026 dan unique viewers YouTube hanya ada dari export Studio lama (API tidak menyediakannya) — sync API mempertahankan nilai lama tersebut.
-- "Views bulan ini" per post baru tersedia mulai Oktober 2026 (butuh snapshot setelah bulan selesai); Jul–Sep hanya lifetime.
+- Views akhir bulan per post memerlukan snapshot tepat pada hari terakhir bulan. Snapshot dimulai 19 Oktober 2026; Juli–September dan 31 Oktober tidak tersedia. Snapshot 30 Oktober atau 2 November tidak dianggap sebagai data 31 Oktober.
 - TikTok belum dimasukkan. Baris TikTok di publishing log tetap tersimpan, tanpa metrik performa.
 - Batas "carousel maks 8 slide" belum dicek otomatis karena export Meta tidak memuat jumlah slide.
 - Tanpa autentikasi, hanya untuk localhost.
