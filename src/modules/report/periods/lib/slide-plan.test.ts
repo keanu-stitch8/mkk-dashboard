@@ -41,6 +41,28 @@ function apply(presentation: slides_v1.Schema$Presentation, requests: slides_v1.
 }
 
 describe("approved 13-slide template contract", () => {
+  it("preserves the edited first two slides, including 85% title spacing and the bold 16pt cover subtitle", () => {
+    const presentation = structuredClone(fixture) as unknown as slides_v1.Schema$Presentation;
+    const elements = slideElements(presentation);
+    const title = elements.get("gaa3fb9f80e_0_3814")!;
+    title.shape!.text!.textElements!.unshift({ paragraphMarker: { style: { lineSpacing: 85 } } });
+    const subtitle = elements.get("gaa3fb9f80e_0_3810")!;
+    subtitle.transform = { scaleX: 2.7654, scaleY: 0.1135, translateX: 438150, translateY: 3925775, unit: "EMU" };
+    subtitle.shape!.text!.textElements![0].textRun!.style = { fontSize: { magnitude: 16, unit: "PT" }, bold: true };
+    const firstTwo = new Set(slideElements({ slides: presentation.slides!.slice(0, 2) }).keys());
+    const plan = planPeriodSlides(presentation, buildPeriodData(reportPeriod(2), monthFixtures(2), [], "2027-03-04"));
+    const formatChanges = plan.requests.flatMap((request) => [
+      request.updatePageElementTransform?.objectId,
+      request.updateTextStyle?.objectId,
+      request.updateParagraphStyle?.objectId,
+      request.updateShapeProperties?.objectId,
+    ]).filter((id) => id && firstTwo.has(id));
+    expect(formatChanges).toEqual([]);
+    expect(plan.texts.find((text) => text.objectId === subtitle.objectId)!.text).toContain("Period 2 (Nov 2026 to Feb 2027)");
+    expect(title.shape!.text!.textElements![0].paragraphMarker!.style!.lineSpacing).toBe(85);
+    expect(subtitle.transform.translateY).toBe(3925775);
+    expect(subtitle.shape!.text!.textElements![0].textRun!.style).toEqual({ fontSize: { magnitude: 16, unit: "PT" }, bold: true });
+  });
   it("labels the approved post-period snapshot separately from the account reporting window", () => {
     const presentation = structuredClone(fixture) as unknown as slides_v1.Schema$Presentation;
     const months = monthFixtures();

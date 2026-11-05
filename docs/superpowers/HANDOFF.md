@@ -4,6 +4,22 @@ Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_m
 
 ## Titik lanjut terbaru — akhir sesi 5 November
 
+- **Master Slides baru setelah edit pengguna pada slide 1–2:** sumber laporan terbaru
+  `1JW8Jojjx_yAMyzaoi9N5bauwRL7jfvW-Wd7iWCQdG4A` disalin ke master aktif
+  `1JlHy6-mH95Jmaw71-pp5LctqxkPDypJAbOMvYWcuw9c`, dengan Sheet grafik mandiri
+  `1qBnu0U7N85RR0iT_xttidsXWXIm2BAEgI7GA3W_Lms4`. Keduanya berada di folder laporan yang sama.
+  Tiga grafik master memakai ID kanonik generator dan terhubung ke Sheet master baru. Default
+  `period-report-config.ts` sudah memakai pasangan ini, tanpa override `.env` lokal.
+  Generator kini mempertahankan format cover dari master, termasuk subjudul **16 pt bold**, posisi
+  baru, dan line height judul **0,85** (`lineSpacing: 85`). Tidak lagi menimpa transform/font cover.
+  Posisi elemen slide 2 mengikuti editan pengguna. PNG hasil ekspor slide 1–2 master identik dengan
+  sumber. Master tetap 13 slide, pemeriksaan struktur tanpa temuan, dan rencana generator berhasil
+  mengikat 137 bagian teks serta tiga grafik. OAuth dashboard bisa membaca kedua file master.
+  TypeScript, lint, **247 tes / 31 file**, serta build webpack lulus.
+  QA produksi Period 1/2 HTTP 200 dengan tautan master baru; Period 1 ready, Period 2 tetap diblokir.
+  Server QA sudah dihentikan. Perubahan master ini dibuat setelah commit/push `c735f87` dan
+  disertakan dalam commit sesi ini atas permintaan pengguna untuk commit dan push ke `main`.
+  Laporan sumber pengguna tidak diubah.
 - **Commit/push sesi 5 November:** pengguna sudah meminta "commit dan push" setelah menerima
   laporan YouTube Oktober yang diperbarui. Generator Period Reports, pelengkap follows CSV,
   penyelarasan snapshot cutoff, tes dan dokumen sesi ini disertakan dalam commit ke `main`.

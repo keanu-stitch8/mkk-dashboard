@@ -105,6 +105,9 @@ the linked charts against the new workbook, verifies the filled text and links, 
 records success through the existing report repository. History uses `GeneratedReport.channel = social_period`
 and `month = closing month`. No new migration is needed. Every run keeps earlier reports and master files.
 The existing Google Sheets OAuth connection supplies `drive.file`; the Cloud project must enable Slides API.
+The default master pair is a dedicated copy of the user's 5 November deck revision. The master owns
+the first two slides' geometry and typography, including the cover's 85% title line spacing and bold
+16pt subtitle. The text plan updates period values without overriding those cover styles or transforms.
 
 Generation is blocked before period end or when account insights are unavailable. Missing post snapshots
 produce warnings and `n/a` sections instead of blocking the entire report.

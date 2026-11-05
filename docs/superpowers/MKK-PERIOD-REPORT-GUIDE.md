@@ -17,8 +17,14 @@ Hitung tanggal terakhir dari bulan penutup, termasuk tahun kabisat. Data period 
 
 ## File acuan
 
-- Deck Period 1 `1unxVW_vYhscmcZJ-52f2r7CRVHThbTqbcGV92Ym-iM8`.
-- Sheet grafik khusus Period 1 `1CfOyCYaP_dwGtQ0qtBeCBq_mo69K-2zvvAgI06BMLwI`.
+- **Master aktif 5 November:** deck `1JlHy6-mH95Jmaw71-pp5LctqxkPDypJAbOMvYWcuw9c`,
+  Sheet grafik `1qBnu0U7N85RR0iT_xttidsXWXIm2BAEgI7GA3W_Lms4`.
+  Keduanya disalin dari laporan terbaru yang diedit pengguna
+  (`1JW8Jojjx_yAMyzaoi9N5bauwRL7jfvW-Wd7iWCQdG4A`), dengan grafik master terhubung ke Sheet master.
+  Slide 1–2 mempertahankan posisi dan gaya editan pengguna. Judul cover memakai line height **0,85**
+  (`lineSpacing: 85`), subjudul 16 pt bold. Generator mengisi teks dinamis tanpa menimpa format cover.
+- Acuan Period 1 lama `1unxVW_vYhscmcZJ-52f2r7CRVHThbTqbcGV92Ym-iM8` dan Sheet
+  `1CfOyCYaP_dwGtQ0qtBeCBq_mo69K-2zvvAgI06BMLwI` disimpan sebagai riwayat.
 - Template Orange lama `1d8gR6ZeIynCbR5LmmEcQY77li8JIqkXqJcjZoOGGhIw` belum disamakan dalam sesi ini. Jangan menyebutnya master final yang sudah diperbarui.
 
 Untuk period berikutnya, salin deck dan Sheet grafik menjadi file baru. Arahkan grafik pada deck baru ke Sheet baru dan verifikasi ID sumbernya. Mengganti data pada Sheet Period 1 dapat mengubah grafik laporan lama saat di-refresh. Jangan menimpa file laporan yang sudah selesai.

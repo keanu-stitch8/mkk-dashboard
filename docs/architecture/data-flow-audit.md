@@ -41,6 +41,11 @@ Period report generator verified: 2026-11-05.
       per-media long-format rows and provenance, Social uses an exact-ID overlay, period reports only fill
       missing follows after historical snapshot selection. Case studies are validated against the period's
       top ten. Live import verified API imports, SocialPost rows, account metrics, snapshots and locks unchanged.
+- [x] Approved Slides master revision (2026-11-05): default configuration uses a dedicated deck/workbook
+      pair copied from the user's latest edits. Cover geometry and typography now remain template-owned,
+      with a regression test for 85% title spacing and the bold 16pt subtitle. Native readback and exported
+      PNGs confirm slides 1–2 match the source; three chart links and dashboard OAuth access verified.
+      TypeScript, lint, 247 tests, webpack build and production Period Reports rendering pass.
 - [x] Missing period-end post snapshots (2026-11-05): period aggregation warns instead of blocking a
       completed report with all account months. UI and template plans render unavailable Top posts and
       case-study metrics as `n/a`, without inventing candidates or substituting adjacent dates. Verified

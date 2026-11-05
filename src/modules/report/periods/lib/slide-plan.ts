@@ -74,13 +74,8 @@ export function planPeriodSlides(presentation: slides_v1.Schema$Presentation, d:
   const casePost = d.caseStudy;
   const closingNote = d.followersEstimated ? "At period end (est.)" : "At period end";
   fill("gaa3fb9f80e_0_3814", PERIOD_REPORT_TITLE.replaceAll(" ", "\v"));
-  // Keep the cover's existing font size while allowing the explicit four-month title four lines.
-  requests.push(
-    { updatePageElementTransform: { objectId: "gaa3fb9f80e_0_3814", applyMode: "ABSOLUTE", transform: { scaleX: 1.3176, scaleY: 1.15, translateX: 438150, translateY: 500000, unit: "EMU" } } },
-    { updatePageElementTransform: { objectId: "gaa3fb9f80e_0_3810", applyMode: "ABSOLUTE", transform: { scaleX: 1.328, scaleY: 0.1135, translateX: 438150, translateY: 4200000, unit: "EMU" } } },
-  );
+  // The approved master owns cover geometry, typography and title line spacing.
   fill("gaa3fb9f80e_0_3810", `Main ke Kudus · Period ${p.number} (${p.shortRangeLabel})${options.organic ? " · 100% organic" : ""}`);
-  requests.push({ updateTextStyle: { objectId: "gaa3fb9f80e_0_3810", textRange: { type: "ALL" }, style: { fontSize: { magnitude: 10.9, unit: "PT" }, bold: false }, fields: "fontSize,bold" } });
   fill("ge442786401_0_1256", `Executive Summary · Period ${p.number} (${p.shortRangeLabel})`);
   fill("ge442786401_0_1299", `${num(d.closingFollowers)}\v${closingNote}`);
   fill("ge442786401_0_1301", `${num(d.views)}\v${pct(d.nonFollowerViewShare, 0)} from non-followers`);

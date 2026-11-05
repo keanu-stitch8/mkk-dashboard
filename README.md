@@ -73,7 +73,10 @@ dan PDF baru untuk empat bulan kalender penuh. Period 1 = Juli–Oktober 2026, P
   dashboard. Gunakan koneksi Google Sheets yang sudah memiliki izin `drive.file`.
 - Pilih period, periksa preview, pilih posting studi kasus, lalu klik **Generate Google Slides + PDF**.
   Target followers/tanggal bersifat opsional. Label organic hanya ditambahkan setelah dikonfirmasi pengguna.
-- Default sumber adalah deck dan Sheet Period 1 yang disetujui. Override opsional melalui
+- Default sumber adalah [master Slides](https://docs.google.com/presentation/d/1JlHy6-mH95Jmaw71-pp5LctqxkPDypJAbOMvYWcuw9c/edit)
+  dan [Sheet grafik master](https://docs.google.com/spreadsheets/d/1qBnu0U7N85RR0iT_xttidsXWXIm2BAEgI7GA3W_Lms4/edit),
+  salinan deck terbaru yang diedit pengguna pada 5 November. Slide 1–2 mengikuti tata letak master,
+  termasuk subjudul cover 16 pt bold dan line height judul 0,85. Override opsional melalui
   `REPORT_TEMPLATE_PERIOD_SLIDES` dan `REPORT_TEMPLATE_PERIOD_CHARTS`; folder tujuan mengikuti
   `REPORT_FOLDER_ID` atau folder sumber. Template pengganti harus mempertahankan struktur objek dan
   judul grafik yang digunakan generator.
