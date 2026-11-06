@@ -48,7 +48,7 @@ data-samples/
 ## Laporan bulanan Google Sheets
 
 Dashboard membuat laporan untuk client sebagai **file Google Sheets baru** dari master template per channel
-(Website, News). File laporan/template buatan user tidak pernah diubah — app hanya bisa menulis ke file yang
+(Website, News, Social Media, YouTube, Local Contributor). File laporan/template buatan user tidak pernah diubah — app hanya bisa menulis ke file yang
 dibuatnya sendiri (scope `drive.file`). Satu-satunya pengecualian: kolom Artikel/Brief di tracker kontributor
 ("Local Contributor - Task Progress") diisi dari panduan liputan atas permintaan tim (scope `spreadsheets`).
 
@@ -59,6 +59,12 @@ dibuatnya sendiri (scope `drive.file`). Satu-satunya pengecualian: kolom Artikel
    `{{…}}` tetap ada; `{{#tabel.kolom}}` = baris tabel yang digandakan otomatis sesuai jumlah data.
    News sama: `npx tsx scripts/report-template-news.ts --from=<ID laporan News contoh>` → `REPORT_TEMPLATE_NEWS=<id>`.
    Perubahan teks setelah template diedit user: `--patch=<id>` (jangan buat ulang, edit visual user hilang).
+   Local Contributor: `npx tsx --conditions=react-server scripts/report-template-contributors.ts --from=<ID master YouTube>`
+   → `REPORT_TEMPLATE_CONTRIBUTORS=<id>`. Format kartu mengikuti master YouTube saat disalin. Angka dibaca
+   dari data tracker kontributor yang sudah di-sync, bukan dari file report lama. Isinya KPI delivery ÷ 60,
+   media portrait/interview, log liputan dan pengiriman, serta rekap sampai bulan laporan. Tanpa nama
+   jurnalis/petugas footage, rincian per orang, total aset, atau catatan landscape photo.
+   Media yang belum dilacak diberi label Not tracked, bukan nol.
    Penanda khusus: `{{pagebreak}}` = PDF mulai halaman baru di baris itu. Sheet tersembunyi (mis. Ref) tidak ikut PDF.
 3. Halaman **Report** → "Buat laporan Google Sheets". Cron membuat laporan otomatis tgl 3 setelah bulan dikunci.
    Laporan lama bulan yang sama diberi akhiran "(lama …)", salinan yang gagal diisi diberi "(GAGAL …)".
@@ -72,7 +78,12 @@ dan PDF baru untuk empat bulan kalender penuh. Period 1 = Juli–Oktober 2026, P
 - Aktifkan **Google Slides API**, Google Sheets API, dan Google Drive API pada project Google Cloud OAuth
   dashboard. Gunakan koneksi Google Sheets yang sudah memiliki izin `drive.file`.
 - Pilih period, periksa preview, pilih posting studi kasus, lalu klik **Generate Google Slides + PDF**.
-  Target followers/tanggal bersifat opsional. Label organic hanya ditambahkan setelah dikonfirmasi pengguna.
+  Target followers/tanggal dapat diisi untuk menimpa rekomendasi. Period 1 memakai target yang disetujui,
+  3.000 followers pada 31 Desember 2026; period berikutnya memerlukan target baru. Label organic hanya
+  ditambahkan setelah dikonfirmasi pengguna.
+  Deck berisi 14 slide. Tabel kategori dihapus; urutan penutup adalah Recommendations & Next Steps,
+  Growth Outlook, Conclusion, lalu Methodology sebagai lampiran. Growth Outlook memakai saldo followers
+  akhir period untuk menghitung kekurangan dan kebutuhan net followers per hari.
 - Default sumber adalah [master Slides](https://docs.google.com/presentation/d/1JlHy6-mH95Jmaw71-pp5LctqxkPDypJAbOMvYWcuw9c/edit)
   dan [Sheet grafik master](https://docs.google.com/spreadsheets/d/1qBnu0U7N85RR0iT_xttidsXWXIm2BAEgI7GA3W_Lms4/edit),
   salinan deck terbaru yang diedit pengguna pada 5 November. Slide 1–2 mengikuti tata letak master,

@@ -6,7 +6,7 @@ import { createGeneratedReport } from "@/modules/report/repositories/report-repo
 import { copyFile, gcall, renameFile, reportClients, setIndonesianLocale } from "@/modules/report/pipeline/engine/sheets";
 import { uploadPdf } from "@/modules/report/pipeline/engine/pdf";
 import { periodReportName } from "../lib/period";
-import { PERIOD_CHARTS, planPeriodSlides, slideElements, verifyPeriodSlideText } from "../lib/slide-plan";
+import { PERIOD_CHARTS, PERIOD_SLIDE_COUNT, planPeriodSlides, slideElements, verifyPeriodSlideText } from "../lib/slide-plan";
 import { planPeriodCharts } from "../lib/chart-plan";
 import { parsePeriodRequest } from "../lib/options";
 import { getPeriodReportData } from "../services/period-data-service";
@@ -93,10 +93,10 @@ export async function generatePeriodReport(number: number, options: PeriodReport
       const linked = filledElements.get(chart.id)?.sheetsChart;
       if (linked?.spreadsheetId !== sheet.id || linked.chartId !== chart.chartId) throw new Error("A report chart still points to the wrong workbook.");
     }
-    if (filled.data.slides?.length !== 13) throw new Error("The generated report must contain 13 slides.");
+    if (filled.data.slides?.length !== PERIOD_SLIDE_COUNT) throw new Error("The generated report must contain 14 slides.");
     const exported = await gcall(() => c.drive.files.export({ fileId: deck.id, mimeType: "application/pdf" }, { responseType: "arraybuffer" }));
     const pdf = Buffer.from(exported.data as unknown as ArrayBuffer);
-    if ((await PDFDocument.load(pdf)).getPageCount() !== 13) throw new Error("The exported PDF must contain all 13 slides.");
+    if ((await PDFDocument.load(pdf)).getPageCount() !== PERIOD_SLIDE_COUNT) throw new Error("The exported PDF must contain all 14 slides.");
     const parents = (await gcall(() => c.drive.files.get({ fileId: deck.id, fields: "parents" }))).data.parents ?? undefined;
     const pdfFile = await uploadPdf(c, `${name}.pdf`, pdf, parents);
     created.push({ ...pdfFile, name: `${name}.pdf` });

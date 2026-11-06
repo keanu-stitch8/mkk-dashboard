@@ -4,7 +4,7 @@ import fixture from "../../../../../tests/fixtures/period-report-template.json";
 import { buildPeriodData } from "./period-data";
 import { reportPeriod } from "./period";
 import { monthFixtures } from "./period-test-fixture";
-import { PERIOD_CHARTS, planPeriodSlides, slideElements, verifyPeriodSlideText } from "./slide-plan";
+import { PERIOD_CHARTS, periodFollowerGoal, planPeriodSlides, slideElements, verifyPeriodSlideText } from "./slide-plan";
 import { planPeriodCharts } from "./chart-plan";
 
 /** Apply the relevant Google text/table operations to the text-only native-template fixture. */
@@ -40,7 +40,33 @@ function apply(presentation: slides_v1.Schema$Presentation, requests: slides_v1.
   }
 }
 
-describe("approved 13-slide template contract", () => {
+describe("approved 14-slide template contract", () => {
+  it("puts Growth Outlook directly before Conclusion and removes the category slide", () => {
+    const presentation = structuredClone(fixture) as unknown as slides_v1.Schema$Presentation;
+    const ids = presentation.slides!.map((s) => s.objectId);
+    expect(ids).not.toContain("t_cat");
+    expect(ids.indexOf("period_conclusion")).toBe(ids.indexOf("period_growth") + 1);
+    const data = buildPeriodData(reportPeriod(1), monthFixtures(), [], "2026-11-05");
+    data.closingFollowers = 2254;
+    const goal = periodFollowerGoal(data);
+    expect(goal).toMatchObject({ target: 3000, date: "2026-12-31", days: 61, remaining: 746 });
+    expect(goal.daily).toBeCloseTo(746 / 61);
+    const plan = planPeriodSlides(presentation, data);
+    expect(plan.texts.find((t) => t.objectId === "period_growth_gap_value")!.text).toContain("746");
+    expect(plan.texts.find((t) => t.objectId === "period_growth_daily_value")!.text).toContain("12,2");
+    expect(plan.texts.find((t) => t.objectId === "period_conclusion_body")!.text).toContain("31 December 2026");
+    expect(plan.texts.some((t) => t.objectId === "SLIDES_API620330423_45")).toBe(false);
+    const a = ids.indexOf("period_growth"), b = ids.indexOf("period_conclusion");
+    [presentation.slides![a], presentation.slides![b]] = [presentation.slides![b], presentation.slides![a]];
+    expect(() => planPeriodSlides(presentation, data)).toThrow("immediately before Conclusion");
+  });
+  it("does not carry the Period 1 target into a later period without a new goal", () => {
+    const d = buildPeriodData(reportPeriod(2), monthFixtures(2), [], "2027-03-04");
+    expect(periodFollowerGoal(d)).toMatchObject({ target: null, date: null, remaining: null, daily: null });
+    const plan = planPeriodSlides(structuredClone(fixture) as unknown as slides_v1.Schema$Presentation, d);
+    expect(plan.texts.find((t) => t.objectId === "period_growth_target_value")!.text).toContain("n/a");
+    expect(plan.texts.find((t) => t.objectId === "period_growth_daily_value")!.text).not.toMatch(/NaN|Infinity/);
+  });
   it("preserves the edited first two slides, including 85% title spacing and the bold 16pt cover subtitle", () => {
     const presentation = structuredClone(fixture) as unknown as slides_v1.Schema$Presentation;
     const elements = slideElements(presentation);
@@ -48,7 +74,7 @@ describe("approved 13-slide template contract", () => {
     title.shape!.text!.textElements!.unshift({ paragraphMarker: { style: { lineSpacing: 85 } } });
     const subtitle = elements.get("gaa3fb9f80e_0_3810")!;
     subtitle.transform = { scaleX: 2.7654, scaleY: 0.1135, translateX: 438150, translateY: 3925775, unit: "EMU" };
-    subtitle.shape!.text!.textElements![0].textRun!.style = { fontSize: { magnitude: 16, unit: "PT" }, bold: true };
+    subtitle.shape!.text!.textElements!.find((e) => e.textRun)!.textRun!.style = { fontSize: { magnitude: 16, unit: "PT" }, bold: true };
     const firstTwo = new Set(slideElements({ slides: presentation.slides!.slice(0, 2) }).keys());
     const plan = planPeriodSlides(presentation, buildPeriodData(reportPeriod(2), monthFixtures(2), [], "2027-03-04"));
     const formatChanges = plan.requests.flatMap((request) => [
@@ -61,7 +87,7 @@ describe("approved 13-slide template contract", () => {
     expect(plan.texts.find((text) => text.objectId === subtitle.objectId)!.text).toContain("Period 2 (Nov 2026 to Feb 2027)");
     expect(title.shape!.text!.textElements![0].paragraphMarker!.style!.lineSpacing).toBe(85);
     expect(subtitle.transform.translateY).toBe(3925775);
-    expect(subtitle.shape!.text!.textElements![0].textRun!.style).toEqual({ fontSize: { magnitude: 16, unit: "PT" }, bold: true });
+    expect(subtitle.shape!.text!.textElements!.find((e) => e.textRun)!.textRun!.style).toEqual({ fontSize: { magnitude: 16, unit: "PT" }, bold: true });
   });
   it("labels the approved post-period snapshot separately from the account reporting window", () => {
     const presentation = structuredClone(fixture) as unknown as slides_v1.Schema$Presentation;
@@ -84,7 +110,7 @@ describe("approved 13-slide template contract", () => {
     const plan = planPeriodSlides(presentation, d, { followerTarget: 3000, targetDate: "2027-05-31" });
     const keys = plan.texts.map((t) => `${t.objectId}:${t.row ?? "shape"}:${t.col ?? ""}`);
     expect(new Set(keys).size).toBe(keys.length);
-    expect(plan.texts.find((t) => t.objectId === "ge3bf6cbf14_0_365")!.text).toContain("1.600 more needed");
+    expect(plan.texts.find((t) => t.objectId === "period_growth_gap_value")!.text).toContain("1.600");
     apply(presentation, plan.requests);
     expect(() => verifyPeriodSlideText(presentation, plan.texts)).not.toThrow();
     const all = JSON.stringify(presentation);
@@ -101,9 +127,9 @@ describe("approved 13-slide template contract", () => {
     const d = buildPeriodData(reportPeriod(1), monthFixtures(), [], "2026-11-05");
     expect(planPeriodSlides(presentation, d, { organic: true }).texts.find((t) => t.objectId === "gaa3fb9f80e_0_3810")!.text).toContain("100% organic");
     presentation.slides!.pop();
-    expect(() => planPeriodSlides(presentation, d)).toThrow("13 slides");
+    expect(() => planPeriodSlides(presentation, d)).toThrow("14 slides");
   });
-  it("fills the 13-slide report without a case study and clears stale top-post and case-study values", () => {
+  it("fills the 14-slide report without a case study and clears stale top-post and case-study values", () => {
     const presentation = structuredClone(fixture) as unknown as slides_v1.Schema$Presentation;
     const months = monthFixtures();
     months[3].posts[0].capturedOn = "2026-11-04";
@@ -112,7 +138,7 @@ describe("approved 13-slide template contract", () => {
     expect(data.blockedReasons).toEqual([]);
     apply(presentation, plan.requests);
     expect(() => verifyPeriodSlideText(presentation, plan.texts)).not.toThrow();
-    expect(presentation.slides).toHaveLength(13);
+    expect(presentation.slides).toHaveLength(14);
     const elements = slideElements(presentation);
     const content = (id: string) => elements.get(id)!.shape!.text!.textElements!.map((text) => text.textRun?.content ?? "").join("").trim();
     expect(content("ge442786401_0_1301")).toContain("4.000");

@@ -2,6 +2,22 @@
 
 Keputusan pengguna pada 4 November 2026. Deck Period 1 yang sudah dirapikan menjadi acuan isi dan visual untuk laporan berikutnya.
 
+## Revisi penutup 5 November 2026
+
+- Tabel "Recorded views by publishing category" dihapus. Featured News, Featured Video, dan Teaser
+  tidak diganti dengan kategori topik karena sumber sosmed tidak mencatat topik tersebut.
+- Susunan kini **14 slide**. Setelah Recommendations & Next Steps, tampilkan **Growth Outlook**, lalu
+  **Conclusion**. Methodology tetap tersedia sebagai lampiran setelah Conclusion.
+- Growth Outlook memakai saldo akhir Oktober **2.254 (estimasi)**, target **3.000 pada 31 Desember 2026**,
+  kekurangan **746**, dan rata-rata kebutuhan **12,2 net follows per hari selama 61 hari**. Ini kebutuhan
+  untuk mencapai target, bukan proyeksi yang dijamin. Jangan memakai saldo followers terbaru setelah period.
+- Master dan generator memakai binding native `period_growth` dan `period_conclusion`. Slide pertama dan
+  kedua tetap memakai desain pengguna. Seluruh metrik posting pada deck aktif tetap memakai snapshot
+  **4 November 2026** yang sudah tertulis pada Top posts, studi kasus, dan Methodology; revisi ini hanya
+  mengubah susunan dan penutup, tidak mengganti basis metrik lama.
+- Target Period 1 menjadi default yang dapat ditimpa input generator. Period berikutnya tidak mewarisi
+  target atau tanggal Desember 2026. Tabel kategori lama tidak boleh muncul lagi saat generate.
+
 ## Kalender
 
 Setiap period mencakup empat bulan kalender penuh, dengan penomoran berlanjut.
@@ -62,7 +78,7 @@ Untuk period berikutnya, salin deck dan Sheet grafik menjadi file baru. Arahkan 
 - Pertahankan palet oranye muda ke tua, jenis huruf, radius kartu, dan lebar tabel yang sudah disetujui.
 - Caption slide 3, 5, dan 6 memakai kotak lebar yang sama. Pada ukuran internal 3.000.000 EMU, transform kotaknya `scaleX=2.6667`, `scaleY=0.1733`, `translateX=572000`, `translateY=4390000`, dengan jarak antarbaris 90%. Angka ini berlaku pada komposisi dan ukuran slide acuan ini.
 - Ringkas teks terlebih dahulu bila tidak muat. Pertahankan ukuran huruf dan periksa hasil native Google Slides.
-- Revisi susunan tetap 13 slide. Studi kasus memakai Views, Reach, Profile visits, dan Follows sebagai
+- Susunan terbaru 14 slide, termasuk Growth Outlook dan Conclusion. Studi kasus memakai Views, Reach, Profile visits, dan Follows sebagai
   empat metrik utama; likes/comments serta shares/saves menjadi rincian di bawah. Profile visits yang
   tidak tercatat pada snapshot period tetap `n/a`, bukan diisi dengan angka November.
 

@@ -48,6 +48,16 @@ Page-level counts (done / check / missing, groups, stage counts, medians) come f
 
 Contributors defaults to the latest contributor tab (not the latest Story/Brief month).
 
+The Local Contributor monthly report (`report/pipeline/channels/contributors.ts`) reads the existing
+`getContributors` and `getContributorRecap` services, then derives report data in `contributors-data.ts`.
+Delivery follows the Master Report and includes Extra Posts. The team target is
+60 per month. Report media KPIs count stories with available portrait photos, portrait video, or interview
+video. A completely blank media group is untracked, not zero. The delivery log shows story titles,
+planned/submission dates, submission status, and portrait/interview availability. It contains no names,
+assignees, individual contribution breakdown, asset total, or landscape-photo note.
+Recap rows stop at the selected month. Missing tracker data blocks generation before a report is copied.
+The `contributors` report uses `REPORT_TEMPLATE_CONTRIBUTORS` and the shared Sheets/PDF generator and cron.
+
 ## Scorecard snapshots
 
 `modules/connectors/sources/lock.ts` (ingest) calls `snapshotScorecard` when a month is locked and `clearScorecard` when it is

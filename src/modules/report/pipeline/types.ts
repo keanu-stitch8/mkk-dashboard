@@ -1,7 +1,7 @@
 export type Cell = string | number | null;
 /** Warna perubahan KPI: good = hijau, bad = merah, flat/none = abu. */
 export type Tone = "good" | "bad" | "flat" | "none";
-export type ReportChannelId = "website" | "news" | "youtube" | "social";
+export type ReportChannelId = "website" | "news" | "youtube" | "social" | "contributors";
 
 export interface ReportData {
   /** {{key}} → nilai */

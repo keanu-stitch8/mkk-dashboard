@@ -1,8 +1,106 @@
-# Handoff — MKK Dashboard (per 2026-11-05: generator Period Reports terverifikasi)
+# Handoff — MKK Dashboard (status akhir 6 November 2026)
 
 Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_modules/next/dist/docs/` sebelum menulis kode Next), **`docs/architecture/data-flow.md`** (kontrak alur data), `docs/channels-data-flow.md` (baris Social = alur IG audience baru), `docs/team-data-flow.md`, dan memory (`report-deck-style`, `contributor-pay-per-content`, `ig-api-metric-availability`, `mkk-connector-decisions`, `ambiguous-not-true`, `plan-before-report-changes`).
 
-## Titik lanjut terbaru — akhir sesi 5 November
+## Mulai di sini — status terbaru 6 November
+
+Bagian ini mengungguli catatan historis di bawah. **Dua pekerjaan sesi ini selesai:** monthly report
+Local Contributor dan revisi penutup deck Instagram Period 1. **Tidak ada sisa sinkronisasi PDF atau
+blocker approval.** Pada 6 November pengguna meminta **commit dan push** untuk seluruh perubahan
+kode/dokumen sesi ini. Pemeriksaan sebelum commit: TypeScript, lint, **253 tes / 32 file**, dan build
+produksi `SYNC_CRON=0 npm run build -- --webpack` lulus.
+Deploy kantor tetap ditunda sesuai arahan sebelumnya; jangan dijalankan sebagai kelanjutan otomatis.
+
+### File hasil dan master
+
+| Kegunaan | File |
+| --- | --- |
+| Local Contributor Oktober yang sudah direvisi dan diperiksa | [Google Sheets](https://docs.google.com/spreadsheets/d/1S2siv2AQONtT1ppJki_Rf1r9FHaAj-zX0z13rp6WqDg/edit) · [PDF](https://drive.google.com/file/d/1nMgE45bPDWkO1gNa-Rx_RV4nXgVdjQkO/view) |
+| Master Local Contributor | [Template](https://docs.google.com/spreadsheets/d/1eSgL6AqJBmQu0WvkxtdJ5kCoxGX-9MVGWVW7qSx1GG0/edit), terpasang di `.env` sebagai `REPORT_TEMPLATE_CONTRIBUTORS` |
+| Period 1 yang direvisi langsung dalam percakapan ini | [Deck](https://docs.google.com/presentation/d/1j5hu7i4BY7M-3VMCJH0qlAoUunrP2qmIzeJcGeyqF6E/edit) · [PDF 14 halaman](https://drive.google.com/file/d/1DX-R_MizMwUZV8BAi8Y5kQy40aOzjL1V/view) |
+| Master Period Reports | [Slides](https://docs.google.com/presentation/d/1JlHy6-mH95Jmaw71-pp5LctqxkPDypJAbOMvYWcuw9c/edit) · [Sheet grafik](https://docs.google.com/spreadsheets/d/1qBnu0U7N85RR0iT_xttidsXWXIm2BAEgI7GA3W_Lms4/edit) |
+
+**Bedakan file yang direvisi dengan riwayat terbaru:** read-only DB pada 6 November menemukan report
+`social_period` sukses yang lebih baru, dibuat **5 November 20.37 WIB**:
+[deck `1XsCaBjyz6ztndE3qGYEBKVuVbBV6yujI-hUCcrBNpes`](https://docs.google.com/presentation/d/1XsCaBjyz6ztndE3qGYEBKVuVbBV6yujI-hUCcrBNpes/edit)
+dan [PDF `147WzGcAiYoTvXBUHN9P4jOfiflYln9yX`](https://drive.google.com/file/d/147WzGcAiYoTvXBUHN9P4jOfiflYln9yX/view).
+Tautan ini terverifikasi dari `GeneratedReport`, tetapi isi/visual file tersebut **tidak diperiksa ulang
+dalam tugas pembaruan handoff**. Jangan menyebut `1j5hu…` sebagai riwayat DB paling baru. Sebelum revisi
+berikutnya, cocokkan file yang dimaksud pengguna dengan URL dan riwayat DB; jangan menimpa file lain.
+
+### Local Contributor monthly report
+
+- Channel generator **`contributors`**, judul **Local Contributor**, masuk ke daftar Monthly Reports
+  dan cron melalui pipeline bersama. Tidak ada migrasi DB baru; perubahan schema hanya komentar channel.
+- Sumber tracker pengguna: [Local Contributor Task Progress 2026](https://docs.google.com/spreadsheets/d/15LY6CsihTxJsHl7Zh2F1qUJ8bqY93TI2Wo8OOoYceOE/edit#gid=907883353).
+  Report memakai service/data yang sudah di-sync, bukan membaca Google saat render halaman.
+- Fokus client **KPI tim + delivery log**, rekap bulanan, serta Metric Guide. **Tidak menampilkan nama
+  jurnalis/petugas footage, assignee, rincian per orang, total aset, landscape photo, atau catatannya.**
+  Halaman internal Contributors beserta data nama/kreditnya tetap seperti sebelumnya; pembatasan ini
+  berlaku pada report client.
+- Delivery mengikuti Master Report: satu item berstatus Submitted = satu konten, termasuk Extra Posts;
+  target tim **60/bulan**. Media boleh tidak lengkap. Bulan mengikuti tab tracker, sehingga tanggal
+  Submitted setelah akhir bulan tidak otomatis memindahkan konten ke bulan berikutnya.
+- Delapan KPI Oktober: delivered **29/60**, achievement **48,3%**, remaining **31**, Extra Posts **0**,
+  portrait photo **35**, portrait video **37**, interview video **31**, cerita dengan footage tersedia **37**.
+  Media dihitung per cerita, bukan jumlah file. Kelompok media seluruhnya kosong berarti **Not tracked**.
+- Delivery log berisi No., Planned, Story, Status, Submitted, Portrait photo, Portrait video, Interview video.
+  Status kosong ditulis **Waiting**, sesuai pilihan pengguna. Tanggal Submitted kosong dan status media
+  yang belum tercatat sama-sama memakai **em dash `—`**, bukan hyphen `-`. Waiting tidak mengubah status
+  mentah di tracker dan tidak boleh diartikan sebagai konfirmasi progres yang belum ada.
+- No. dan Planned **header + data rata tengah**; Status dan Submitted juga rata tengah. Data tiga
+  kolom media rata tengah. Header tabel satu baris, font/lebar kolom tetap. Pada Monthly Recap, Month
+  rata kiri; semua header/data angka rata kanan dengan padding yang sama.
+- Title bar dan subtitle halaman detail mengikuti master Social Media: judul merge **A1:L2**, dua
+  baris masing-masing **20 px**, Carlito **18 pt** bold; subtitle langsung pada baris 3, **32 px**,
+  Carlito **10 pt** italic. Jangan mengembalikan baris kosong antara title bar dan subtitle.
+- PDF Oktober **7 halaman**, sudah diperbarui berulang pada **ID/link yang sama** setelah koreksi visual.
+  Angka dan nama file di `GeneratedReport` tidak perlu diganti saat hanya memperbarui format PDF.
+- Kode utama: `report/pipeline/channels/contributors.ts`, `contributors-data.ts` + tes, dan
+  `report/pipeline/engine/contributor-template.ts`; script pembuatan master
+  `scripts/report-template-contributors.ts`. Definisi channel/type serta `.env.example` sudah diperbarui.
+  Detail alur ada di `docs/team-data-flow.md` dan README.
+
+### Instagram Period Reports — keputusan final sesi ini
+
+- **Tabel publishing category dihapus**, termasuk rasio ambigu `32/55`. Jangan membuat kategori
+  Kuliner/Akomodasi dari asumsi: sumber sosmed tidak mencatat kategori topik tersebut. Draft asli
+  membagi performa menurut format Posts/Reels/Stories, yang sudah tercakup slide Views by Content Type.
+- Deck/master/generator kini **14 slide**. Penutupnya **Recommendations & Next Steps (11) → Growth
+  Outlook (12) → Conclusion (13) → Methodology (14, lampiran)**. Catatan lama tentang 13 slide sudah
+  digantikan keputusan ini. Jangan mengembalikan tabel kategori saat generate ulang.
+- Growth Outlook: saldo akhir Oktober **2.254 (estimasi)**; target **3.000 pada 31 Desember 2026**;
+  kekurangan **746**; kebutuhan **12,2 net follows/hari selama 61 hari**. Gunakan saldo akhir period,
+  bukan followers terkini. Ini kebutuhan mencapai target, bukan jaminan proyeksi pertumbuhan.
+- `periodFollowerGoal` menetapkan target default yang disetujui untuk **Period 1 saja**. Opsi eksplisit
+  menimpanya. Period berikutnya memerlukan target/deadline sendiri; jangan membawa Desember 2026 ke sana.
+- Master memakai binding `period_growth*` dan `period_conclusion*`. Layout Growth menduplikasi kartu
+  Executive Summary, Conclusion memakai layout native title/body Methodology. Cover/Executive Summary
+  asli, slide lain selain Recommendations, metrik, serta ketiga binding grafik sudah diverifikasi tetap.
+- Basis report tetap akun Juli–Oktober dan snapshot posting **4 November 2026** yang sudah tercatat pada
+  deck. Permintaan ini tidak mengubah cutoff atau memasukkan followers November sebagai saldo Oktober.
+  Detail terbaru ada di `docs/superpowers/MKK-PERIOD-REPORT-GUIDE.md`.
+- PDF Drive `1DX-R_…` **sudah sinkron**, 14 halaman / **334.036 byte**, checksum dan ukuran cocok dengan
+  PDF lokal. Upload sempat tertunda karena usage limit pada approval review; setelah pengguna meminta
+  lanjut, upload selesai melalui approval flow yang sama. **Jangan mengulang status blocker lama.**
+
+### Verifikasi dan kelanjutan
+
+- Pemeriksaan kode terakhir: TypeScript, lint, **253 tes / 32 file**, dan build produksi
+  `SYNC_CRON=0 npm run build -- --webpack` lulus. Seluruh 14 slide dirender; checker native tanpa issue.
+  Local Contributor sudah diperiksa melalui PDF dan render HTTP halaman Report. Pembaruan handoff ini
+  hanya mengubah dokumentasi; tidak menjalankan sync, generate report baru, migrasi, atau deploy.
+- Cakupan commit/push yang diminta pada 6 November: report Local Contributor, rencana/kontrak 14 slide
+  Period, fixture/tes, README, `.env.example`, komentar Prisma, dan dokumen handoff/alur data.
+  Commit/push berikutnya dan deploy tetap memerlukan instruksi baru yang jelas.
+- Tidak ada sisa pekerjaan teknis dari permintaan sesi ini. Jika pengguna meminta commit, baca ulang
+  diff dan lakukan pemeriksaan sesuai perubahan terbaru; jika meminta deploy, baru bahas target kantor.
+- File `/tmp/period-outlook/` dan `/tmp/contributor-*` hanya alat bantu sesi; bisa terhapus. Sumber tetap
+  repo dan file Drive di atas. Jangan bergantung pada cache `/tmp` untuk menentukan isi report terbaru.
+- Di sesi terminal ini, utamakan **Composio CLI** untuk layanan eksternal. Jangan mengulang write yang
+  hasilnya tidak pasti melalui surface lain. Jangan mencetak kredensial dari `.env` atau koneksi OAuth.
+
+## Riwayat — akhir sesi 5 November sebelum revisi di atas
 
 - **Master Slides baru setelah edit pengguna pada slide 1–2:** sumber laporan terbaru
   `1JW8Jojjx_yAMyzaoi9N5bauwRL7jfvW-Wd7iWCQdG4A` disalin ke master aktif
@@ -140,7 +238,31 @@ Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_m
   13 slide lulus. Server uji 3100 sudah dihentikan; tidak perlu mengulang pekerjaan yang sudah selesai.
   Rincian implementasi/provenance ada pada bagian revisi follows di bawah.
 
-## Status
+## Revisi penutup Period 1, 5 November malam
+
+- Deck terbaru yang diperbarui langsung: `1j5hu7i4BY7M-3VMCJH0qlAoUunrP2qmIzeJcGeyqF6E`.
+  Master aktif `1JlHy6-mH95Jmaw71-pp5LctqxkPDypJAbOMvYWcuw9c` sudah disamakan susunannya.
+- Tabel kategori Publishing Log dihapus. Jangan membuat kategori Kuliner/Akomodasi karena sumber sosmed
+  tidak mencatatnya. Recommendations & Next Steps diikuti Growth Outlook, Conclusion, lalu Methodology
+  sebagai lampiran. **Susunan terbaru 14 slide**, menggantikan kontrak 13 slide sebelumnya.
+- Growth Outlook memakai akhir Oktober 2.254 followers (estimasi), target 3.000 pada 31 Desember 2026,
+  kekurangan 746, dan kebutuhan 12,2 net follows/hari selama 61 hari. `periodFollowerGoal` memakai saldo
+  akhir period. Period 1 punya target default ini; period berikutnya memerlukan target sendiri.
+- Layout Growth Outlook menduplikasi kartu Executive Summary; Conclusion menduplikasi layout native
+  title/body Methodology. Binding `period_growth*` dan `period_conclusion*` dipakai generator dan fixture.
+  Cover, Executive Summary asli, slide lain selain Recommendations, serta tiga sumber grafik tetap sama.
+  Metrik posting tetap snapshot 4 November yang sudah tertulis di deck.
+- Verifikasi: native order/text readback, pengecek issue tanpa temuan, render semua 14 slide, TypeScript,
+  lint, **253 tes / 32 file**, dan build produksi `SYNC_CRON=0 npm run build -- --webpack` lulus.
+- **Sinkronisasi PDF selesai setelah pengguna meminta lanjut:** PDF Drive `1DX-R_MizMwUZV8BAi8Y5kQy40aOzjL1V`
+  sudah diganti dengan `/tmp/period-outlook/final.pdf`, 14 halaman / 334.036 byte. Readback Drive membuktikan
+  checksum dan ukuran sama dengan file lokal. Sebelum upload, urutan live deck juga diverifikasi kembali
+  (Growth Outlook slide 12, Conclusion slide 13). Blocker usage limit sebelumnya sudah terselesaikan
+  melalui approval flow yang sama; tidak ada sisa upload. Script ekspor dan verifikasi ada di
+  `/tmp/period-outlook/`.
+- Tidak ada commit otomatis. Perubahan Local Contributor dari sesi ini masih uncommitted.
+
+## Status historis sebelum revisi penutup
 
 | Bagian | Status |
 | --- | --- |
@@ -160,7 +282,7 @@ Baca ini dulu di chat baru, lalu `README.md`, `AGENTS.md` (Next 16: baca `node_m
 - Dokumen: `docs/channels-data-flow.md` (baris Social).
 - Backfill Jun–Nov sudah dijalankan (DB). Angka: followers 4 Nov **2.274** (terkunci); akhir bulan estimasi Jun 97 · Jul 455 · Agu 1.114 · Sep 1.666 · Okt 2.254.
 
-**Langkah berikutnya (chat baru mulai di sini):**
+**Langkah berikutnya pada sesi sebelumnya (riwayat, bukan antrean kerja aktif):**
 1. Perubahan 4 November sudah tercakup dalam commit `8b97e74`. Generator Period Reports dan pembaruan dokumen 5 November disertakan dalam commit sesi ini atas permintaan eksplisit pengguna untuk commit dan push. Perubahan berikutnya tetap menunggu instruksi commit baru.
 2. **Step 02 sudah diputuskan dan diterapkan:** judul "Maintain editorial diversity", deskripsi "Keep sport central, with food, tourism & human interest." (diringkas agar muat di kartu; thumbnail final sudah diperiksa, teks terbaca utuh) Mengikuti maksud draft asli Mba Indah: olahraga sebagai identitas utama, tema lain memperluas pengalaman sports tourism. Keseimbangan tema belum diukur. Usulan Claude lama "Back to July's 45/month" gugur (45 = 21 feed + 19 Reels + 5 video Juli, bukan target client). **Klarifikasi terakhir pengguna mengoreksi pembacaan KPI sebelumnya:** asal KPI 30 Reels + 30 Carousel/bulan dan 60 News/bulan, tetapi Stories JUGA termasuk dalam penghitungan kuota, mengikuti dashboard. Jangan mengubah penghitungan/output-vs-quota menjadi hanya Reels + Carousel. Perubahan isi pada sesi lanjutan: dua kotak teks Step 02; angka dan narasi Output vs Quota dipertahankan. Readback membuktikan 13 slide dan urutannya tetap. Setelah itu pengguna meminta perbaikan layout slide 6 (Output vs Quota): kotak caption diperlebar dan ditinggikan, kalimat October dipisah ke baris kedua, line spacing caption + tiga kartu menjadi 90% (sebelumnya 100%); ukuran font tetap. Preview diperiksa.
 3. Opsional: samakan template oranye (warna kartu muda→tua, kotak rounded) supaya Period 2 langsung rapi; hapus deck v1 (warm_orange) ke Trash bila pengguna setuju; tambah kolom **tema** di Socmed log bila tim mau mengukur keseimbangan tema.

@@ -3,10 +3,11 @@ import { fmtNum, fmtPct } from "@/modules/shared/lib/format";
 import { monthLabel } from "@/modules/shared/lib/month";
 import { completeTotal } from "./period-data";
 import { PERIOD_REPORT_TITLE, periodDate } from "./period";
-import type { PeriodCategory, PeriodReportData, PeriodReportOptions } from "../types/period-report";
+import type { PeriodReportData, PeriodReportOptions } from "../types/period-report";
 
 export interface SlideTextExpectation { objectId: string; row?: number; col?: number; text: string }
 export interface PeriodSlidePlan { requests: slides_v1.Schema$Request[]; texts: SlideTextExpectation[]; warnings: string[] }
+export const PERIOD_SLIDE_COUNT = 14;
 
 export const PERIOD_CHARTS = [
   { objectId: "chart_101303", title: "Followers at month end", kind: "followers" },
@@ -29,18 +30,21 @@ export function slideElements(presentation: slides_v1.Schema$Presentation): Map<
   return elements;
 }
 
-function displayCategories(categories: PeriodCategory[]): PeriodCategory[] {
-  if (categories.length <= 6) return categories;
-  const rest = categories.slice(5);
-  const posts = rest.reduce((n, r) => n + r.posts, 0);
-  const recordedPosts = rest.reduce((n, r) => n + r.recordedPosts, 0);
-  const views = completeTotal(rest.filter((r) => r.recordedPosts > 0).map((r) => r.views));
-  return [...categories.slice(0, 5), { label: "Other categories", posts, recordedPosts, views, avgViews: views == null ? null : views / recordedPosts }];
+/** The approved year-end goal applies to Period 1. Later periods need their own target. */
+export function periodFollowerGoal(d: PeriodReportData, options: PeriodReportOptions = {}) {
+  const target = options.followerTarget ?? (d.period.number === 1 ? 3000 : null);
+  const date = options.targetDate ?? (d.period.number === 1 ? "2026-12-31" : null);
+  const days = date ? Math.round((Date.parse(date) - Date.parse(d.period.endDate)) / 864e5) : null;
+  const remaining = target == null || d.closingFollowers == null ? null : Math.max(0, target - d.closingFollowers);
+  return { target, date, days, remaining, daily: remaining != null && days != null && days > 0 ? remaining / days : null };
 }
 
 /** Fill the approved native objects in a copy. No source-template writes or layout reconstruction. */
 export function planPeriodSlides(presentation: slides_v1.Schema$Presentation, d: PeriodReportData, options: PeriodReportOptions = {}): PeriodSlidePlan {
-  if (presentation.slides?.length !== 13) throw new Error("The period template must contain the approved 13 slides.");
+  if (presentation.slides?.length !== PERIOD_SLIDE_COUNT) throw new Error("The period template must contain the approved 14 slides.");
+  const order = presentation.slides.map((s) => s.objectId);
+  if (order.includes("t_cat") || order.indexOf("period_growth") < 0 || order.indexOf("period_growth") !== order.indexOf("ge3bf6cbf14_0_216") + 1 || order.indexOf("period_conclusion") !== order.indexOf("period_growth") + 1)
+    throw new Error("The period template must place Growth Outlook after Recommendations, immediately before Conclusion, and omit the category slide.");
   const elements = slideElements(presentation);
   for (const chart of PERIOD_CHARTS) if (!elements.get(chart.objectId)?.sheetsChart) throw new Error(`The template is missing its ${chart.kind} chart.`);
   const structural: slides_v1.Schema$Request[] = [];
@@ -102,20 +106,6 @@ export function planPeriodSlides(presentation: slides_v1.Schema$Presentation, d:
   const quotaNote = d.quota == null ? "Output follows the Publishing Log." : `Output ${d.published >= d.quota ? "met" : "was below"} the period quota.`;
   fill("SLIDES_API620330423_40", `${quotaNote} Stories made up ${num(d.stories)} of ${num(d.published)} published posts.\v${last.label} had ${num(last.published)} published posts and ${num(last.inReview)} in review.`);
 
-  const cats = displayCategories(d.categories);
-  if (d.categories.length > 6) warnings.push("The category table combines categories after the top five into Other categories.");
-  table("SLIDES_API620330423_45", "Recorded views by publishing category", (cats.length ? cats : [{ label: "No matched categories", posts: 0, recordedPosts: 0, views: null, avgViews: null }]).map((r) => [r.label, `${num(r.recordedPosts)}/${num(r.posts)}`, num(r.views), num(r.avgViews)]));
-  fill("SLIDES_API620330423_45", "Posts*", 1, 1);
-  const categoryNote = `* Posts with views / total posts. Views and averages cover recorded posts only. Snapshot ${periodDate(snapshotDate, true)}.`;
-  const categoryNoteId = "period_category_note";
-  if (elements.has(categoryNoteId)) fill(categoryNoteId, categoryNote);
-  else {
-    const categorySlide = presentation.slides!.find((slide) => slide.pageElements?.some((element) => element.objectId === "SLIDES_API620330423_45"))!;
-    structural.push({ createShape: { objectId: categoryNoteId, shapeType: "TEXT_BOX", elementProperties: { pageObjectId: categorySlide.objectId!, size: { width: { magnitude: 3000000, unit: "EMU" }, height: { magnitude: 3000000, unit: "EMU" } }, transform: { scaleX: 2.666667, scaleY: 0.216667, translateX: 572000, translateY: 4480000, unit: "EMU" } } } });
-    const text = plain(categoryNote);
-    requests.push({ insertText: { objectId: categoryNoteId, insertionIndex: 0, text } }, { updateTextStyle: { objectId: categoryNoteId, textRange: { type: "ALL" }, style: { fontFamily: "Roboto", fontSize: { magnitude: 10, unit: "PT" }, foregroundColor: { opaqueColor: { rgbColor: { red: 0.3, green: 0.3, blue: 0.3 } } } }, fields: "fontFamily,fontSize,foregroundColor" } });
-    texts.push({ objectId: categoryNoteId, text });
-  }
   fill("SLIDES_API620330423_48", `${d.topPosts.length ? `Top ${d.topPosts.length} Content` : "Top Content · n/a"} · Period ${p.number}`);
   table("SLIDES_API620330423_49", `Top posts by views at ${periodDate(snapshotDate, true)}`, d.topPosts.length ? d.topPosts.map((r, i) => [String(i + 1), `${short(r.title, 76)} (${periodDate(r.date, true)})`, r.format === "carousel" ? "Carousel" : r.format === "reels" ? "Reel" : "Post", num(r.views), `${num(r.follows)}${r.followsCsv ? "*" : ""}`]) : [["n/a", "Month-end views unavailable", "n/a", "n/a", "n/a"]]);
 
@@ -170,16 +160,25 @@ export function planPeriodSlides(presentation: slides_v1.Schema$Presentation, d:
   fill("ge4430a8c27_0_864", shares.length ? `Non-followers accounted for ${pct(Math.min(...shares), 0)} to ${pct(Math.max(...shares), 0)} of monthly views` : "The follower split is unavailable for this period");
   fill("ge4430a8c27_0_869", `${pct(d.linkTapRate)} tap rate. Social sessions went from ${num(first.socialSessions)} to ${num(last.socialSessions)}.`);
 
-  let goalTitle = "Set the next follower goal";
-  let goalBody = "Agree the target and deadline after reviewing this period.";
-  if (options.followerTarget != null && options.targetDate) {
-    const days = Math.round((Date.parse(options.targetDate) - Date.parse(p.endDate)) / 864e5);
-    const needed = d.closingFollowers == null ? null : Math.max(0, options.followerTarget - d.closingFollowers);
-    goalTitle = `${num(options.followerTarget)} followers\vby ${periodDate(options.targetDate, true)}`;
-    goalBody = needed == null ? "The closing follower count is unavailable." : needed === 0 ? "Target reached. Agree a new follower goal." : `${num(needed)} more needed, about ${num(needed / days, 1)} a day.`;
-  }
-  fill("ge3bf6cbf14_0_364", goalTitle);
-  fill("ge3bf6cbf14_0_365", goalBody);
+  fill("ge3bf6cbf14_0_217", "Recommendations & Next Steps");
+  fill("ge3bf6cbf14_0_364", "Track the target");
+  fill("ge3bf6cbf14_0_365", "Review net follower growth against the next goal.");
+  const goal = periodFollowerGoal(d, options);
+  fill("period_growth_title", "Growth Outlook");
+  fill("period_growth_followers_label", "Followers");
+  fill("period_growth_followers_value", `${num(d.closingFollowers)}\v${periodDate(p.endDate)}${d.followersEstimated ? " (est.)" : ""}`);
+  fill("period_growth_target_label", "Target");
+  fill("period_growth_target_value", `${num(goal.target)}\v${goal.date ? `By ${periodDate(goal.date)}` : "Agree the next target date"}`);
+  fill("period_growth_gap_label", "Gap to target");
+  fill("period_growth_gap_value", `${num(goal.remaining)}\v${goal.remaining === 0 ? "Target reached" : "More net followers needed"}`);
+  fill("period_growth_daily_label", "Daily pace");
+  fill("period_growth_daily_value", `${num(goal.daily, 1)}\v${goal.days != null && goal.days > 0 ? `Net follows a day (${goal.days} days)` : "Set a target and deadline"}`);
+  fill("period_conclusion_title", "Conclusion");
+  fill("period_conclusion_body", [
+    `Main ke Kudus closed Period ${p.number} with ${d.followersEstimated ? "an estimated " : ""}${num(d.closingFollowers)} followers, up ${num(d.netFollows)} during ${p.rangeLabel}. Account insights recorded ${num(d.views)} views and ${num(d.profileVisits)} profile visits over the four months.`,
+    `Publishing output reached ${num(d.published)} posts${d.quota == null ? "" : ` against a period quota of ${num(d.quota)}`}. Stories accounted for ${num(d.stories)} posts, while Feed, Reels and video content totalled ${num(d.feedAndReels)}. Monthly Feed, Reels and video output ${last.feedAndReels < first.feedAndReels ? "fell" : last.feedAndReels > first.feedAndReels ? "rose" : "was unchanged"} from ${num(first.feedAndReels)} to ${num(last.feedAndReels)}.`,
+    `The next steps are to maintain useful editorial content, strengthen publishing consistency and improve the path from Instagram to the website.${goal.target != null && goal.date && goal.remaining != null ? ` The ${num(goal.target)}-follower goal for ${periodDate(goal.date)} requires ${num(goal.remaining)} more net followers from the closing balance.` : " Agree the next follower target and deadline using this period's results."}`,
+  ].join("\n\n"));
   // The reusable recommendations are editorial actions. They do not assert new performance facts.
   fill("ge3bf6cbf14_0_408", "Develop more food and destination lists");
   fill("ge3bf6cbf14_0_329", "Keep sport central, with food, tourism & human interest.");

@@ -101,13 +101,20 @@ Views, Reach, Profile visits and Follows; likes/comments and shares/saves appear
 
 The POST endpoint normalizes options and delegates to `pipeline/generate-period-report.ts`. This outbound
 pipeline checks template bindings, copies both Slides and chart workbook, fills only those copies, recreates
-the linked charts against the new workbook, verifies the filled text and links, exports a 13-page PDF, and
+the linked charts against the new workbook, verifies the filled text and links, exports a 14-page PDF, and
 records success through the existing report repository. History uses `GeneratedReport.channel = social_period`
 and `month = closing month`. No new migration is needed. Every run keeps earlier reports and master files.
 The existing Google Sheets OAuth connection supplies `drive.file`; the Cloud project must enable Slides API.
 The default master pair is a dedicated copy of the user's 5 November deck revision. The master owns
 the first two slides' geometry and typography, including the cover's 85% title line spacing and bold
 16pt subtitle. The text plan updates period values without overriding those cover styles or transforms.
+
+The 14-slide master omits the publishing-category performance table. Recommendations is followed by
+Growth Outlook, Conclusion, then Methodology as an appendix. The slide planner validates this structure.
+Growth Outlook uses the period's closing follower balance, target, deadline, remaining followers and
+calendar days after period end. Period 1 defaults to the approved 3,000 followers by 31 December 2026;
+later periods do not inherit this goal. Explicit options override it. Conclusion reuses these period totals
+and the same target calculation. Existing unrelated slides and all three chart bindings are preserved.
 
 Generation is blocked before period end or when account insights are unavailable. Missing post snapshots
 produce warnings and `n/a` sections instead of blocking the entire report.

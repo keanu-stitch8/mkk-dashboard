@@ -10,7 +10,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "Main ke Kudus · Period 1 (Jul to Oct 2026) · 100% organic\n"
+                    "content": "Main ke Kudus · Period 1 (Jul to Oct 2026)\n"
                   }
                 }
               ]
@@ -24,7 +24,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "Instagram Performance Report\n"
+                    "content": "Instagram\u000bFour-Month\u000bPerformance\u000bReport\n"
                   }
                 }
               ]
@@ -643,7 +643,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "2.254\u000bEnd Oct (est.)\n"
+                                "content": "2.254\u000bAt period end (est.)\n"
                               }
                             }
                           ]
@@ -702,7 +702,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "729.954\u000b≈74% from non-followers\n"
+                                "content": "729.954\u000b74% from non-followers\n"
                               }
                             }
                           ]
@@ -758,7 +758,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "+2.157\u000b≈17,5 new followers per day\n"
+                                "content": "2.157\u000bAbout 17,5 net follows a day\n"
                               }
                             }
                           ]
@@ -1036,7 +1036,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "+2.157\u000bNet follows, Period 1\n"
+                    "content": "2.157\u000bNet follows, Period 1\n"
                   }
                 }
               ]
@@ -1050,7 +1050,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "Monthly follower totals are estimates reconstructed from account snapshots and follow activity. July began with about 97 followers.\n"
+                    "content": "Monthly follower totals use the dashboard's recorded or reconstructed balances. The period opened with 97 followers.\n"
                   }
                 }
               ]
@@ -1060,8 +1060,8 @@
         {
           "objectId": "chart_101303",
           "sheetsChart": {
-            "chartId": 1106613600,
-            "spreadsheetId": "sample-chart-workbook"
+            "spreadsheetId": "1qBnu0U7N85RR0iT_xttidsXWXIm2BAEgI7GA3W_Lms4",
+            "chartId": 1106613600
           }
         }
       ]
@@ -1096,7 +1096,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Most views come from accounts that don't follow MKK yet\n"
+                            "content": "Views and reach beyond the existing follower base\n"
                           }
                         }
                       ]
@@ -1170,7 +1170,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Jul\n"
+                            "content": "Jul 26\n"
                           }
                         }
                       ]
@@ -1229,7 +1229,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Aug\n"
+                            "content": "Aug 26\n"
                           }
                         }
                       ]
@@ -1288,7 +1288,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Sep\n"
+                            "content": "Sep 26\n"
                           }
                         }
                       ]
@@ -1347,7 +1347,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Oct\n"
+                            "content": "Oct 26\n"
                           }
                         }
                       ]
@@ -1380,7 +1380,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "76,0%\n"
+                            "content": "76%\n"
                           }
                         }
                       ]
@@ -1555,8 +1555,8 @@
         {
           "objectId": "chart_vtypes",
           "sheetsChart": {
-            "chartId": 1699083086,
-            "spreadsheetId": "sample-chart-workbook"
+            "spreadsheetId": "1qBnu0U7N85RR0iT_xttidsXWXIm2BAEgI7GA3W_Lms4",
+            "chartId": 1699083086
           }
         }
       ]
@@ -1688,7 +1688,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "119\u000bFeed + Reels\n"
+                    "content": "119\u000bFeed + Reels + video\n"
                   }
                 }
               ]
@@ -1702,7 +1702,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "Output exceeded quota, mostly through Stories. Feed + Reels fell from 45 in July to 18 in October.\u000bOctober had 38 published posts and 8 in review.\n"
+                    "content": "Output met the period quota. Stories made up 232 of 351 published posts.\u000bOctober 2026 had 38 published posts and 8 in review.\n"
                   }
                 }
               ]
@@ -1712,243 +1712,8 @@
         {
           "objectId": "chart_voutput",
           "sheetsChart": {
-            "chartId": 1818551027,
-            "spreadsheetId": "sample-chart-workbook"
-          }
-        }
-      ]
-    },
-    {
-      "objectId": "t_cat",
-      "pageElements": [
-        {
-          "objectId": "SLIDES_API620330423_44",
-          "shape": {
-            "text": {
-              "textElements": [
-                {
-                  "textRun": {
-                    "content": "Performance by Category\n"
-                  }
-                }
-              ]
-            }
-          }
-        },
-        {
-          "objectId": "SLIDES_API620330423_45",
-          "table": {
-            "rows": 5,
-            "columns": 4,
-            "tableRows": [
-              {
-                "tableCells": [
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "Featured News gets the most views per post\n"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              {
-                "tableCells": [
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "Category\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "Posts\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "Views\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "Views per post\n"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              {
-                "tableCells": [
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "Featured News\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "55\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "260.614\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "4.738\n"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              {
-                "tableCells": [
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "Teaser\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "10\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "38.386\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "3.839\n"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              {
-                "tableCells": [
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "Featured Video\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "46\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "132.732\n"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "text": {
-                      "textElements": [
-                        {
-                          "textRun": {
-                            "content": "2.885\n"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            ]
+            "spreadsheetId": "1qBnu0U7N85RR0iT_xttidsXWXIm2BAEgI7GA3W_Lms4",
+            "chartId": 1818551027
           }
         }
       ]
@@ -1983,7 +1748,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Sport and food both feature in the top five.\n"
+                            "content": "Top posts by views at 4 Nov 2026\n"
                           }
                         }
                       ]
@@ -2068,7 +1833,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Athletes from Jordan, Singapore & Hong Kong (16 Aug)\n"
+                            "content": "Atlet Jordania, Singapura, Hongkong, Terkesan Keramahan Kudus (16 Aug 2026)\n"
                           }
                         }
                       ]
@@ -2090,7 +1855,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "24.601\n"
+                            "content": "24.608\n"
                           }
                         }
                       ]
@@ -2127,7 +1892,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "6 Soto Kudus (11 Sep)\n"
+                            "content": "6 Soto Kudus (11 Sep 2026)\n"
                           }
                         }
                       ]
@@ -2149,7 +1914,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "20.895\n"
+                            "content": "20.965\n"
                           }
                         }
                       ]
@@ -2160,7 +1925,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "212\n"
+                            "content": "213\n"
                           }
                         }
                       ]
@@ -2186,7 +1951,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Lim You Kepincut Batik Kudus (27 Aug)\n"
+                            "content": "Lim You Kepincut Batik Kudus (27 Aug 2026)\n"
                           }
                         }
                       ]
@@ -2208,7 +1973,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "20.070\n"
+                            "content": "20.163\n"
                           }
                         }
                       ]
@@ -2219,7 +1984,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "n/a\n"
+                            "content": "23*\n"
                           }
                         }
                       ]
@@ -2245,7 +2010,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "7 Warung Entok (22 Oct)\n"
+                            "content": "7 Warung Entok (22 Oct 2026)\n"
                           }
                         }
                       ]
@@ -2267,7 +2032,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "16.446\n"
+                            "content": "19.127\n"
                           }
                         }
                       ]
@@ -2278,7 +2043,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "n/a\n"
+                            "content": "277\n"
                           }
                         }
                       ]
@@ -2304,7 +2069,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Cek Sepatu Lari untuk Event di Kudus? (7 Aug)\n"
+                            "content": "Cek Sepatu Lari Untuk Event di Kudus? (7 Aug 2026)\n"
                           }
                         }
                       ]
@@ -2326,7 +2091,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "16.327\n"
+                            "content": "16.346\n"
                           }
                         }
                       ]
@@ -2346,6 +2111,20 @@
                 ]
               }
             ]
+          }
+        },
+        {
+          "objectId": "period_follows_note",
+          "shape": {
+            "text": {
+              "textElements": [
+                {
+                  "textRun": {
+                    "content": "Views snapshot 4 Nov 2026, after period end. * Follows are lifetime CSV counts uploaded 5 Nov 2026, export date unknown.\n"
+                  }
+                }
+              ]
+            }
           }
         }
       ]
@@ -2464,7 +2243,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "Latest available snapshot\u000b30 October\n"
+                          "content": "Snapshot\u000b4 November 2026\n"
                         }
                       }
                     ]
@@ -2492,7 +2271,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "11.059\n"
+                          "content": "12.707\n"
                         }
                       }
                     ]
@@ -2513,7 +2292,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "Fourth-highest post by views in Period 1\n"
+                          "content": "Published 22 October 2026 · #4 by views\n"
                         }
                       }
                     ]
@@ -2541,7 +2320,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "16.446\n"
+                          "content": "19.127\n"
                         }
                       }
                     ]
@@ -2562,7 +2341,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "Likes and comments totalled 267\n"
+                          "content": "Likes 282 · Comments 22\n"
                         }
                       }
                     ]
@@ -2576,7 +2355,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "Shares\n"
+                          "content": "Profile visits\n"
                         }
                       }
                     ]
@@ -2590,7 +2369,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "284\n"
+                          "content": "285\n"
                         }
                       }
                     ]
@@ -2611,7 +2390,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "Saves\n"
+                          "content": "Follows\n"
                         }
                       }
                     ]
@@ -2625,7 +2404,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "276\n"
+                          "content": "277\n"
                         }
                       }
                     ]
@@ -2639,7 +2418,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "Above the 267 likes and comments\n"
+                          "content": "Shares 324 · Saves 316\n"
                         }
                       }
                     ]
@@ -2670,7 +2449,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "7 Warung Entok · Carousel case study, 22 Oct\n"
+                    "content": "Case study · 7 Warung Entok\n"
                   }
                 }
               ]
@@ -2684,7 +2463,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "Post metrics as of 30 October, the latest available snapshot within Period 1. Post follows were unavailable.\n"
+                    "content": "Main metrics captured 4 Nov 2026. Includes activity after period end. Missing metrics stay n/a.\n"
                   }
                 }
               ]
@@ -2723,7 +2502,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "About 2 bio link taps for every 100 profile visits\n"
+                            "content": "Profile visits, bio link taps and website sessions\n"
                           }
                         }
                       ]
@@ -2797,7 +2576,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Jul\n"
+                            "content": "Jul 26\n"
                           }
                         }
                       ]
@@ -2856,7 +2635,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Aug\n"
+                            "content": "Aug 26\n"
                           }
                         }
                       ]
@@ -2915,7 +2694,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Sep\n"
+                            "content": "Sep 26\n"
                           }
                         }
                       ]
@@ -2948,7 +2727,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "2,0%\n"
+                            "content": "2%\n"
                           }
                         }
                       ]
@@ -2974,7 +2753,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "Oct\n"
+                            "content": "Oct 26\n"
                           }
                         }
                       ]
@@ -3007,7 +2786,7 @@
                       "textElements": [
                         {
                           "textRun": {
-                            "content": "3,0%\n"
+                            "content": "3%\n"
                           }
                         }
                       ]
@@ -3108,7 +2887,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "Organic growth\n"
+                                "content": "Audience growth\n"
                               }
                             }
                           ]
@@ -3122,7 +2901,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "≈97 → 2.254 followers in four months, no paid ads\n"
+                                "content": "97 to 2.254 followers during the period\n"
                               }
                             }
                           ]
@@ -3178,7 +2957,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "Feed + Reels down from 45 (Jul) to 18 (Oct)\n"
+                                "content": "Feed + Reels + video went from 45 to 18 posts a month\n"
                               }
                             }
                           ]
@@ -3234,7 +3013,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "Soto and athlete posts earned 212 and 235 follows\n"
+                                "content": "The highest recorded post follow count was 277\n"
                               }
                             }
                           ]
@@ -3290,7 +3069,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "Engagement rate fell from 13,8% to 10,7%\n"
+                                "content": "Engagement rate went from 13,8% to 10,7%\n"
                               }
                             }
                           ]
@@ -3346,7 +3125,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "Non-followers account for 67% to 83% of monthly views\n"
+                                "content": "Non-followers accounted for 67% to 83% of monthly views\n"
                               }
                             }
                           ]
@@ -3402,7 +3181,7 @@
                           "textElements": [
                             {
                               "textRun": {
-                                "content": "2,1% tap rate. Social sessions fell from 479 to 222.\n"
+                                "content": "2,1% tap rate. Social sessions went from 479 to 222.\n"
                               }
                             }
                           ]
@@ -4012,7 +3791,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "Recommendations & Target\n"
+                    "content": "Recommendations & Next Steps\n"
                   }
                 }
               ]
@@ -4252,7 +4031,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "3.000 followers by 31 Dec\n"
+                          "content": "Track the target\n"
                         }
                       }
                     ]
@@ -4266,7 +4045,7 @@
                     "textElements": [
                       {
                         "textRun": {
-                          "content": "746 more, about 12 a day. October averaged 19.\n"
+                          "content": "Review net follower growth against the next goal.\n"
                         }
                       }
                     ]
@@ -4281,6 +4060,551 @@
         },
         {
           "objectId": "ge3c09709ec_0_314"
+        }
+      ]
+    },
+    {
+      "objectId": "period_growth",
+      "pageElements": [
+        {
+          "objectId": "pg_8ec8ea61bbbadaa2e24bda",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_ce4a755cd59469aafb9b7e"
+              },
+              {
+                "objectId": "pg_a0946318e8920d16be7d75"
+              },
+              {
+                "objectId": "pg_f8446788350cbd0b7e0a46"
+              },
+              {
+                "objectId": "pg_cde4791401a502b35eaa02"
+              },
+              {
+                "objectId": "pg_7855c52091f46f940f135b"
+              },
+              {
+                "objectId": "pg_6953842c6282c4128f3a33"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_f4fbfb1125af7e5c275a5c",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_80b8216a13a8eb7969f2b5"
+              },
+              {
+                "objectId": "pg_758a1da47da98e96cb3130"
+              },
+              {
+                "objectId": "pg_11a3cb9917f7b4457e1af7"
+              },
+              {
+                "objectId": "pg_3f6fbb2233f3156169a4b7"
+              },
+              {
+                "objectId": "pg_187fbe902e059dfed5f20f"
+              },
+              {
+                "objectId": "pg_391047bc53c8f75fef1159"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_9517d96f802953679bfbae",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_08f1b0e06ce4f1aa286af3"
+              },
+              {
+                "objectId": "pg_c0faf1f46805ff6e2eec97"
+              },
+              {
+                "objectId": "pg_ff48535331c5066e63d63f"
+              },
+              {
+                "objectId": "pg_3980c3905011eb61595b07"
+              },
+              {
+                "objectId": "pg_ad22d846d0ac838d9c266d"
+              },
+              {
+                "objectId": "pg_f19fa4522720ca33af6e4b"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_8fec6b55885bc7fae46676",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_ec24146bcdd3eaaf480374"
+              },
+              {
+                "objectId": "pg_228be37c9f96975986d099"
+              },
+              {
+                "objectId": "pg_6b9d3e06d2bba65085f32b"
+              },
+              {
+                "objectId": "pg_15daf92ce6518861880236"
+              },
+              {
+                "objectId": "pg_0337d91bfcb18f90ada604"
+              },
+              {
+                "objectId": "pg_1132ad5ab9d8dbdaab6af6"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_e7275c9802d5b39bea3aca",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_5a7ecec3a9c020d72d1b5c"
+              },
+              {
+                "objectId": "pg_f5f79a5594f3aeb92b3e46"
+              },
+              {
+                "objectId": "pg_65af605e2f0b12f4069c2d"
+              },
+              {
+                "objectId": "pg_39df0f1d0f59fcd398bd99"
+              },
+              {
+                "objectId": "pg_de945fe26100439d859d7e"
+              },
+              {
+                "objectId": "pg_3753a51f35492264de4443"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_5801dd031a3e305cfabd6c",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_0ad1db5c80bdcd436e5b81"
+              },
+              {
+                "objectId": "pg_40067252b71b738ddd3164"
+              },
+              {
+                "objectId": "pg_ec508dae96e4793d45be5f"
+              },
+              {
+                "objectId": "pg_1629d1f4203c7350d26ad1"
+              },
+              {
+                "objectId": "pg_c6cfdf54bf585bd06963f4"
+              },
+              {
+                "objectId": "pg_d58dd0c27f1e61b8477448"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_9bc7fad37277a00446a975",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_b5642be483e06d6f58b1d3"
+              },
+              {
+                "objectId": "pg_dbb52bc66f81402cffdfdb"
+              },
+              {
+                "objectId": "pg_d5788939169c040a59e45d"
+              },
+              {
+                "objectId": "pg_94ae5f368c8054767a2ed8"
+              },
+              {
+                "objectId": "pg_3faa8ae167ab25802b9190"
+              },
+              {
+                "objectId": "pg_0ead76ca01dc2c001d262b"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_88626b5446f20e90e5d9a5",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_ef23d3d716b80ff55f09b0"
+              },
+              {
+                "objectId": "pg_0616bc8dd0d583cfa3e9b6"
+              },
+              {
+                "objectId": "pg_c7c55fa58e5891b66bad1e"
+              },
+              {
+                "objectId": "pg_0713ff3dde90a7ff6d837c"
+              },
+              {
+                "objectId": "pg_bc72befb9acdaaef010848"
+              },
+              {
+                "objectId": "pg_3b92bb35ab83a68da4a252"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "period_growth_title",
+          "shape": {
+            "text": {
+              "textElements": [
+                {
+                  "textRun": {
+                    "content": "Growth Outlook\n"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "objectId": "pg_761f3615c085c59e468876",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_43545de76b4e69832d7391",
+                "elementGroup": {
+                  "children": [
+                    {
+                      "objectId": "period_growth_followers_label",
+                      "shape": {
+                        "text": {
+                          "textElements": [
+                            {
+                              "textRun": {
+                                "content": "Followers\n"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "objectId": "period_growth_followers_value",
+                      "shape": {
+                        "text": {
+                          "textElements": [
+                            {
+                              "textRun": {
+                                "content": "2.254\u000b31 October 2026 (est.)\n"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "objectId": "pg_9004dfb77d44557bbd06a4",
+                "shape": {
+                  "text": {
+                    "textElements": [
+                      {
+                        "textRun": {
+                          "content": "01\n"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_8ecaa24aaafa33495ed1dc",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_a1c774cfb471ba52354d04",
+                "elementGroup": {
+                  "children": [
+                    {
+                      "objectId": "pg_eb97ba8cfcd8267abc2706"
+                    },
+                    {
+                      "objectId": "period_growth_gap_label",
+                      "shape": {
+                        "text": {
+                          "textElements": [
+                            {
+                              "textRun": {
+                                "content": "Gap to target\n"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "objectId": "period_growth_gap_value",
+                      "shape": {
+                        "text": {
+                          "textElements": [
+                            {
+                              "textRun": {
+                                "content": "746\u000bMore net followers needed\n"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "objectId": "pg_94f32013990f922135d225",
+                "shape": {
+                  "text": {
+                    "textElements": [
+                      {
+                        "textRun": {
+                          "content": "03\n"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_268790c7c382e0369ee04e",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_fec16b93965064106f084a",
+                "elementGroup": {
+                  "children": [
+                    {
+                      "objectId": "period_growth_target_label",
+                      "shape": {
+                        "text": {
+                          "textElements": [
+                            {
+                              "textRun": {
+                                "content": "Target\n"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "objectId": "period_growth_target_value",
+                      "shape": {
+                        "text": {
+                          "textElements": [
+                            {
+                              "textRun": {
+                                "content": "3.000\u000bBy 31 December 2026\n"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "objectId": "pg_b0498f5c6b34666209945e",
+                "shape": {
+                  "text": {
+                    "textElements": [
+                      {
+                        "textRun": {
+                          "content": "02\n"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_f1935aa67d19bfdd9be47f",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_19261205d5548b46e2b14d",
+                "elementGroup": {
+                  "children": [
+                    {
+                      "objectId": "pg_77029db27250b7b0379351"
+                    },
+                    {
+                      "objectId": "period_growth_daily_label",
+                      "shape": {
+                        "text": {
+                          "textElements": [
+                            {
+                              "textRun": {
+                                "content": "Daily pace\n"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "objectId": "period_growth_daily_value",
+                      "shape": {
+                        "text": {
+                          "textElements": [
+                            {
+                              "textRun": {
+                                "content": "12,2\u000bNet follows a day (61 days)\n"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "objectId": "pg_ef13d2733c1e3508dcabe1",
+                "shape": {
+                  "text": {
+                    "textElements": [
+                      {
+                        "textRun": {
+                          "content": "04\n"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_76c38f54d448d045f0d446"
+        },
+        {
+          "objectId": "pg_e20f60c8b454fa0fc17c7a",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_c4c0f43d8b61edb0ecefcc"
+              },
+              {
+                "objectId": "pg_dbd24d924b6efa64f90643"
+              },
+              {
+                "objectId": "pg_028737b9bed41ab8d6462c"
+              },
+              {
+                "objectId": "pg_efcb5e6d77da4cefb5eaa0"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_362f26557a165cad6b1502",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_7e6c36a69cba427cbc8d6c"
+              },
+              {
+                "objectId": "pg_f1282f57056c9a5251dae6"
+              },
+              {
+                "objectId": "pg_09c01a464caa56736bd5a3"
+              },
+              {
+                "objectId": "pg_cf1634e0c0fea339649c69"
+              },
+              {
+                "objectId": "pg_5efda2ab7a81e130d8f3a2"
+              },
+              {
+                "objectId": "pg_257083ae58692a5b85f3f8"
+              }
+            ]
+          }
+        },
+        {
+          "objectId": "pg_e5efcde05d570dd890b98d",
+          "elementGroup": {
+            "children": [
+              {
+                "objectId": "pg_4945f1e7dbac8afbd0fb03"
+              },
+              {
+                "objectId": "pg_742d74db30438c87f05263"
+              },
+              {
+                "objectId": "pg_a89b255752726239d39d82"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "objectId": "period_conclusion",
+      "pageElements": [
+        {
+          "objectId": "period_conclusion_title",
+          "shape": {
+            "text": {
+              "textElements": [
+                {
+                  "textRun": {
+                    "content": "Conclusion\n"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "objectId": "period_conclusion_body",
+          "shape": {
+            "text": {
+              "textElements": [
+                {
+                  "textRun": {
+                    "content": "Main ke Kudus closed Period 1 with an estimated 2.254 followers, up 2.157 during July to October 2026. Account insights recorded 729.954 views and 11.166 profile visits over the four months.\n\nPublishing output reached 351 posts against a period quota of 240. Stories accounted for 232 posts, while Feed, Reels and video content totalled 119. Monthly Feed, Reels and video output fell from 45 to 18.\n\nThe next steps are to maintain useful editorial content, strengthen publishing consistency and improve the path from Instagram to the website. The 3.000-follower goal for 31 December 2026 requires 746 more net followers from the closing balance.\n"
+                  }
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -4308,7 +4632,7 @@
               "textElements": [
                 {
                   "textRun": {
-                    "content": "Monthly account insights from the Instagram Graph API cover July to October. Output comes from the Publishing Log and website sessions from GA4.\nFollower totals for July to October are estimates reconstructed from account snapshots and recorded follows and unfollows. For 29 September to 29 October, the app recorded +452 and the API +493.\nReach counts unique accounts each month. Monthly reach cannot be added together. Months with 31 days cover the first 30.\nPost metrics use the latest available data within the reporting period. October posts use snapshots from 30 October, which lack post follows. Meta provides no follows or profile visits for Reels.\nOrganic Social sessions include other social platforms and Story link stickers.\n"
+                    "content": "Monthly account insights from the Instagram Graph API cover July to October 2026. Output comes from the Publishing Log and website sessions from GA4.\nFollower totals use recorded or reconstructed balances. Estimated figures are marked on the audience slide.\nReach counts unique accounts each month. Monthly reach cannot be added together. Months with 31 days cover the first 30.\nPost metrics use the 4 November 2026 snapshot, not 31 October 2026. They may include activity after the reporting period. Account totals retain the four calendar months. Other snapshot dates are not substituted. Missing metrics are shown as n/a.\nPer-post follows may be supplemented with lifetime CSV counts, including activity after the period. CSV uploaded 5 November 2026, export date unknown. The Instagram API does not provide Reel follows or profile visits.\nOrganic Social sessions include other social platforms and Story link stickers.\n"
                   }
                 }
               ]

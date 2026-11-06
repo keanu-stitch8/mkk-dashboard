@@ -4,6 +4,20 @@ Compliance with the [global data flow](./data-flow.md). Architecture review: 202
 Instagram audience and asset-score additions reviewed: 2026-11-04.
 Period report generator verified: 2026-11-05.
 
+Period closing-section revision (2026-11-05): master and generator now require 14 slides, omit publishing
+categories, and place Growth Outlook immediately after Recommendations and before Conclusion. Methodology
+remains an appendix. Target calculations use the closing follower balance and calendar days after period
+end; the approved Period 1 goal does not leak into later periods. Native readback verified unchanged
+unrelated slides and chart bindings. TypeScript, lint, 253 tests and the production build pass. The final
+14-page PDF has replaced the existing Drive PDF after resuming the previously blocked upload. A fresh
+Drive readback verified that its checksum and size match the rendered local artifact. No PDF upload remains pending.
+
+Local Contributor monthly report added: 2026-11-05. It reads existing contributor services, derives
+KPI/report rows in a pure builder, and uses the shared outbound Sheets/PDF pipeline and report repository.
+Its template preserves the existing monthly report card layout. The delivery log excludes contributor
+names and assignees. No asset total or landscape photo requirement is introduced. Tests cover Extra Posts, untracked media,
+month cutoffs, and template placeholder coverage.
+
 ## Done
 
 - [x] Final lock-cut-off alignment (2026-11-05): Social Top posts and period reports share
